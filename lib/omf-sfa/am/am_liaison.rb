@@ -43,6 +43,7 @@ module OMF::SFA::AM
       msg = @comm.create_message do |message|
         message.property('name', component.name)
         message.property('type', component.type)
+        message.property('uuid', component.uuid)
       end
 
       msg.on_inform_created do |message|
@@ -75,6 +76,7 @@ module OMF::SFA::AM
         end
       end
 
+      @leases ||= {}
       @leases[lease] = {} unless @leases[lease]
       @leases[lease] = { component.id => {:start => timer} }
     end

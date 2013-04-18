@@ -255,8 +255,12 @@ module OMF::SFA::AM
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
     def find_lease(lease_descr, lease_oproperties, authorizer)
+      debug "find_lease: '#{lease_descr.inspect}', '#{lease_oproperties.inspect}'"
       if lease_oproperties.empty?
         lease = OMF::SFA::Resource::OLease.first(lease_descr)
+        if lease.nil?
+          raise UnavailableResourceException.new "Unknown lease '#{lease_descr.inspect}'"
+        end
         authorizer.can_view_lease?(lease)
         return lease
       end
