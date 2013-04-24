@@ -27,7 +27,7 @@ module OMF::SFA::AM::RPC
     def get_version(options = {})
       debug "GetVersion"
       lease = OMF::SFA::Resource::OLease.create({:valid_from => Time.now + 5, :valid_until => Time.now + 15})
-      comp = OMF::SFA::Resource::Node.create({:name => test})
+      comp = OMF::SFA::Resource::Node.create({:name => 'test'})
       @liaison.enable_lease(lease, comp)
       @return_struct[:geni_api] = 2
       @return_struct[:code][:geni_code] = 0
