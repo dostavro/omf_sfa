@@ -107,7 +107,7 @@ module OMF::SFA::AM
 
     def initialize()
       @nil_account = OMF::SFA::Resource::OAccount.new(:name => '__default__', :valid_until => Time.now + 1E10)
-      @am_liaison = OMF::SFA::AM::AMLiaison.new
+      #@am_liaison = OMF::SFA::AM::AMLiaison.new
     end    
 
   end # OMFManager

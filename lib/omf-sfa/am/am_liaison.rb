@@ -19,7 +19,13 @@ module OMF::SFA::AM
     @leases = {}
 
     def initialize
-      EM.next_tick { @comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') }
+      #EM.next_tick do
+      OmfCommon.comm.on_connected do |comm|
+        puts "Connected!"
+      end
+      #end
+      #EM.next_tick { @comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') }
+      #@comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') 
       #@comm = OmfCommon::Comm::XMPP::Communicator.new({:username => 'am_liaison', :password => 'pw', :server => 'localhost'})
       #EM.next_tick { @comm.connect('am_liaison', 'pw', 'localhost') }
     end    

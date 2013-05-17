@@ -112,8 +112,8 @@ module OMF::SFA::AM
       # puts "ALICE::: #{OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(alice)}"
       opts[:handlers] = {
         # Should be done in a better way
-        :pre_rackup => lambda { 
-        },
+        :pre_rackup => lambda do
+        end,
         :pre_parse => lambda do |p, options|
           p.on("--test-load-am", "Load an AM configuration for testing") do |n| options[:load_test_am] = true end          
           p.separator ""
@@ -128,6 +128,15 @@ module OMF::SFA::AM
           load_trusted_cert_roots()
           init_data_mapper(opts)    
           check_dependencies()
+          EM.next_tick do 
+            #OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') do
+            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do
+              opts[:am][:liaison] = OMF::SFA::AM::AMLiaison.new
+              #OmfCommon.comm.on_connected do |comm|
+              #  puts "Connected!"
+              #end
+            end
+          end
         end
       }
 
@@ -146,8 +155,8 @@ opts = {
   :app_name => 'am_server',
   :port => 8001,
   :am => {
-    :manager => lambda { OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new) },
-    :liaison => OMF::SFA::AM::AMLiaison.new
+    :manager => lambda { OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new) }#,
+    #:liaison => lambda { OMF::SFA::AM::AMLiaison.new }
   },
   :ssl => {
     :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]), 
