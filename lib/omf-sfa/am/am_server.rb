@@ -106,13 +106,27 @@ module OMF::SFA::AM
       #nodes.last.leases << OMF::SFA::Resource::OLease.create(:name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
       #nodes.last.save
     end
-    
+
     def run(opts)
       # alice = OpenSSL::X509::Certificate.new(File.read('/Users/max/.gcf/alice-cert.pem'))
       # puts "ALICE::: #{OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(alice)}"
       opts[:handlers] = {
         # Should be done in a better way
         :pre_rackup => lambda do
+          #Thread.new do
+          #  begin
+          #    sleep 3
+          EM.next_tick do 
+            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do |el|
+              #opts[:liaison] = OMF::SFA::AM::AMLiaison.new
+              puts "Connected to the XMPP."
+            end
+          end
+          #  rescue Exception => ex
+          #    puts "ERROR: #{ex}"
+          #    puts "\t#{ex.backtrace.join("\n\t")}"
+          #  end
+          #end
         end,
         :pre_parse => lambda do |p, options|
           p.on("--test-load-am", "Load an AM configuration for testing") do |n| options[:load_test_am] = true end          
@@ -128,15 +142,15 @@ module OMF::SFA::AM
           load_trusted_cert_roots()
           init_data_mapper(opts)    
           check_dependencies()
-          EM.next_tick do 
-            #OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') do
-            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do
-              opts[:am][:liaison] = OMF::SFA::AM::AMLiaison.new
-              #OmfCommon.comm.on_connected do |comm|
-              #  puts "Connected!"
-              #end
-            end
-          end
+          #EM.next_tick do 
+          #  #OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') do
+          #  OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do
+          #    opts[:liaison] = OMF::SFA::AM::AMLiaison.new
+          #    #OmfCommon.comm.on_connected do |comm|
+          #    #  puts "Connected!"
+          #    #end
+          #  end
+          #end
         end
       }
 
@@ -151,25 +165,25 @@ end # module
 # Configure the web server
 #
 rpc = OMF::SFA::AM::AMServer.rpc_config()
-opts = {
+@opts = {
   :app_name => 'am_server',
   :port => 8001,
   :am => {
-    :manager => lambda { OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new) }#,
-    #:liaison => lambda { OMF::SFA::AM::AMLiaison.new }
-  },
+  :manager => lambda { OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new) },
+  :liaison => lambda { OMF::SFA::AM::AMLiaison.new }
+},
   :ssl => {
-    :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]), 
-    :key_file => File.expand_path(rpc[:ssl][:private_key_file]), 
-    :verify_peer => true
-    #:verify_peer => false
-  },
+  :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]), 
+  :key_file => File.expand_path(rpc[:ssl][:private_key_file]), 
+  :verify_peer => true
+#:verify_peer => false
+},
   #:log => '/tmp/am_server.log',
   :dm_db => 'sqlite:///tmp/am_test.db',
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru',  
 }
-OMF::SFA::AM::AMServer.new.run(opts)
+OMF::SFA::AM::AMServer.new.run(@opts)
 
 
 

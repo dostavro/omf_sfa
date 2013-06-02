@@ -1,5 +1,5 @@
 
-require 'nokogiri'    
+require 'nokogiri'
 require 'time'
 require 'zlib'
 require 'base64'
@@ -53,7 +53,7 @@ module OMF::SFA::AM::RPC
         :omf_am => "0.1"
       }
       return @return_struct
-      #{ 
+      #{
       #  :geni_api => 2,
       #  :code => {
       #    :geni_code => 0
@@ -96,7 +96,7 @@ module OMF::SFA::AM::RPC
         @return_struct[:output] = "'geni_rspec_version' argument is missing."
         @return_struct[:value] = {}
         return @return_struct
-        #ans = { 
+        #ans = {
         #  :code => {
         #    :geni_code => 1 # Bad Arguments
         #  },
@@ -110,7 +110,7 @@ module OMF::SFA::AM::RPC
         @return_struct[:output] = "'Version' or 'Type' of RSpecs are not the same with that 'GetVersion' returns."
         @return_struct[:value] = {}
         return @return_struct
-        #ans = { 
+        #ans = {
         #  :code => {
         #    :geni_code => 4 # Bad Version
         #  },
@@ -142,7 +142,7 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = res
       return @return_struct
 
-      #{ 
+      #{
       #  :code => {
       #    :geni_code => 0
       #  },
@@ -154,7 +154,7 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = {}
       return @return_struct
 
-      #{ 
+      #{
       #  :code => {
       #    :geni_code => 3
       #  },
@@ -174,7 +174,7 @@ module OMF::SFA::AM::RPC
 
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
-      
+
       rspec = Nokogiri::XML.parse(rspec_s)
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
 
@@ -221,7 +221,7 @@ module OMF::SFA::AM::RPC
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
 
       #raise OMF::SFA::AM::InsufficientPrivilegesException.new("Account is closed.") if authorizer.account.closed?
-      
+
       status = {}
       status['omf_expires_at'] = authorizer.account.valid_until.utc.strftime('%Y%m%d%H%M%SZ')
 
@@ -240,15 +240,15 @@ module OMF::SFA::AM::RPC
           {
             'geni_urn'=> r.urn,
             'geni_status' => r.status,
-            'geni_error' => '',          
+            'geni_error' => '',
           }
         end
         @return_struct[:value] = status
       else
         @return_struct[:value] = {}
       end
-      
-      
+
+
       @return_struct[:code][:geni_code] = 0
       return @return_struct
 
@@ -265,7 +265,7 @@ module OMF::SFA::AM::RPC
     end
 
     def renew_sliver(slice_urn, credentials, expiration_time, options)
-      debug('RenewSliver ', slice_urn, ' until <', expiration_time, '>') 
+      debug('RenewSliver ', slice_urn, ' until <', expiration_time, '>')
 
       if slice_urn.nil? || credentials.nil? || expiration_time.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
@@ -282,7 +282,7 @@ module OMF::SFA::AM::RPC
       debug('RenewSliver ', slice_urn, ' until <', expiration_time, '>')
       #authorizer.check_credentials(slice_urn, credentials.first, @manager)
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
-      
+
       @manager.renew_account_until({ :urn => slice_urn }, expiration_time, authorizer)
 
       @return_struct[:code][:geni_code] = 0
@@ -351,7 +351,7 @@ module OMF::SFA::AM::RPC
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials'"
         return @return_struct
-      end     
+      end
       #puts "SLICE URN: #{slice_urn}"
       account = @manager.close_account({ :urn => slice_urn }, authorizer)
 
@@ -366,7 +366,7 @@ module OMF::SFA::AM::RPC
       #}
     end
 
-    private 
+    private
 
     def initialize(opts)
       super

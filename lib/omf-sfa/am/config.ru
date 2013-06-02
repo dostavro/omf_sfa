@@ -9,7 +9,7 @@ class MyFile < Rack::File
     c, h, b = super
     #h['Access-Control-Allow-Origin'] = '*'
     [c, h, b]
-  end  
+  end
 end
 
 # There seem to be some issues with teh sfi.py tool
@@ -17,22 +17,29 @@ end
 
 #am_mgr = opts[:am][:manager]
 #sleep 10
+OMF::Common::Thin::Runner.instance.life_cycle(:pre_rackup)
 opts = OMF::Common::Thin::Runner.instance.options
 #puts self.methods.sort.inspect
+puts opts
 am_mgr = opts[:am][:manager]
 if am_mgr.is_a? Proc
   am_mgr = am_mgr.call()
 end
 
+am_liaison = opts[:am][:liaison]
+if am_liaison.is_a? Proc
+  am_liaison = am_liaison.call()
+end
+
 map RPC_URL do
   require 'omf-sfa/am/am-rpc/am_rpc_service'
-  service = OMF::SFA::AM::RPC::AMService.new({:manager => am_mgr, :liaison => opts[:am][:liaison]})
+  service = OMF::SFA::AM::RPC::AMService.new({:manager => am_mgr, :liaison => am_liaison})
 
   app = lambda do |env|
     [404, {"Content-Type" => "text/plain"}, ["Not found"]]
   end
 
-  run Rack::RPC::Endpoint.new(app, service, :path => '') 
+  run Rack::RPC::Endpoint.new(app, service, :path => '')
 end
 
 map "/" do
@@ -49,7 +56,7 @@ map "/" do
      stroke: #fff;
      stroke-width: 1.5px;
    }
-      
+
       line.link {
         stroke: #999;
         stroke-opacity: .6;
@@ -65,8 +72,8 @@ map "/" do
 }
   p = lambda do |env|
   puts "#{env.inspect}"
- 
-    return [200, {"Content-Type" => "text/html"}, [wrapper % frag]] 
+
+    return [200, {"Content-Type" => "text/html"}, [wrapper % frag]]
   end
   run p
 end
