@@ -1,5 +1,5 @@
 require 'omf_common'
-require 'omf_common/comm/xmpp/communicator'
+#require 'omf_common/comm/xmpp/communicator'
 
 #require 'omf-sfa/resource'
 require 'omf-sfa/am/am_manager'
@@ -12,7 +12,7 @@ module OMF::SFA::AM
   # This class implements the AM Liaison
   #
   class AMLiaison < OMF::Common::LObject
-    
+
     include OmfCommon
 
     attr_accessor :comm
@@ -25,10 +25,10 @@ module OMF::SFA::AM
         end
       end
       #EM.next_tick { @comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') }
-      #@comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') 
+      #@comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost')
       #@comm = OmfCommon::Comm::XMPP::Communicator.new({:username => 'am_liaison', :password => 'pw', :server => 'localhost'})
       #EM.next_tick { @comm.connect('am_liaison', 'pw', 'localhost') }
-    end    
+    end
 
     #def self.leases
     #  @@leases ||= {}
@@ -38,7 +38,7 @@ module OMF::SFA::AM
     # in the lease when the lease is about to start. At the end of the
     # lease the corresponding release messages will be sent to the components.
     #
-    # @param [OLease] lease Contains the lease information "valid_from" and 
+    # @param [OLease] lease Contains the lease information "valid_from" and
     #                 "valid_until" along with the reserved components
     #
     def enable_lease(lease, component)
@@ -82,7 +82,7 @@ module OMF::SFA::AM
     end
 
     def release_resource(resource, new_res, lease, component)
-      
+
       release_timer = EventMachine::Timer.new(lease[:valid_until] - Time.now) do
         #OmfCommon.eventloop.after(lease[:valid_from] - Time.now) do
         @leases[lease][component.id] = {:end => release_timer}

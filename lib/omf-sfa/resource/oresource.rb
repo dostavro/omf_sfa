@@ -16,29 +16,29 @@ autoload :OLease, 'omf-sfa/resource/olease'
 # module OMF::SFA::Resource
   # class OResource; end
 # end
-#require 'omf-sfa/resource/oaccount' 
+#require 'omf-sfa/resource/oaccount'
 
 
 module OMF::SFA::Resource
-  
+
   # This is the basic resource from which all other
   # resources descend.
   #
   # Note: Can't call it 'Resource' to avoid any confusion
   # with DataMapper::Resource
   #
-  class OResource 
+  class OResource
     include OMF::Common::Loggable
-    extend OMF::Common::Loggable    
-    
+    extend OMF::Common::Loggable
+
     include DataMapper::Resource
     include DataMapper::Validations
-    
+
     #@@default_href_prefix = 'http://somehost/resources/'
     @@default_href_prefix = '/resources'
-        
+
     @@oprops = {}
-    
+
     # managing dm object
     property :id,   Serial
     property :type, Discriminator
@@ -48,14 +48,14 @@ module OMF::SFA::Resource
     #property :href, String, :length => 255, :default => lambda {|r, m| r.def_href() }
     property :urn, String, :length => 255
     property :resource_type, String
-    
+
     has n, :o_properties, 'OProperty'
-    alias oproperties o_properties 
+    alias oproperties o_properties
 
 
     #has n, :contained_in_groups, :model => :Group, :through => GroupMembership
     #has n, :contained_in_groups, 'Group' #, :through => :group_membership #GroupMembership
-    
+
     #has n, :group_memberships
     #has n, :groups, 'Group', :through => :group_membership #, :via => :groups
 
@@ -77,7 +77,7 @@ module OMF::SFA::Resource
         pname = DataMapper::Inflector.pluralize(name)
         op[pname] = opts
 
-        define_method pname do 
+        define_method pname do
           res = oproperty_get(pname)
           if res == nil
             oproperty_set(pname, res = [])
@@ -114,26 +114,26 @@ module OMF::SFA::Resource
           #puts "NAME is '#{name}'"
           #puts "V is '#{v}'"
           oproperty_set(pname, v)
-        end 
+        end
 
 
-      else  
+      else
         op[name] = opts
 
-        define_method name do 
+        define_method name do
           res = oproperty_get(name)
-          if res.nil? 
+          if res.nil?
             res = opts[:default]
             if res.nil? && (self.respond_to?(m = "default_#{name}".to_sym))
               res = send(m)
             end
           end
           res
-        end 
+        end
 
-        define_method "#{name}=" do |v| 
+        define_method "#{name}=" do |v|
           oproperty_set(name, v)
-        end 
+        end
 
       end
     end
@@ -163,11 +163,11 @@ module OMF::SFA::Resource
 
     def href(opts = {})
       if prefix = opts[:name_prefix]
-        href = "#{prefix}/#{self.name || self.uuid.to_s}"                  
+        href = "#{prefix}/#{self.name || self.uuid.to_s}"
         # if self.name.start_with? '_'
         # h[:href] = prefix
         # else
-        # h[:href] = "#{prefix}/#{self.name || uuid}"          
+        # h[:href] = "#{prefix}/#{self.name || uuid}"
         # end
       elsif prefix = opts[:href_prefix] || @@default_href_prefix
         href = "#{prefix}/#{self.uuid.to_s}"
@@ -195,21 +195,21 @@ module OMF::SFA::Resource
       prop = self.oproperties.first(:name => pname)
       prop.nil? ? nil : prop.value
     end
-    alias_method :[], :oproperty_get 
+    alias_method :[], :oproperty_get
 
     def oproperty_set(pname, value)
       #puts "OPROPERTY_SET pname:'#{pname}', value:'#{value.class}', self:'#{self.inspect}'"
       pname = pname.to_sym
       if pname == :name
         self.name = value
-      else 
+      else
         self.save
         prop = self.oproperties.first_or_create(:name => pname)
         prop.value = value
       end
       value
     end
-    alias_method :[]=, :oproperty_set 
+    alias_method :[]=, :oproperty_set
 
     def oproperties_as_hash
       res = {}
@@ -264,6 +264,21 @@ module OMF::SFA::Resource
       set
     end
 
+    def self.resources_to_hash(resource, opts = {}, already_described = {})
+      if resource.kind_of? Enumerable
+        res = []
+        resource.each do |r|
+          res << resources_to_hash(r, already_described)
+        end
+        res = {:resources => res}
+      else
+        rh = resource.to_hash(already_described, opts)
+        already_described[resource] = true
+        res = {:resource => rh}
+      end
+      res
+    end
+
 
     before :save do
       unless self.uuid
@@ -284,7 +299,7 @@ module OMF::SFA::Resource
       end
     end
 
-    def destroy 
+    def destroy
       #debug "ORESOURCE destroy #{self}"
       self.remove_from_all_groups
 
@@ -320,7 +335,7 @@ module OMF::SFA::Resource
         'json_class' => self.class.name,
         'id'       => self.id
       }.to_json(*a)
-    end 
+    end
 
     #def self.from_json(o)
     #  puts "FROM_JSON"
@@ -344,7 +359,7 @@ module OMF::SFA::Resource
       name = self.name
       if  name && ! name.start_with?('_')
         h[:name] = self.name
-      end 
+      end
       h[:type] = self.resource_type || 'unknown'
 
       return h if objs.key?(self)
@@ -360,7 +375,7 @@ module OMF::SFA::Resource
 
     def _oprops_to_hash(h)
       klass = self.class
-      while klass 
+      while klass
         if op = @@oprops[klass]
           op.each do |k, v|
             k = k.to_sym
@@ -393,7 +408,7 @@ module OMF::SFA::Resource
   #      'json_class' => self.class.name,
   #      'els' => self.to_a.to_json
   #    }.to_json(*a)
-  #  end 
+  #  end
 
   #  def self.json_create(o)
   #    # http://www.ruby-lang.org/en/news/2013/02/22/json-dos-cve-2013-0269/
