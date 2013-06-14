@@ -37,13 +37,15 @@ module OMF::SFA::AM::RPC
     # @param [Rack::Request] Request provided by the Rack API
     # @param [AbstractAmManager#get_account] AM Manager for retrieving AM context
     #
-    def self.create_for_web_request(account_urn, credentials, request, am_manager)
+    def self.create_for_sfa_request(account_urn, credentials, request, am_manager)
 
       begin
         raise "Missing peer cert" unless cert_s = request.env['rack.peer_cert']
         peer = OMF::SFA::AM::UserCredential.unmarshall(cert_s)
       end
       debug "Requester: #{peer.subject} :: #{peer.user_urn}"
+
+      raise OMF::SFA::AM::InsufficientPrivilegesException.new "Credentials are missing." if credentials.nil?
 
       unless peer.valid_at?     
         OMF::SFA::AM::InsufficientPrivilegesException.new "The certificate has expired or not valid yet. Check the dates."

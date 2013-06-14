@@ -26,9 +26,6 @@ module OMF::SFA::AM::RPC
 
     def get_version(options = {})
       debug "GetVersion"
-      lease = OMF::SFA::Resource::OLease.create({:valid_from => Time.now + 5, :valid_until => Time.now + 15})
-      comp = OMF::SFA::Resource::Node.create({:name => 'test'})
-      @liaison.enable_lease(lease, comp)
       @return_struct[:geni_api] = 2
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = {
@@ -119,21 +116,34 @@ module OMF::SFA::AM::RPC
         #return ans
       end
 
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
       if slice_urn
-        resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
+        # have leases in top of rspec
+        resources = @manager.find_all_leases_for_account(authorizer.account, authorizer)
+        resources.concat(@manager.find_all_components_for_account(authorizer.account, authorizer))
+
+        # have leases inside the components
+        #resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
+
         res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources, {:type => 'manifest'}).to_xml
       else
-        resources = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
+        # have leases in top of rspec
+        resources = @manager.find_all_leases(authorizer)
+        resources.concat(@manager.find_all_components_for_account(@manager._get_nil_account, authorizer))
+
+        # have leases inside the components
+        #resources = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
+
         res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources).to_xml
       end
       # TODO: implement the "available_only" option
 
       # only list independent resources (TODO: What does this mean??)
-      resources = resources.select {|r| r.independent_component?}
+      #resources = resources.select {|r| r.independent_component?}
       #debug "Resources for '#{slice_urn}' >>> #{resources.inspect}"
 
+      #res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources).to_xml
       if compressed
 	      res = Base64.encode64(Zlib::Deflate.deflate(res))
       end
@@ -173,7 +183,7 @@ module OMF::SFA::AM::RPC
       end
 
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
       rspec = Nokogiri::XML.parse(rspec_s)
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
@@ -197,11 +207,13 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = {}
       return @return_struct
     rescue OMF::SFA::AM::UnknownResourceException => e
+      debug('CreateSliver Exception', e.to_s)
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
       @return_struct[:value] = {}
       return @return_struct
     rescue OMF::SFA::AM::FormatException => e
+      debug('CreateSliver Exception', e.to_s)
       @return_struct[:code][:geni_code] = 4 # Bad Version
       @return_struct[:output] = e.to_s
       @return_struct[:value] = {}
@@ -210,16 +222,17 @@ module OMF::SFA::AM::RPC
 
     def sliver_status(slice_urn, credentials, options)
       debug('SliverStatus for ', slice_urn)
+      #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
+
 
       if slice_urn.nil? || credentials.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials'"
-        @return_struct[:value] = {}
+        @return_struct[:value] = false
         return @return_struct
       end
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
-
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
       #raise OMF::SFA::AM::InsufficientPrivilegesException.new("Account is closed.") if authorizer.account.closed?
 
       status = {}
@@ -260,7 +273,7 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = false
       return @return_struct
     end
 
@@ -270,7 +283,7 @@ module OMF::SFA::AM::RPC
       if slice_urn.nil? || credentials.nil? || expiration_time.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials', 'expiration_time'"
-        @return_struct[:value] = {}
+        @return_struct[:value] = false
         return @return_struct
       end
 
@@ -281,7 +294,7 @@ module OMF::SFA::AM::RPC
       end
       debug('RenewSliver ', slice_urn, ' until <', expiration_time, '>')
       #authorizer.check_credentials(slice_urn, credentials.first, @manager)
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
       @manager.renew_account_until({ :urn => slice_urn }, expiration_time, authorizer)
 
@@ -297,12 +310,12 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::UnavailableResourceException => e
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = false
       return @return_struct
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = false
       return @return_struct
     end
 
@@ -317,7 +330,7 @@ module OMF::SFA::AM::RPC
         return @return_struct
       end
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
       # We don't like deleting things
       account = @manager.close_account({ :urn => slice_urn }, authorizer)
@@ -345,7 +358,7 @@ module OMF::SFA::AM::RPC
     # close the account but do not release its resources
     def shutdown_sliver(slice_urn, credentials, options = {})
       #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
-      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_web_request(slice_urn, credentials, @request, @manager)
+      authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
       if slice_urn.nil? || credentials.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments

@@ -164,16 +164,22 @@ module OMF::SFA::Resource
     def href(opts = {})
       if prefix = opts[:name_prefix]
         href = "#{prefix}/#{self.name || self.uuid.to_s}"
-        # if self.name.start_with? '_'
-        # h[:href] = prefix
-        # else
-        # h[:href] = "#{prefix}/#{self.name || uuid}"
-        # end
+      elsif opts[:href_use_class_prefix]
+        #href = "/#{self.resource_type}/#{self.name || self.uuid.to_s}"
+        href = "/#{self.resource_type.pluralize}/#{self.uuid.to_s}"
       elsif prefix = opts[:href_prefix] || @@default_href_prefix
         href = "#{prefix}/#{self.uuid.to_s}"
       end
       href
     end
+
+    def resource_type()
+      unless rt = attribute_get(:resource_type)
+        rt = self.class.to_s.split('::')[-1].downcase
+      end
+      rt
+    end
+
 
     # Return the status of the resource. Should be
     # one of: _configuring_, _ready_, _failed_, and _unknown_
@@ -294,8 +300,8 @@ module OMF::SFA::Resource
         # itself.
         # source: http://tools.ietf.org/html/rfc1737
         #
-        #name = self.name
-        self.urn = GURN.create(self.uuid.to_s, self.class).to_s
+        name = self.name
+        self.urn = GURN.create(name, :model => self.class).to_s
       end
     end
 
@@ -352,7 +358,18 @@ module OMF::SFA::Resource
     end
 
     def to_hash(objs = {}, opts = {})
-      #debug "to_hash:opts: #{opts.keys.inspect}::#{objs.keys.inspect}::"
+      #debug "to_hash(self):opts: #{opts.keys.inspect}::#{objs.keys.inspect}::"
+      h = to_hash_brief(opts)
+
+      return h if objs.key?(self)
+      objs[self] = true
+      return h if opts[:brief]
+
+      to_hash_long(h, objs.merge(brief: true), opts)
+      h
+    end
+
+    def to_hash_brief(opts = {})
       h = {}
       uuid = h[:uuid] = self.uuid.to_s
       h[:href] = self.href(opts)
@@ -360,12 +377,12 @@ module OMF::SFA::Resource
       if  name && ! name.start_with?('_')
         h[:name] = self.name
       end
-      h[:type] = self.resource_type || 'unknown'
+      h[:type] = self.resource_type
+      h
+    end
 
-      return h if objs.key?(self)
-      objs[self] = true
-
-      _oprops_to_hash(h)
+    def to_hash_long(h, objs = {}, opts = {})
+      _oprops_to_hash(h, opts.merge(brief: true))
       h
     end
 
@@ -373,20 +390,21 @@ module OMF::SFA::Resource
       @@default_href_prefix
     end
 
-    def _oprops_to_hash(h)
+    def _oprops_to_hash(h, opts)
       klass = self.class
       while klass
         if op = @@oprops[klass]
           op.each do |k, v|
             k = k.to_sym
             unless (value = send(k)).nil?
+              #puts "OPROPS_TO_HAHS(#{k}): #{value}::#{value.class}--#{oproperty_get(k)}"
               if value.kind_of? OResource
-                value = value.uuid.to_s
+                value = value.to_hash_brief(opts)
               end
               if value.kind_of? Array
                 next if value.empty?
                 value = value.collect do |e|
-                  (e.kind_of? OResource) ? e.uuid.to_s : e
+                  (e.kind_of? OResource) ? e.to_hash_brief(opts) : e
                 end
               end
 

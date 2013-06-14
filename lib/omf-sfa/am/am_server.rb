@@ -44,8 +44,16 @@ module OMF::SFA::AM
       certs.each do |fn|
         fne = File.join(trusted_roots, fn)
         if File.readable?(fne)
-          trusted_cert = OpenSSL::X509::Certificate.new(File.read(fne))
-          OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.add_cert(trusted_cert)
+          begin
+            trusted_cert = OpenSSL::X509::Certificate.new(File.read(fne))
+            OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.add_cert(trusted_cert)
+          rescue OpenSSL::X509::StoreError => e
+            if e.message == "cert already in hash table"
+              warn "X509 cert '#{fne}' already registered in X509 store"
+            else
+              raise e
+            end
+          end
         else
           warn "Can't find trusted root cert '#{trusted_roots}/#{fne}'"
         end
@@ -73,7 +81,6 @@ module OMF::SFA::AM
       # DataMapper.auto_migrate!
 
       DataMapper.auto_upgrade! if options[:dm_auto_upgrade]
-      load_test_am(options) if options[:load_test_am]
     end
 
 
@@ -81,50 +88,61 @@ module OMF::SFA::AM
       require  'dm-migrations'
       DataMapper.auto_migrate!
 
-      am = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
-      options[:am][:manager] = am
+      am = options[:am][:manager]
+      if am.is_a? Proc
+        am = am.call
+        options[:am][:manager] = am
+      end
 
       require 'omf-sfa/resource/oaccount'
       #account = am.find_or_create_account(:name => 'foo')
       account = OMF::SFA::Resource::OAccount.new(:name => 'foo')
 
+      require 'omf-sfa/resource/link'
       require 'omf-sfa/resource/node'
-      nodes = []
-      3.times do |i|
-        name = "node#{i}"
-        uuid = UUIDTools::UUID.sha1_create(UUIDTools::UUID_DNS_NAMESPACE, name)
-        nodes << (n = OMF::SFA::Resource::Node.create(:name => name, :uuid => uuid))
-        am.manage_resource(n)
-      end
-      #  am.find_resource 'n1', :requester_account => account
-      #nodes.first.leases << OMF::SFA::Resource::OLease.create(:name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
-      #nodes.first.leases << OMF::SFA::Resource::OLease.create(:name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
-      #nodes.first.save
+      require 'omf-sfa/resource/interface'
+      # nodes = {}
+      # 3.times do |i|
+        # name = "n#{i}"
+        # nodes[name] = n = OMF::SFA::Resource::Node.create(:name => name)
+        # am.manage_resource(n)
+      # end
 
-      #nodes.last.leases << OMF::SFA::Resource::OLease.create(:name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
-      #nodes.last.save
+      r = []
+      r << l = OMF::SFA::Resource::Link.create(:name => 'l')
+      r << OMF::SFA::Resource::Channel.create(:number => 1, :frequency => "2.412GHZ")
+      lease = OMF::SFA::Resource::OLease.create(:name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
+      2.times do |i|
+        r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}")
+        ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
+        ip = OMF::SFA::Resource::Ip.create(address: "10.0.1.#{i}", netmask: "255.255.255.0", ip_type: "ipv4", interface: ifr)
+        n.interfaces << ifr
+        l.interfaces << ifr
+        n.leases << lease
+      end
+      r.last.leases << OMF::SFA::Resource::OLease.create(:name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
+
+      am.manage_resources(r)
+    end
+
+    def init_am_manager(opts = {})
+      @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
+      (opts[:am] ||= {})[:manager] = @am_manager
     end
 
     def run(opts)
+      @am_manager = nil
+
       # alice = OpenSSL::X509::Certificate.new(File.read('/Users/max/.gcf/alice-cert.pem'))
       # puts "ALICE::: #{OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(alice)}"
       opts[:handlers] = {
         # Should be done in a better way
         :pre_rackup => lambda do
-          #Thread.new do
-          #  begin
-          #    sleep 3
           EM.next_tick do
             OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost', :auth => {}}) do |el|
-              #opts[:liaison] = OMF::SFA::AM::AMLiaison.new
               puts "Connected to the XMPP."
             end
           end
-          #  rescue Exception => ex
-          #    puts "ERROR: #{ex}"
-          #    puts "\t#{ex.backtrace.join("\n\t")}"
-          #  end
-          #end
         end,
         :pre_parse => lambda do |p, options|
           p.on("--test-load-am", "Load an AM configuration for testing") do |n| options[:load_test_am] = true end
@@ -136,21 +154,16 @@ module OMF::SFA::AM
           p.separator ""
         end,
         :pre_run => lambda do |opts|
+          puts "OPTS: #{opts.inspect}"
           init_logger()
+          check_dependencies()
           load_trusted_cert_roots()
           init_data_mapper(opts)
-          check_dependencies()
-          #EM.next_tick do
-          #  #OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') do
-          #  OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do
-          #    opts[:liaison] = OMF::SFA::AM::AMLiaison.new
-          #    #OmfCommon.comm.on_connected do |comm|
-          #    #  puts "Connected!"
-          #    #end
-          #  end
-          #end
+          init_am_manager(opts)
+          load_test_am(opts) if opts[:load_test_am]
         end
       }
+
 
       #Thin::Logging.debug = true
       require 'omf_common/thin/runner'
@@ -163,7 +176,7 @@ end # module
 # Configure the web server
 #
 rpc = OMF::SFA::AM::AMServer.rpc_config()
-@opts = {
+opts = {
   :app_name => 'am_server',
   :port => 8001,
   :am =>
@@ -172,19 +185,18 @@ rpc = OMF::SFA::AM::AMServer.rpc_config()
     #:liaison => lambda { OMF::SFA::AM::AMLiaison.new },
     #:r_controller => lambda { OMF::SFA::AM::XMPP::AMController.new }
   },
-  :ssl =>
-  {
+  :ssl => {
     :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]),
     :key_file => File.expand_path(rpc[:ssl][:private_key_file]),
     :verify_peer => true
     #:verify_peer => false
   },
-    #:log => '/tmp/am_server.log',
-    :dm_db => 'sqlite:///tmp/am_test.db',
-    :dm_log => '/tmp/am_server-dm.log',
-    :rackup => File.dirname(__FILE__) + '/config.ru',
+  #:log => '/tmp/am_server.log',
+  :dm_db => 'sqlite:///tmp/am_test.db',
+  :dm_log => '/tmp/am_server-dm.log',
+  :rackup => File.dirname(__FILE__) + '/config.ru',
 }
-  OMF::SFA::AM::AMServer.new.run(@opts)
+OMF::SFA::AM::AMServer.new.run(opts)
 
 
 

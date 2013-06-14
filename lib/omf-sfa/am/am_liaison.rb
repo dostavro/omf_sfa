@@ -1,7 +1,4 @@
 require 'omf_common'
-#require 'omf_common/comm/xmpp/communicator'
-
-#require 'omf-sfa/resource'
 require 'omf-sfa/am/am_manager'
 
 
@@ -24,15 +21,8 @@ module OMF::SFA::AM
           puts "AMLiaison ready."
         end
       end
-      #EM.next_tick { @comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost') }
-      #@comm = OmfCommon::Comm::XMPP::Communicator.init(:url => 'xmpp://am_liaison:pw@localhost')
-      #@comm = OmfCommon::Comm::XMPP::Communicator.new({:username => 'am_liaison', :password => 'pw', :server => 'localhost'})
-      #EM.next_tick { @comm.connect('am_liaison', 'pw', 'localhost') }
     end
 
-    #def self.leases
-    #  @@leases ||= {}
-    #end
 
     # It will send the corresponding create messages to the components contained
     # in the lease when the lease is about to start. At the end of the
