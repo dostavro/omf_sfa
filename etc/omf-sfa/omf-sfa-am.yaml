@@ -1,12 +1,12 @@
 
 omf_sfa_am:
   name: urn:xxx
-  
+
   endpoints:
     -
       type: xmlrpc
       port: 8001
       ssl:
-        cert_chain_file: ~/.omf/am-cert.pem 
-        private_key_file: ~/.omf/am-key.pem 
+        cert_chain_file: ~/.omf/am-cert.pem
+        private_key_file: ~/.omf/am-key.pem
       trusted_roots: ~/.omf/trusted_roots

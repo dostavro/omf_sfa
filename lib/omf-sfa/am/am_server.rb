@@ -115,7 +115,7 @@ module OMF::SFA::AM
           #  begin
           #    sleep 3
           EM.next_tick do
-            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost'}) do |el|
+            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost', :auth => {}}) do |el|
               #opts[:liaison] = OMF::SFA::AM::AMLiaison.new
               puts "Connected to the XMPP."
             end
