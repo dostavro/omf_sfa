@@ -6,7 +6,7 @@ module OMF::SFA::AM
 
     include OMF::SFA::Resource
 
-    attr_reader :user_urn, :user_uuid
+    attr_reader :user_urn, :user_uuid, :not_after
 
     def self.unmarshall(cert_s)
       cert = OpenSSL::X509::Certificate.new(cert_s)
@@ -19,6 +19,7 @@ module OMF::SFA::AM
 
     def initialize(cert)
       @cert = cert
+      @not_after = @cert.not_after
 
       @cert.extensions.each do |e|
         if e.oid == 'subjectAltName'
@@ -42,13 +43,13 @@ module OMF::SFA::AM
       end
     end
 
-    def subject 
+    def subject
       @cert.subject
     end
 
     def valid_at?(time = Time.now)
       debug "valid?  #{@cert.not_before} < #{time} < #{@cert.not_after}"
-      time >= @cert.not_before && time <= @cert.not_after      
+      time >= @cert.not_before && time <= @cert.not_after
     end
 
   end # UserCredential

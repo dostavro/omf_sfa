@@ -27,7 +27,7 @@ puts opts
 
 am_mgr = opts[:am][:manager]
 am_liaison = OMF::SFA::AM::AMLiaison.new
-am_controller = OMF::SFA::AM::XMPP::AMController.new(manager: am_mgr)
+am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opts[:xmpp]})
 
 require 'omf-sfa/am/am-rest/session_authenticator'
 use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,

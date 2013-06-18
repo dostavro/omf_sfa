@@ -78,6 +78,28 @@ module OMF::SFA::Resource
       super
     end
 
+    # Override to_hash_brief serialization
+    def to_hash_brief(opts = {})
+      h = super
+      leases = self.leases
+      unless leases.empty?
+        h[:leases] = leases.map do |l|
+          lease = {}
+          uuid = lease[:uuid] = l.uuid.to_s
+          lease[:href] = l.href(opts)
+          name = l.name
+          if  name && ! name.start_with?('_')
+            lease[:name] = l.name
+          end
+          lease[:type] = l.resource_type
+          lease[:valid_from] = l.valid_from
+          lease[:valid_until] = l.valid_until
+          lease[:status] = l.status
+          {:lease => lease}
+        end
+      end
+      h
+    end
 
     def clone
       clone = super

@@ -10,3 +10,12 @@ omf_sfa_am:
         cert_chain_file: ~/.omf/am-cert.pem
         private_key_file: ~/.omf/am-key.pem
       trusted_roots: ~/.omf/trusted_roots
+    -
+      type: xmpp
+      user: am_mgr-1.0
+      password: pw
+      server: localhost
+      auth:
+        :entity_cert: ~/.omf/rc.pem
+        :entity_key: ~/.omf/rc_key.pem
+        :root_cert_dir: ~/.omf/trusted_roots

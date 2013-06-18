@@ -22,9 +22,14 @@ module OMF::SFA::AM
 
     @@config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:omf_sfa_am]
     @@rpc = @@config[:endpoints].select { |v| v[:type] == 'xmlrpc' }.first
+    @@xmpp = @@config[:endpoints].select { |v| v[:type] == 'xmpp' }.first
 
     def self.rpc_config
       @@rpc
+    end
+
+    def self.xmpp_config
+      @@xmpp
     end
 
     def init_logger
@@ -111,7 +116,7 @@ module OMF::SFA::AM
       r = []
       r << l = OMF::SFA::Resource::Link.create(:name => 'l')
       r << OMF::SFA::Resource::Channel.create(:number => 1, :frequency => "2.412GHZ")
-      lease = OMF::SFA::Resource::OLease.create(:name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
+      lease = OMF::SFA::Resource::OLease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
       2.times do |i|
         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}")
         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
@@ -120,14 +125,14 @@ module OMF::SFA::AM
         l.interfaces << ifr
         n.leases << lease
       end
-      r.last.leases << OMF::SFA::Resource::OLease.create(:name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
+      r.last.leases << OMF::SFA::Resource::OLease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
 
       am.manage_resources(r)
     end
 
     def init_am_manager(opts = {})
       @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
-      (opts[:am] ||= {})[:manager] = @am_manager
+      opts.merge!({am: {manager: @am_manager}})
     end
 
     def run(opts)
@@ -139,7 +144,7 @@ module OMF::SFA::AM
         # Should be done in a better way
         :pre_rackup => lambda do
           EM.next_tick do
-            OmfCommon.init(:development, :communication => {:url => 'xmpp://am_liaison:pw@localhost', :auth => {}}) do |el|
+            OmfCommon.init(:development, :communication => {:url => "xmpp://#{@@xmpp[:user]}:#{@@xmpp[:password]}@#{@@xmpp[:server]}", :auth => {}}) do |el|
               puts "Connected to the XMPP."
             end
           end
@@ -175,28 +180,24 @@ end # module
 
 # Configure the web server
 #
-rpc = OMF::SFA::AM::AMServer.rpc_config()
+rpc = OMF::SFA::AM::AMServer.rpc_config
+xmpp = OMF::SFA::AM::AMServer.xmpp_config
 opts = {
   :app_name => 'am_server',
   :port => 8001,
-  :am =>
+  :ssl =>
   {
-    #:manager => lambda { OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new) },
-    #:liaison => lambda { OMF::SFA::AM::AMLiaison.new },
-    #:r_controller => lambda { OMF::SFA::AM::XMPP::AMController.new }
-  },
-  :ssl => {
     :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]),
     :key_file => File.expand_path(rpc[:ssl][:private_key_file]),
-    :verify_peer => true
-    #:verify_peer => false
+    :verify_peer => true,
   },
-  #:log => '/tmp/am_server.log',
+  :xmpp =>
+  {
+    :auth => xmpp[:auth],
+  },
   :dm_db => 'sqlite:///tmp/am_test.db',
   :dm_log => '/tmp/am_server-dm.log',
-  :rackup => File.dirname(__FILE__) + '/config.ru',
+  :rackup => File.dirname(__FILE__) + '/config.ru'
 }
 OMF::SFA::AM::AMServer.new.run(opts)
-
-
 

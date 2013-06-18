@@ -44,6 +44,26 @@ module OMF::SFA::Resource
       end
     end
 
+    # Override to_hash_brief serialization
+    def to_hash_brief(opts = {})
+      h = super
+      components = self.components
+      unless components.empty?
+        h[:components] = components.map do |c|
+          comp = {}
+          uuid = comp[:uuid] = c.uuid.to_s
+          comp[:href] = c.href(opts)
+          name = c.name
+          if  name && ! name.start_with?('_')
+            comp[:name] = c.name
+          end
+          comp[:type] = c.resource_type
+          {:component => comp}
+        end
+      end
+      h
+    end
+
     def to_sfa_ref_xml(res_el, obj2id, opts)
       if obj2id.key?(self)
         el = res_el.add_child(Nokogiri::XML::Element.new("ol:lease_ref", res_el.document))

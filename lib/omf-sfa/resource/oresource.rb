@@ -378,6 +378,7 @@ module OMF::SFA::Resource
         h[:name] = self.name
       end
       h[:type] = self.resource_type
+      h[:account] = self.account.name unless self.account.nil?
       h
     end
 
