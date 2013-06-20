@@ -90,8 +90,8 @@ module OMF::SFA::AM
 
 
     def load_test_am(options)
-      #require  'dm-migrations'
-      #DataMapper.auto_migrate!
+      require  'dm-migrations'
+      DataMapper.auto_migrate!
 
       am = options[:am][:manager]
       if am.is_a? Proc

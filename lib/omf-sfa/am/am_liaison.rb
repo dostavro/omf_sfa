@@ -26,27 +26,43 @@ module OMF::SFA::AM
     def create_account(account)
       debug "create_account: '#{account.inspect}'"
 
-      OmfCommon.comm.subscribe('user_controller') do |user_rc|
+      OmfCommon.comm.subscribe('userController') do |user_rc|
         unless user_rc.error?
           puts "User controller has been created: #{user_rc}"
           cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
 
-          user_rc.create(:user, hrn: account.name) do |user|
-            if user.success?
-              puts "Succesfully created user"
-              am_cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
-              # urn:publicid:IDN+omf:nitos+slice+alice
-              puts "ACCOUNT: #{account.inspect}"
-              user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', account.valid_until, user.key)
-              user.configure(certificate: user_cert)
+          user_rc.create(:user, hrn: 'newuser', username: account.name) do |reply_msg|
+            if reply_msg.success?
+              user = reply_msg.resource
+
+              user.on_subscribed do
+                info ">>> Connected to newly created user #{reply_msg[:hrn]}(id: #{reply_msg[:res_id]})"
+
+                user.on_message do |m|
+
+                  if m.operation == :inform
+                    if m.read_content("itype").eql?('STATUS')
+                      #info "#{m.inspect}"
+                      if m.read_property("status_type") == 'APP_EVENT'
+                        puts "Succesfully created user"
+                        am_cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
+                        # urn:publicid:IDN+omf:nitos+slice+alice
+                        #user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', account.valid_until, m.read_property('pub_key'))
+                        user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', 3600 * 365 * 10, m.read_property('pub_key'))
+                        user.configure(cert: user_cert.to_pem)
+                      end
+                    end
+                  end
+                end
+              end
             else
               error ">>> Resource creation failed - #{user[:reason]}"
             end
           end
         else
-          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
-        end
+        raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
       end
+    end
     end
 
     def authorize_keys(user, account)
