@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require 'omf_common'
+
+OmfCommon::Auth::CertificateStore.init
+
+#root = OmfCommon::Auth::Certificate.create(nil, 'omf_ca', 'ca', 'omf', nil, Time.now, 3600 * 365 * 10)
+root = OmfCommon::Auth::Certificate.create(nil, 'omf_ca', 'ca', 'omf', nil, Time.now, 3600 * 365 * 10)
+
+am_key = OpenSSL::PKey::RSA.new(2048)
+user_rc_key = OpenSSL::PKey::RSA.new(2048)
+
+am_pub = am_key.public_key
+user_rc_pub = user_rc_key.public_key
+
+am = root.create_for('urn:publicid:IDN+omf:nitos+authority+am', 'am', 'controller', 'omf', 3600 * 365 * 10, am_pub)
+urc = root.create_for('urn:publicid:IDN+omf:nitos+controller+user', 'user_rc', 'controller', 'omf', 3600 * 365 * 10, user_rc_pub)
+
+%w(root am_key user_rc_key am_pub user_rc_pub am urc).each do |n|
+  File.write("#{n}.pem", eval(n).to_pem)
+  info "Generated #{n}.pem"
+end

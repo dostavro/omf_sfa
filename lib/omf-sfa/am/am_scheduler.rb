@@ -18,7 +18,7 @@ module OMF::SFA::AM
     # Create a resource of specific type given its description in a hash. If the type
     # or the resource is physical then we create a clone of itself and assign it to
     # the user who asked for it (conceptually a physical resource even though it is exclusive,
-    # is never given to the user but instead we provide him a clone of the resource). 
+    # is never given to the user but instead we provide him a clone of the resource).
     # If the type is a 'lease' then we normally create a lease object.
     #
     # @param [Hash] resource_descr contains the properties of the new resource
@@ -52,16 +52,16 @@ module OMF::SFA::AM
         base_resource.save
 
         return vr
-      elsif type_to_create.eql?('OLease')
+      elsif type_to_create.eql?('Lease')
 
         resource_descr[:resource_type] = type_to_create
-        lease = OMF::SFA::Resource::OLease.create(lease_descr)
+        lease = OMF::SFA::Resource::Lease.create(lease_descr)
         lease.valid_from = oproperties[:valid_from]
         lease.valid_until = oproperties[:valid_until]
         raise UnavailableResourceException.new "Cannot create '#{lease_descr.inspect}'" unless lease.save
         lease
       else
-        raise "Uknown type of resource '#{type_to_create}'. Expected one of 'Node' or 'OLease'"
+        raise "Uknown type of resource '#{type_to_create}'. Expected one of 'Node' or 'Lease'"
       end
     end
 
@@ -83,7 +83,7 @@ module OMF::SFA::AM
 
     # Accept or reject the reservation of the component
     #
-    # @param [OLease] lease contains the corresponding reservation window
+    # @param [Lease] lease contains the corresponding reservation window
     # @param [OComponent] component is the resource we want to reserve
     # @return [Boolean] returns true or false depending on the outcome of the request
     #
@@ -99,16 +99,16 @@ module OMF::SFA::AM
 
     # It returns the default account, normally used for admin account.
     #
-    # @return [OAccount] returns the default account object
+    # @return [Account] returns the default account object
     #
     def get_nil_account()
       @nil_account
     end
 
     def initialize()
-      @nil_account = OMF::SFA::Resource::OAccount.new(:name => '__default__', :valid_until => Time.now + 1E10)
+      @nil_account = OMF::SFA::Resource::Account.create(:name => '__default__', :valid_until => Time.now + 1E10)
       #@am_liaison = OMF::SFA::AM::AMLiaison.new
-    end    
+    end
 
   end # OMFManager
 

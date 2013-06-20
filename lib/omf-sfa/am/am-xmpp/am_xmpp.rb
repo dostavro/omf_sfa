@@ -75,6 +75,7 @@ module OMF::SFA::AM::XMPP
           entity_cert = File.expand_path(auth[:entity_cert])
           entity_key = File.expand_path(auth[:entity_key])
           @cert = OmfCommon::Auth::Certificate.create_from_x509(File.read(entity_cert), File.read(entity_key))
+          OmfCommon::Auth::CertificateStore.instance.register(@cert, OmfCommon.comm.local_topic.address)
 
           trusted_roots = File.expand_path(auth[:root_cert_dir])
           OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)

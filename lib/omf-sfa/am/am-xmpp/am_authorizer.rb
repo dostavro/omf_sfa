@@ -14,7 +14,7 @@ module OMF::SFA::AM::XMPP
   class AMAuthorizer < OMF::SFA::AM::DefaultAuthorizer
 
     # @!attribute [r] account
-    #        @return [OAccount] The account associated with this instance
+    #        @return [Account] The account associated with this instance
     attr_reader :account
 
     # @!attribute [r] project
@@ -118,7 +118,7 @@ module OMF::SFA::AM::XMPP
 
       # TODO: we should call the am_manager method with a root authorizer
       # For the moment 1 account = 1 user. We need to come up with a solution for describing slices and users within FRCP A/A mechanisms
-      @account = OMF::SFA::Resource::OAccount.first_or_create(:urn => user.urn)
+      @account = OMF::SFA::Resource::Account.first_or_create(:urn => user.urn)
       project = OMF::SFA::Resource::Project.create
       @account.project = project
       @account.valid_until = @user_cert.not_after

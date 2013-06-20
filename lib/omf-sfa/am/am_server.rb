@@ -90,8 +90,8 @@ module OMF::SFA::AM
 
 
     def load_test_am(options)
-      require  'dm-migrations'
-      DataMapper.auto_migrate!
+      #require  'dm-migrations'
+      #DataMapper.auto_migrate!
 
       am = options[:am][:manager]
       if am.is_a? Proc
@@ -99,9 +99,9 @@ module OMF::SFA::AM
         options[:am][:manager] = am
       end
 
-      require 'omf-sfa/resource/oaccount'
+      require 'omf-sfa/resource/account'
       #account = am.find_or_create_account(:name => 'foo')
-      account = OMF::SFA::Resource::OAccount.new(:name => 'foo')
+      account = OMF::SFA::Resource::Account.create(:name => 'foo')
 
       require 'omf-sfa/resource/link'
       require 'omf-sfa/resource/node'
@@ -116,7 +116,7 @@ module OMF::SFA::AM
       r = []
       r << l = OMF::SFA::Resource::Link.create(:name => 'l')
       r << OMF::SFA::Resource::Channel.create(:number => 1, :frequency => "2.412GHZ")
-      lease = OMF::SFA::Resource::OLease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
+      lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
       2.times do |i|
         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}")
         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
@@ -125,7 +125,7 @@ module OMF::SFA::AM
         l.interfaces << ifr
         n.leases << lease
       end
-      r.last.leases << OMF::SFA::Resource::OLease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
+      r.last.leases << OMF::SFA::Resource::Lease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
 
       am.manage_resources(r)
     end

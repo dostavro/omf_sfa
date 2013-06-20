@@ -27,6 +27,7 @@ module OMF::SFA::AM
   #
   class AMManager < OMF::Common::LObject
 
+    attr_accessor :liaison
     # Create an instance of this manager
     #
     # @param [Scheduler] scheduler to use for creating new resource
@@ -69,7 +70,7 @@ module OMF::SFA::AM
     #
     # @param [Hash] properties of account
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OAccount] The requested account
+    # @return [Account] The requested account
     # @raise [UnknownResourceException] if requested account cannot be created
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
@@ -80,7 +81,8 @@ module OMF::SFA::AM
       rescue UnavailableResourceException
       end
       authorizer.can_create_account?
-      account = OMF::SFA::Resource::OAccount.create(account_descr)
+      account = OMF::SFA::Resource::Account.create(account_descr)
+      @liaison.create_account(account)
       # We have an 1-to-1 relationship between account and project for the moment
       project = OMF::SFA::Resource::Project.create
       account.project = project
@@ -93,12 +95,12 @@ module OMF::SFA::AM
     #
     # @param [Hash] properties of account
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OAccount] The requested account
+    # @return [Account] The requested account
     # @raise [UnknownResourceException] if requested account cannot be found
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
     def find_account(account_descr, authorizer)
-      unless account = OMF::SFA::Resource::OAccount.first(account_descr)
+      unless account = OMF::SFA::Resource::Account.first(account_descr)
         raise UnavailableResourceException.new "Unknown account '#{account_descr.inspect}'"
       end
       authorizer.can_view_account?(account)
@@ -108,10 +110,10 @@ module OMF::SFA::AM
     # Return all accounts visible to the requesting user
     #
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [Array<OAccount>] The visible accounts (maybe empty)
+    # @return [Array<Account>] The visible accounts (maybe empty)
     #
     def find_all_accounts(authorizer)
-      accounts = OMF::SFA::Resource::OAccount.all()
+      accounts = OMF::SFA::Resource::Account.all()
       nil_account = _get_nil_account()
       accounts.map do |a|
         next if a == nil_account
@@ -128,7 +130,7 @@ module OMF::SFA::AM
     #
     # @param [Hash] properties of account
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OAccount] The requested account
+    # @return [Account] The requested account
     # @raise [UnknownResourceException] if requested account cannot be found
     # @raise [UnavailableResourceException] if requested account is closed
     # @raise [InsufficientPrivilegesException] if permission is not granted
@@ -147,7 +149,7 @@ module OMF::SFA::AM
     # @param [Hash] properties of account
     # @param [Time] time until account should remain valid
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OAccount] The requested account
+    # @return [Account] The requested account
     # @raise [UnknownResourceException] if requested account cannot be found
     # @raise [UnavailableResourceException] if requested account is closed
     # @raise [InsufficientPrivilegesException] if permission is not granted
@@ -166,7 +168,7 @@ module OMF::SFA::AM
     #
     # @param [Hash] properties of account
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OAccount] The closed account
+    # @return [Account] The closed account
     # @raise [UnknownResourceException] if requested account cannot be found
     # @raise [UnavailableResourceException] if requested account is closed
     # @raise [InsufficientPrivilegesException] if permission is not granted
@@ -202,6 +204,11 @@ module OMF::SFA::AM
       rescue UnavailableResourceException
       end
       user = OMF::SFA::Resource::User.create(user_descr)
+      unless user.keys.empty?
+        user.projects.each do |project|
+          @liaison.authorize_keys(user, project.account)
+        end
+      end
       raise UnavailableResourceException.new "Cannot create '#{user_descr.inspect}'" unless user
       user
     end
@@ -229,7 +236,7 @@ module OMF::SFA::AM
     # @param [Hash] lease_descr properties of lease
     # @param [Hash] lease oproperties like ":valid_from" and ":valid_until"
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OLease] The requested lease
+    # @return [Lease] The requested lease
     # @raise [UnknownResourceException] if requested lease cannot be created
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
@@ -242,7 +249,7 @@ module OMF::SFA::AM
       unless lease_oproperties.has_key?(:valid_from) && lease_oproperties.has_key?(:valid_until)
         raise UnavailablePropertiesException.new "Cannot create lease without ':valid_from' and 'valid_until' oproperties #{lease_oproperties.inspect}"
       end
-      lease = create_resource(lease_descr, 'OLease', lease_oproperties, authorizer)
+      lease = create_resource(lease_descr, 'Lease', lease_oproperties, authorizer)
     end
 
     # Return the lease described by +lease_descr+.
@@ -250,18 +257,18 @@ module OMF::SFA::AM
     # @param [Hash] properties of lease
     # @param [Hash] lease oproperties like ":valid_from" and ":valid_until"
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OLease] The requested lease
+    # @return [Lease] The requested lease
     # @raise [UnknownResourceException] if requested lease cannot be found
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
     def find_lease(lease_descr, lease_oproperties, authorizer)
       if lease_oproperties.empty?
-        lease = OMF::SFA::Resource::OLease.first(lease_descr)
+        lease = OMF::SFA::Resource::Lease.first(lease_descr)
         raise UnavailableResourceException.new "Unknown lease '#{lease_descr.inspect}'" if lease.nil?
         authorizer.can_view_lease?(lease)
         return lease
       end
-      leases = OMF::SFA::Resource::OLease.all(lease_descr)
+      leases = OMF::SFA::Resource::Lease.all(lease_descr)
       leases.each do |l|
         if (l[:valid_from] == lease_oproperties[:valid_from] &&
             l[:valid_until] == lease_oproperties[:valid_until])
@@ -274,13 +281,13 @@ module OMF::SFA::AM
 
     # Return all leases of the specified account
     #
-    # @param [OAccount] Account for which to find all associated leases
+    # @param [Account] Account for which to find all associated leases
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [Array<OLease>] The account's leases (maybe empty)
+    # @return [Array<Lease>] The account's leases (maybe empty)
     #
     def find_all_leases_for_account(account, authorizer)
       debug "find_all_leases_for_account: account:'#{account.inspect}' authorizer:'#{authorizer.inspect}'"
-      leases = OMF::SFA::Resource::OLease.all(:account => account)
+      leases = OMF::SFA::Resource::Lease.all(:account => account)
       leases.map do |l|
         begin
           authorizer.can_view_lease?(l)
@@ -292,7 +299,7 @@ module OMF::SFA::AM
     end
 
     def find_all_leases(authorizer)
-      leases = OMF::SFA::Resource::OLease.all
+      leases = OMF::SFA::Resource::Lease.all
       leases.map do |l|
         begin
           authorizer.can_view_lease?(l)
@@ -306,9 +313,9 @@ module OMF::SFA::AM
     # Modify lease described by +lease_descr+ hash
     #
     # @param [Hash] lease oproperties like ":valid_from" and ":valid_until"
-    # @param [OLease] lease to modify
+    # @param [Lease] lease to modify
     # @param [Authorizer] Authorization context
-    # @return [OLease] The requested lease
+    # @return [Lease] The requested lease
     #
     def modify_lease(lease_oproperties, lease, authorizer)
       authorizer.can_modify_lease?(lease)
@@ -322,7 +329,7 @@ module OMF::SFA::AM
     #
     # This implementation simply frees the lease record.
     #
-    # @param [OLease] lease to release
+    # @param [Lease] lease to release
     # @param [Authorizer] Authorization context
     #
     def release_lease(lease, authorizer)
@@ -343,7 +350,7 @@ module OMF::SFA::AM
     #
     # @param [Nokogiri::XML::Node] RSpec fragment describing lease and its properties
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [OLease] The requested lease
+    # @return [Lease] The requested lease
     # @raise [UnavailableResourceException] if no matching resource can be found or created
     # @raise [FormatException] if RSpec elements are not known
     #
@@ -390,7 +397,7 @@ module OMF::SFA::AM
     #
     # @param [Element] RSpec fragment describing leases and their properties
     # @param [Authorizer] Defines context for authorization decisions
-    # @return [Hash{String => OLease}] The leases requested
+    # @return [Hash{String => Lease}] The leases requested
     # @raise [UnknownResourceException] if no matching lease can be found
     # @raise [FormatException] if RSpec elements are not known
     #
@@ -471,7 +478,7 @@ module OMF::SFA::AM
 
     # Find all resources for a specific account.
     #
-    # @param [OAccount] Account for which to find all associated resources
+    # @param [Account] Account for which to find all associated resources
     # @param [Authorizer] Defines context for authorization decisions
     # @return [Array<OResource>] The resource requested
     #
@@ -490,7 +497,7 @@ module OMF::SFA::AM
 
     # Find all components for a specific account.
     #
-    # @param [OAccount] Account for which to find all associated component
+    # @param [Account] Account for which to find all associated component
     # @param [Authorizer] Defines context for authorization decisions
     # @return [Array<OComponent>] The component requested
     #
@@ -783,7 +790,7 @@ module OMF::SFA::AM
     # This method finds all the components of the specific account and
     # detaches them.
     #
-    # @param [OAccount] Account who owns the components
+    # @param [Account] Account who owns the components
     # @param [Authorizer] Authorization context
     #
     def release_all_components_for_account(account, authorizer)
@@ -827,10 +834,10 @@ module OMF::SFA::AM
     # Return the account identified by 'uuid'.
     #
     # @param [String, UUID] UUID of account
-    # @return [OAccount]
+    # @return [Account]
     #
     # def get_account(uuid, authorizer)
-    # unless account = OAccount.first(:uuid => uuid)
+    # unless account = Account.first(:uuid => uuid)
     # raise UnknownAccountException.new "Unknown account with uuid '#{uuid}'"
     # end
     # if account.closed?
@@ -842,7 +849,7 @@ module OMF::SFA::AM
     # +account+ is null, return all the resources available at this
     # AM.
     #
-    # @param [OAccount] Account for which to find resources
+    # @param [Account] Account for which to find resources
     # @param [Authorizer] Authoization context
     #
     #def get_resources_for_account(account, authorizer)

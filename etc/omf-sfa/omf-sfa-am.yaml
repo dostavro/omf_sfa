@@ -16,6 +16,6 @@ omf_sfa_am:
       password: pw
       server: localhost
       auth:
-        :entity_cert: ~/.omf/rc.pem
-        :entity_key: ~/.omf/rc_key.pem
+        :entity_cert: ~/.omf/omf_am.pem
+        :entity_key: ~/.omf/omf_am_key.pem
         :root_cert_dir: ~/.omf/trusted_roots

@@ -23,12 +23,58 @@ module OMF::SFA::AM
       end
     end
 
+    def create_account(account)
+      debug "create_account: '#{account.inspect}'"
+
+      OmfCommon.comm.subscribe('user_controller') do |user_rc|
+        unless user_rc.error?
+          puts "User controller has been created: #{user_rc}"
+          cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
+
+          user_rc.create(:user, hrn: account.name) do |user|
+            if user.success?
+              puts "Succesfully created user"
+              am_cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
+              # urn:publicid:IDN+omf:nitos+slice+alice
+              puts "ACCOUNT: #{account.inspect}"
+              user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', account.valid_until, user.key)
+              user.configure(certificate: user_cert)
+            else
+              error ">>> Resource creation failed - #{user[:reason]}"
+            end
+          end
+        else
+          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
+        end
+      end
+    end
+
+    def authorize_keys(user, account)
+      debug "authorize_keys: user:'#{user.inspect}', account:'#{account.inspect}'"
+
+      OmfCommon.comm.subscribe('user_controller') do |user_rc|
+        unless user_rc.error?
+          puts "User controller has been created: #{user_rc}"
+          user_rc.create(:user, hrn: account.name) do |u|
+            if u.success?
+              puts "Succesfully created user"
+              u.configure(keys: user.keys)
+            else
+              error ">>> Resource creation failed - #{u[:reason]}"
+            end
+          end
+        else
+          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
+        end
+      end
+    end
+
 
     # It will send the corresponding create messages to the components contained
     # in the lease when the lease is about to start. At the end of the
     # lease the corresponding release messages will be sent to the components.
     #
-    # @param [OLease] lease Contains the lease information "valid_from" and
+    # @param [Lease] lease Contains the lease information "valid_from" and
     #                 "valid_until" along with the reserved components
     #
     def enable_lease(lease, component)

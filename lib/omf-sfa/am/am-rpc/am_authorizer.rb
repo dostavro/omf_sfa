@@ -14,7 +14,7 @@ module OMF::SFA::AM::RPC
   class AMAuthorizer < OMF::SFA::AM::DefaultAuthorizer
 
     # @!attribute [r] account
-    #        @return [OAccount] The account associated with this instance
+    #        @return [Account] The account associated with this instance
     attr_reader :account
 
     # @!attribute [r] project
