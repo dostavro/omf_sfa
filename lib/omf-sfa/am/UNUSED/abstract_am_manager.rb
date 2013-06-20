@@ -67,7 +67,7 @@ module OMF::SFA::AM
     
     # Find all resources for a specific account.
     #
-    # @param [OAccount] Account for which to find all associated resources
+    # @param [Account] Account for which to find all associated resources
     # @param [Authorizer] Defines context for authorization decisions
     # @return [Array<OResource>] The resource requested
     #        
@@ -266,7 +266,7 @@ module OMF::SFA::AM
     # Return the account identified by 'uuid'.
     # 
     # @param [String, UUID] UUID of account
-    # @return [OAccount]
+    # @return [Account]
     def get_account(uuid)
       MISS
     end
@@ -308,7 +308,7 @@ module OMF::SFA::AM
     # Return all accounts visible to the requesting user
     #
     def find_all_accounts(authorizer)
-      # OMF::SFA::Resource::OAccount.all() - get_default_account()
+      # OMF::SFA::Resource::Account.all() - get_default_account()
       MISS
     end
     

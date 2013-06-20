@@ -29,9 +29,9 @@ describe AMScheduler do
       DataMapper.auto_migrate!
     end
 
-    let (:lease) { OMF::SFA::Resource::OLease.new(:name => 'l1') }
+    let (:lease) { OMF::SFA::Resource::Lease.new(:name => 'l1') }
 
-    let (:account) { OMF::SFA::Resource::OAccount.new(:name => 'a') }
+    let (:account) { OMF::SFA::Resource::Account.new(:name => 'a') }
 
     let (:auth) do
       auth = double('authorizer')

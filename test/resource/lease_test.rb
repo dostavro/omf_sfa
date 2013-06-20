@@ -4,7 +4,7 @@ require 'minitest/autorun'
 require 'minitest/pride'
 require 'dm-migrations'
 #require 'omf_common/load_yaml'
-require 'omf-sfa/resource/olease'
+require 'omf-sfa/resource/lease'
 
 include OMF::SFA::Resource
 
@@ -24,9 +24,9 @@ end
 
 describe 'OLease' do
 
-  valid_from =Time.parse("2013-04-01 12:00:00 +0300") 
+  valid_from =Time.parse("2013-04-01 12:00:00 +0300")
   valid_until = Time.parse("2013-04-01 13:00:00 +0300")
-  
+
   init_dm
 
   before do
@@ -63,7 +63,7 @@ describe 'OLease' do
     l1.status.must_equal("accepted")
     l1.cancelled?.must_equal false
     l1.accepted?.must_equal true
-  end 
+  end
 
   it "can have time oproperties" do
     l = OMF::SFA::Resource::OLease.create({:name => 'l1', :valid_from => valid_from, :valid_until => valid_until})

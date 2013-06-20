@@ -5,7 +5,7 @@ require 'omf-sfa/resource/component_lease'
 
 module OMF::SFA::Resource
 
-  class OLease < OResource
+  class Lease < OResource
 
     oproperty :valid_from, DataMapper::Property::Time
     oproperty :valid_until, DataMapper::Property::Time

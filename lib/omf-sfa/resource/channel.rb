@@ -9,7 +9,7 @@ module OMF::SFA::Resource
     oproperty :number, Integer
     oproperty :frequency, String
 
-    # we have already added that in olease
+    # we have already added that in lease
     #sfa_add_namespace :ol, 'http://nitlab.inf.uth.gr/schema/sfa/rspec/1'
 
     sfa_class 'channel', :namespace => :ol

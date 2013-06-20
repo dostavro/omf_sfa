@@ -46,7 +46,7 @@ describe AMManager do
         resource_descr[:account] = auth.account
         type = type_to_create.camelize
         resource = eval("OMF::SFA::Resource::#{type}").create(resource_descr)
-        if type_to_create.eql?('OLease')
+        if type_to_create.eql?('Lease')
           resource.valid_from = oproperties[:valid_from]
           resource.valid_until = oproperties[:valid_until]
           resource.save
@@ -83,7 +83,7 @@ describe AMManager do
     it 'can create account' do
       auth.expect(:can_create_account?, true)
       account = manager.find_or_create_account({:name => 'a'}, auth)
-      account.must_be_instance_of(OMF::SFA::Resource::OAccount)
+      account.must_be_instance_of(OMF::SFA::Resource::Account)
       auth.verify
     end
 
@@ -91,11 +91,11 @@ describe AMManager do
       auth.expect(:can_create_account?, true)
       a1 = manager.find_or_create_account({:name => 'a'}, auth)
              
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       a2 = manager.find_or_create_account({:name => 'a'}, auth)
       a1.must_equal a2
       
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       a3 = manager.find_account({:name => 'a'}, auth)
       a1.must_equal a3
       auth.verify
@@ -113,14 +113,14 @@ describe AMManager do
       auth.expect(:can_create_account?, true)
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
       
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       manager.find_all_accounts(auth).must_equal [a1]
       
       auth.expect(:can_create_account?, true)
       a2 = manager.find_or_create_account({:name => 'a2'}, auth)
        
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       
       manager.find_all_accounts(auth).must_equal [a1, a2]
       auth.verify
@@ -136,14 +136,14 @@ describe AMManager do
       auth.expect(:can_create_account?, true)
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
       
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       a2 = manager.find_active_account({:name => 'a1'}, auth)
       a2.wont_be_nil
 
       # Expire account
       a2.valid_until = Time.now - 100
       a2.save
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       lambda do
         manager.find_active_account({:name => 'a1'}, auth)
       end.must_raise(UnavailableResourceException)
@@ -155,7 +155,7 @@ describe AMManager do
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
 
       time = Time.now + 100
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       auth.expect(:can_renew_account?, true, [a1, time])            
       a2 = manager.renew_account_until({:name => 'a1'}, time, auth)
 
@@ -174,7 +174,7 @@ describe AMManager do
       a1.active?.must_equal true
       a1.closed?.must_equal false
       
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::OAccount])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
       auth.expect(:can_close_account?, true, [a1])   
       a2 = manager.close_account({:name => 'a1'}, auth)
       a2.reload
@@ -219,30 +219,30 @@ describe AMManager do
 
     lease_oproperties = {:valid_from => Time.now, :valid_until => Time.now + 100}
 
-    account = OMF::SFA::Resource::OAccount.first_or_create(:name => 'a1')
+    account = OMF::SFA::Resource::Account.first_or_create(:name => 'a1')
 
     before do
       DataMapper.auto_migrate! # reset database
     end
         
     it 'can create lease' do
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       lease = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth) 
-      lease.must_be_instance_of(OMF::SFA::Resource::OLease)
+      lease.must_be_instance_of(OMF::SFA::Resource::Lease)
       auth.verify
     end
 
     it 'can find created lease' do
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       a1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
              
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])      
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
       a2 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       a1.must_equal a2
       
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])      
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
       a3 = manager.find_lease({:name => 'l1'}, {}, auth)
       a1.must_equal a3
       auth.verify
@@ -255,7 +255,7 @@ describe AMManager do
     end
 
     it "can request all user's leases" do
-      OMF::SFA::Resource::OLease.create({:name => "another_user's_lease"})
+      OMF::SFA::Resource::Lease.create({:name => "another_user's_lease"})
 
       auth.expect(:can_create_account?, true)
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
@@ -263,18 +263,18 @@ describe AMManager do
 
       manager.find_all_leases_for_account(a1, auth).must_be_empty   
 
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       l1 = manager.find_or_create_lease({:name => 'l1', :account => a1}, lease_oproperties, auth)
       
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])      
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
       manager.find_all_leases_for_account(a1, auth).must_equal [l1]
       
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, a1)
       l2 = manager.find_or_create_lease({:name => 'l2', :account => a1}, lease_oproperties, auth)
        
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       manager.find_all_leases_for_account(a1, auth).must_equal [l1, l2]
 
       def auth.can_view_lease?(lease)
@@ -285,7 +285,7 @@ describe AMManager do
     end
 
     it 'can modify leases' do
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       l1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       auth.verify
@@ -306,7 +306,7 @@ describe AMManager do
     end
     
     it 'can release a lease' do
-      auth.expect(:can_create_resource?, true, [Hash, 'OLease'])
+      auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       l1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       auth.verify
@@ -322,7 +322,7 @@ describe AMManager do
 
   describe 'resource' do
 
-    account = OMF::SFA::Resource::OAccount.create(:name => 'a')
+    account = OMF::SFA::Resource::Account.create(:name => 'a')
 
     auth = Minitest::Mock.new
     

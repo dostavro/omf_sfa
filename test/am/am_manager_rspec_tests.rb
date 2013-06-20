@@ -47,7 +47,7 @@ describe AMManager do
         #resource_descr[:account] = auth.account
         type = type_to_create.camelize
         resource = eval("OMF::SFA::Resource::#{type}").create(resource_descr)
-        if type_to_create.eql?('OLease')
+        if type_to_create.eql?('Lease')
           resource.valid_from = oproperties[:valid_from]
           resource.valid_until = oproperties[:valid_until]
           resource.save
@@ -68,8 +68,8 @@ describe AMManager do
   let (:manager) { AMManager.new(scheduler) }
 
 
-  OMF::SFA::Resource::OAccount.create({:name => 'a'})
-  account = OMF::SFA::Resource::OAccount.first({:name => 'a'})
+  OMF::SFA::Resource::Account.create({:name => 'a'})
+  account = OMF::SFA::Resource::Account.first({:name => 'a'})
 
   describe 'nodes and leases' do
 
@@ -101,7 +101,7 @@ describe AMManager do
       a.name.must_equal('a')
 
       lease = node.leases.first
-      lease.must_be_kind_of(OMF::SFA::Resource::OLease)
+      lease.must_be_kind_of(OMF::SFA::Resource::Lease)
       lease.name.must_equal(a.name)
       lease.valid_from.must_equal(Time.parse('2013-01-08T19:00:00Z'))
       lease.valid_until.must_equal(Time.parse('2013-01-08T20:00:00Z'))
@@ -113,7 +113,7 @@ describe AMManager do
 
     it 'will create a node with an already known lease attached to it' do
       authorizer = Minitest::Mock.new
-      l = OMF::SFA::Resource::OLease.new({ :name => account.name})
+      l = OMF::SFA::Resource::Lease.new({ :name => account.name})
       valid_from = Time.parse('2013-01-08T19:00:00Z')
       valid_until = Time.parse('2013-01-08T20:00:00Z')
       l.valid_from = valid_from
@@ -130,7 +130,7 @@ describe AMManager do
       }
       req = Nokogiri.XML(rspec)
 
-      authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
+      authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       2.times {authorizer.expect(:can_create_resource?, true, [Hash, String])}
       2.times {authorizer.expect(:account, account)}
 
@@ -145,7 +145,7 @@ describe AMManager do
       a.name.must_equal('a')
 
       lease = node.leases.first
-      lease.must_be_kind_of(OMF::SFA::Resource::OLease)
+      lease.must_be_kind_of(OMF::SFA::Resource::Lease)
       lease.must_equal(l)
       lease.name.must_equal(a.name)
       lease.valid_from.must_equal(valid_from)
@@ -157,7 +157,7 @@ describe AMManager do
 
     #it 'will create a node with an already known lease attached to it (included in rspecs)' do
     #  authorizer = Minitest::Mock.new
-    #  l = OMF::SFA::Resource::OLease.new({ :name => account.name })
+    #  l = OMF::SFA::Resource::Lease.new({ :name => account.name })
     #  l.valid_from = '2013-01-08T19:00:00Z'
     #  l.valid_until = '2013-01-08T20:00:00Z'
     #  l.save
@@ -171,8 +171,8 @@ describe AMManager do
     #  }
     #  req = Nokogiri.XML(rspec)
 
-    #  authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
-    #  authorizer.expect(:can_modify_lease?, true, [OMF::SFA::Resource::OLease])
+    #  authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
+    #  authorizer.expect(:can_modify_lease?, true, [OMF::SFA::Resource::Lease])
     #  authorizer.expect(:can_create_resource?, true, [Hash, String])
     #  authorizer.expect(:account, account)
 
@@ -187,7 +187,7 @@ describe AMManager do
     #  a.name.must_equal('a')
 
     #  lease = node.leases.first
-    #  lease.must_be_kind_of(OMF::SFA::Resource::OLease)
+    #  lease.must_be_kind_of(OMF::SFA::Resource::Lease)
     #  lease.name.must_equal(a.name)
     #  lease.valid_from.must_equal(Time.parse('2013-01-08T19:00:00Z'))
     #  lease.valid_until.must_equal(Time.parse('2013-01-08T20:00:00Z'))
@@ -198,7 +198,7 @@ describe AMManager do
 
     it 'will attach 2 leases(1 new and 1 old) to 2 nodes' do
       authorizer = Minitest::Mock.new
-      l1 = OMF::SFA::Resource::OLease.new({ :name => account.name})
+      l1 = OMF::SFA::Resource::Lease.new({ :name => account.name})
       l1.valid_from = Time.parse('2013-01-08T19:00:00Z')
       l1.valid_until = Time.parse('2013-01-08T20:00:00Z')
       l1.save
@@ -218,7 +218,7 @@ describe AMManager do
       }
       req = Nokogiri.XML(rspec)
 
-      3.times { authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease]) }
+      3.times { authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease]) }
       3.times { authorizer.expect(:can_create_resource?, true, [Hash, String]) }
       4.times {authorizer.expect(:account, account)}
 
@@ -233,7 +233,7 @@ describe AMManager do
       a.name.must_equal('a')
 
       lease = node.leases.first
-      lease.must_be_kind_of(OMF::SFA::Resource::OLease)
+      lease.must_be_kind_of(OMF::SFA::Resource::Lease)
       lease.name.must_equal(a.name)
       lease.valid_from.must_equal(Time.parse('2013-01-08T19:00:00Z'))
       lease.valid_until.must_equal(Time.parse('2013-01-08T20:00:00Z'))
@@ -248,7 +248,7 @@ describe AMManager do
       a.name.must_equal('a')
 
       lease = node.leases.first
-      lease.must_be_kind_of(OMF::SFA::Resource::OLease)
+      lease.must_be_kind_of(OMF::SFA::Resource::Lease)
       lease.name.must_equal(a.name)
       lease.valid_from.must_equal(Time.parse('2013-01-08T12:00:00Z'))
       lease.valid_until.must_equal(Time.parse('2013-01-08T14:00:00Z'))
@@ -262,7 +262,7 @@ describe AMManager do
 
     it 'will create a new node and lease without deleting the previous records' do
       authorizer = Minitest::Mock.new
-      l = OMF::SFA::Resource::OLease.create({ :name => account.name, :account => account})
+      l = OMF::SFA::Resource::Lease.create({ :name => account.name, :account => account})
       l.valid_from = '2013-01-08T19:00:00Z'
       l.valid_until = '2013-01-08T20:00:00Z'
       l.save
@@ -302,7 +302,7 @@ describe AMManager do
 
     it 'will unlink a node from a lease and release both' do
       authorizer = Minitest::Mock.new
-      l = OMF::SFA::Resource::OLease.create({:name => 'l1', :account => account})
+      l = OMF::SFA::Resource::Lease.create({:name => 'l1', :account => account})
       l.valid_from = '2013-01-08T19:00:00Z'
       l.valid_until = '2013-01-08T20:00:00Z'
       l.save
@@ -320,8 +320,8 @@ describe AMManager do
       req = Nokogiri.XML(rspec)
 
       authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-      authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
-      authorizer.expect(:can_release_lease?, true, [OMF::SFA::Resource::OLease])
+      authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
+      authorizer.expect(:can_release_lease?, true, [OMF::SFA::Resource::Lease])
       authorizer.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
       2.times {authorizer.expect(:account, account)}
 
@@ -333,15 +333,15 @@ describe AMManager do
       l.reload
       l.components.first.must_be_nil
 
-      OMF::SFA::Resource::OLease.first(:name => 'l1').wont_be_nil
-      OMF::SFA::Resource::OLease.first(:name => 'l1').status.must_equal("cancelled")
+      OMF::SFA::Resource::Lease.first(:name => 'l1').wont_be_nil
+      OMF::SFA::Resource::Lease.first(:name => 'l1').status.must_equal("cancelled")
 
       authorizer.verify
     end
 
     #it 'will release a node and a lease' do
     #  authorizer = Minitest::Mock.new
-    #  l = OMF::SFA::Resource::OLease.create({:name => 'l1', :account => account})
+    #  l = OMF::SFA::Resource::Lease.create({:name => 'l1', :account => account})
     #  l.valid_from = '2013-01-08T19:00:00Z'
     #  l.valid_until = '2013-01-08T20:00:00Z'
     #  l.save
@@ -359,8 +359,8 @@ describe AMManager do
     #  req = Nokogiri.XML(rspec)
 
     #  authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-    #  authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::OLease])
-    #  authorizer.expect(:can_release_lease?, true, [OMF::SFA::Resource::OLease])
+    #  authorizer.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
+    #  authorizer.expect(:can_release_lease?, true, [OMF::SFA::Resource::Lease])
     #  authorizer.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
     #  authorizer.expect(:account, account)
     #  authorizer.expect(:account, account)
@@ -369,7 +369,7 @@ describe AMManager do
 
     #  r.must_be_empty
     #  OMF::SFA::Resource::Node.first(:name => 'node1').must_be_nil
-    #  OMF::SFA::Resource::OLease.first(:name => 'l1').status.must_equal('cancelled')
+    #  OMF::SFA::Resource::Lease.first(:name => 'l1').status.must_equal('cancelled')
     #
     #  authorizer.verify
     #end

@@ -3,8 +3,8 @@ hide members
 
 OResource <|-- OComponent
 OResource <|-- OGroup
-OGroup <|-- OAccount
-OResource <|-- OLease
+OGroup <|-- Account
+OResource <|-- Lease
 OResource <|-- OProject
 OResource <|-- User
 @enduml
@@ -14,11 +14,11 @@ hide members
 
 OGroup "*" -- "*" OComponent : contains >
 OGroup "1" -- "*" OGroup : contains >
-OComponent "*" -- "1" OAccount : charged_to >
+OComponent "*" -- "1" Account : charged_to >
 OComponent "1" -- "*" OComponent : provided_by >
-OLease "*" -- "0,1" OComponent: < leased_by 
-OProject "1" -- "1" OAccount : account >
+Lease "*" -- "0,1" OComponent: < leased_by 
+OProject "1" -- "1" Account : account >
 OProject "*" -- "*" User: member > 
-OAccount "*" -- "1" OLease : holds_lease >
+Account "*" -- "1" Lease : holds_lease >
 OProject "*" -- "1" OProject: parent_project > 
 @enduml

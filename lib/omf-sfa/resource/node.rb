@@ -55,9 +55,10 @@ module OMF::SFA::Resource
       end
     end
 
-    before :save do
-      resource_type |= 'node'
-    end
+    #before :save do
+    #  resource_type = 'node'
+    #  super
+    #end
 
   end
 

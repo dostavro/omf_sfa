@@ -9,6 +9,8 @@ module OMF::SFA::Resource
     has n, :project_memberships
     has n, :projects, :through => :project_memberships, :via => :project
 
+    oproperty :keys, String, :functional => false
+
     def to_hash_long(h, objs, opts = {})
       super
       h[:projects] = self.projects.map do |p|

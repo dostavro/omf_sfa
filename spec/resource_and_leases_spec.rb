@@ -65,7 +65,7 @@ describe AMManager do
 
       lease_elements = req.xpath('//ol:lease', 'ol' => OL_NAMESPACE)
       lease = manager.update_lease_from_rspec(lease_elements.first, auth)
-      lease.should be_a_kind_of(OMF::SFA::Resource::OLease)
+      lease.should be_a_kind_of(OMF::SFA::Resource::Lease)
       lease.name.should eq("l1")
       lease.valid_from == 1338847200
       lease.valid_until == 1338850800
@@ -75,13 +75,13 @@ describe AMManager do
 
     it 'will modify lease from rspec' do
 
-      #l = OMF::SFA::Resource::OLease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800"})
-      l = OMF::SFA::Resource::OLease.new({ :name => "l1"})
+      #l = OMF::SFA::Resource::Lease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800"})
+      l = OMF::SFA::Resource::Lease.new({ :name => "l1"})
       l.valid_from = "1338847200"
       l.valid_until = "1338850800"
       l.save
       l.should be_saved
-      l.should == OMF::SFA::Resource::OLease.first({ :name => "l1" })
+      l.should == OMF::SFA::Resource::Lease.first({ :name => "l1" })
       rspec = %{
       <rspec xmlns="http://www.protogeni.net/resources/rspec/2" xmlns:omf="http://schema.mytestbed.net/sfa/rspec/1" xmlns:ol="http://schema.ict-openlab.eu/sfa/rspec/1" type="request">
         <ol:lease uuid="#{l.uuid}" ol:valid_from="1338847200" ol:valid_until="1338852600"/>
@@ -94,7 +94,7 @@ describe AMManager do
 
       lease_elements = req.xpath('//ol:lease')
       lease = manager.update_lease_from_rspec(lease_elements.first, auth)
-      lease.should be_a_kind_of(OMF::SFA::Resource::OLease)
+      lease.should be_a_kind_of(OMF::SFA::Resource::Lease)
       lease.name.should eq("l1")
       lease.valid_from == 1338847200
       lease.valid_until == 1338852600
@@ -136,7 +136,7 @@ describe AMManager do
 
     let (:manager) { AMManager.new(scheduler) }
 
-    let (:account) { OMF::SFA::Resource::OAccount.new(:name => 'a') }
+    let (:account) { OMF::SFA::Resource::Account.new(:name => 'a') }
 
     let(:auth) do
       auth = double('authorizer') 
@@ -190,7 +190,7 @@ describe AMManager do
 
         r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => account})
 
-        l = OMF::SFA::Resource::OLease.create(:name => 'l1')
+        l = OMF::SFA::Resource::Lease.create(:name => 'l1')
 
         r.leases << l
         r.save
@@ -207,8 +207,8 @@ describe AMManager do
 
       it 'can create a node with a lease attached to it' do
 
-        #l = OMF::SFA::Resource::OLease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
-        l = OMF::SFA::Resource::OLease.new({ :name => "l1", :account => account})
+        #l = OMF::SFA::Resource::Lease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
+        l = OMF::SFA::Resource::Lease.new({ :name => "l1", :account => account})
         l.valid_from = '1338847200'
         l.valid_until = '1338850800'
         l.save
@@ -235,7 +235,7 @@ describe AMManager do
         account.name.should be_eql('a')
 
         lease = node.leases.first
-        lease.should be_kind_of(OMF::SFA::Resource::OLease)
+        lease.should be_kind_of(OMF::SFA::Resource::Lease)
         lease.name.should be_eql('l1')
         lease.valid_from.should be_eql('1338847200')
         lease.valid_until.should be_eql('1338850800')
@@ -261,8 +261,8 @@ describe AMManager do
 
       it 'will create a new node and lease without deleting the previous' do
 
-        #l = OMF::SFA::Resource::OLease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
-        l = OMF::SFA::Resource::OLease.create({ :name => "l1", :account => account})
+        #l = OMF::SFA::Resource::Lease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
+        l = OMF::SFA::Resource::Lease.create({ :name => "l1", :account => account})
         l.valid_from = '1338847200'
         l.valid_until = '1338850800'
         l.save
@@ -292,14 +292,14 @@ describe AMManager do
         res.name.should be_eql('node1')
         res.leases.first.name.should be_eql('l2')
 
-        OMF::SFA::Resource::OLease.first(:name => 'l1').should_not be_nil
+        OMF::SFA::Resource::Lease.first(:name => 'l1').should_not be_nil
         OMF::SFA::Resource::Node.first(:name => 'r1').should_not be_nil
       end
 
       it 'will unlink a node from a lease and release the node' do
 
-        #l = OMF::SFA::Resource::OLease.create({:name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
-        l = OMF::SFA::Resource::OLease.create({:name => "l1", :account => account})
+        #l = OMF::SFA::Resource::Lease.create({:name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
+        l = OMF::SFA::Resource::Lease.create({:name => "l1", :account => account})
         l.valid_from = '1338847200'
         l.valid_until = '1338850800'
         l.save
@@ -332,13 +332,13 @@ describe AMManager do
         l.reload
         l.components.first.should be_nil
 
-        OMF::SFA::Resource::OLease.first(:name => 'l1').should_not be_nil
+        OMF::SFA::Resource::Lease.first(:name => 'l1').should_not be_nil
       end
 
       it 'will release a node and a lease' do
 
-        #l = OMF::SFA::Resource::OLease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
-        l = OMF::SFA::Resource::OLease.create({ :name => "l1", :account => account})
+        #l = OMF::SFA::Resource::Lease.create({ :name => "l1", :valid_from => "1338847200", :valid_until => "1338850800", :account => account})
+        l = OMF::SFA::Resource::Lease.create({ :name => "l1", :account => account})
         l.valid_from = '1338847200'
         l.valid_until = '1338850800'
         l.save
@@ -367,7 +367,7 @@ describe AMManager do
 
         r.should == []
         OMF::SFA::Resource::Node.first(:name => 'r1').should be_nil
-        OMF::SFA::Resource::OLease.first(:name => 'l1').should be_nil
+        OMF::SFA::Resource::Lease.first(:name => 'l1').should be_nil
 
       end
 

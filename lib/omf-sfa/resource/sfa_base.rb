@@ -249,9 +249,9 @@ module OMF::SFA
 
       module InstanceMethods
 
-        def resource_type
-          sfa_class
-        end
+        #def resource_type
+        #  sfa_class
+        #end
 
         def component_id
           unless id = attribute_get(:component_id)

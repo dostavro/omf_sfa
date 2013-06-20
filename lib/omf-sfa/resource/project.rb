@@ -8,7 +8,7 @@ module OMF::SFA::Resource
   #
   class Project < OResource
 
-    has 1, :account, :model => 'OAccount', :required => false
+    has 1, :account, :model => 'Account', :required => false
     has n, :project_memberships
     has n, :users, :through => :project_memberships, :via => :user
 

@@ -50,18 +50,18 @@ describe AMManager do
     it 'can create account' do
       auth.should_receive(:can_create_account?)#.with("02134")
       account = manager.find_or_create_account({:name => 'a'}, auth) 
-      account.should be_a(OMF::SFA::Resource::OAccount)
+      account.should be_a(OMF::SFA::Resource::Account)
     end
 
     it 'can find created account' do
       auth.should_receive(:can_create_account?)
       a1 = manager.find_or_create_account({:name => 'a'}, auth)
 
-      auth.should_receive(:can_view_account?).with(kind_of(OMF::SFA::Resource::OAccount))      
+      auth.should_receive(:can_view_account?).with(kind_of(OMF::SFA::Resource::Account))      
       a2 = manager.find_or_create_account({:name => 'a'}, auth)
       a1.should == a2
 
-      auth.should_receive(:can_view_account?).with(kind_of(OMF::SFA::Resource::OAccount))      
+      auth.should_receive(:can_view_account?).with(kind_of(OMF::SFA::Resource::Account))      
       a3 = manager.find_account({:name => 'a'}, auth)
       a1.should == a3
     end
@@ -146,18 +146,18 @@ describe AMManager do
     it 'can create lease' do
       auth.should_receive(:can_create_lease?)
       lease = manager.find_or_create_lease({:name => 'l1'}, {:valid_from => Time.now, :valid_until => Time.now + 100}, auth) 
-      lease.should be_a(OMF::SFA::Resource::OLease)
+      lease.should be_a(OMF::SFA::Resource::Lease)
     end
 
     it 'can find created lease' do
       auth.should_receive(:can_create_lease?)
       a1 = manager.find_or_create_lease({:name => 'l1'}, {}, auth)
 
-      auth.should_receive(:can_view_lease?).with(kind_of(OMF::SFA::Resource::OLease))      
+      auth.should_receive(:can_view_lease?).with(kind_of(OMF::SFA::Resource::Lease))      
       a2 = manager.find_or_create_lease({:name => 'l1'}, {}, auth)
       a1.should == a2
 
-      auth.should_receive(:can_view_lease?).with(kind_of(OMF::SFA::Resource::OLease))      
+      auth.should_receive(:can_view_lease?).with(kind_of(OMF::SFA::Resource::Lease))      
       a3 = manager.find_lease({:name => 'l1'}, auth)
       a1.should == a3
     end
@@ -215,7 +215,7 @@ describe AMManager do
   end # context - lease
 
   context 'resource' do
-    let(:account) { OMF::SFA::Resource::OAccount.new(:name => 'a') }
+    let(:account) { OMF::SFA::Resource::Account.new(:name => 'a') }
     let(:auth) do
       auth = double('authorizer') 
       auth.stub(:account) { account }
@@ -237,7 +237,7 @@ describe AMManager do
     end
 
     it 'find single resource belonging to account' do
-      account = OMF::SFA::Resource::OAccount.new(:name => 'a')
+      account = OMF::SFA::Resource::Account.new(:name => 'a')
       auth.stub(:account) { account }
 
       # resources belong to nil account, so they shouldn't be found
@@ -254,7 +254,7 @@ describe AMManager do
     end
 
     it 'will create resource if not already available for the account' do
-      account = OMF::SFA::Resource::OAccount.create(:name => 'a')
+      account = OMF::SFA::Resource::Account.create(:name => 'a')
       auth.stub(:account) { account }
 
       vr = OMF::SFA::Resource::OResource.create(:name => 'v1')

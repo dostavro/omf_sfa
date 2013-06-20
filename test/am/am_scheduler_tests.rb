@@ -46,14 +46,14 @@ describe AMScheduler do
   
     it 'can return the default account' do
       a = scheduler.get_nil_account()
-      a.must_be_instance_of(OMF::SFA::Resource::OAccount)
+      a.must_be_instance_of(OMF::SFA::Resource::Account)
     end
   end
 
   describe 'resources' do
 
     a = scheduler.get_nil_account()
-    account = OMF::SFA::Resource::OAccount.create({:name => 'a1'})
+    account = OMF::SFA::Resource::Account.create({:name => 'a1'})
 
     it 'can create a node' do
       r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})

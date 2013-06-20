@@ -79,7 +79,7 @@ def load_test_am
   
   am = @options[:am_mgr]
 
-  require 'omf-sfa/resource/oaccount'
+  require 'omf-sfa/resource/account'
   account = am.find_or_create_account(:name => 'foo')
   
   require 'omf-sfa/resource/node'

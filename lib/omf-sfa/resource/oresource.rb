@@ -9,14 +9,14 @@ require 'set'
 autoload :OProperty, 'omf-sfa/resource/oproperty'
 #require 'omf-sfa/resource/group_membership'
 autoload :GroupMembership, 'omf-sfa/resource/group_membership'
-autoload :OAccount, 'omf-sfa/resource/oaccount'
+autoload :Account, 'omf-sfa/resource/account'
 autoload :OGroup, 'omf-sfa/resource/ogroup'
-autoload :OLease, 'omf-sfa/resource/olease'
+autoload :Lease, 'omf-sfa/resource/lease'
 
 # module OMF::SFA::Resource
   # class OResource; end
 # end
-#require 'omf-sfa/resource/oaccount'
+#require 'omf-sfa/resource/account'
 
 
 module OMF::SFA::Resource
@@ -62,7 +62,7 @@ module OMF::SFA::Resource
     has n, :group_memberships, :child_key => [ :o_resource_id ]
     has n, :included_in_groups, 'OGroup', :through => :group_memberships, :via => :o_group
 
-    belongs_to :account, :model => 'OAccount', :child_key  => [ :account_id ], :required => false
+    belongs_to :account, :model => 'Account', :child_key  => [ :account_id ], :required => false
 
 
     def self.oproperty(name, type, opts = {})
@@ -173,14 +173,6 @@ module OMF::SFA::Resource
       href
     end
 
-    def resource_type()
-      unless rt = attribute_get(:resource_type)
-        rt = self.class.to_s.split('::')[-1].downcase
-      end
-      rt
-    end
-
-
     # Return the status of the resource. Should be
     # one of: _configuring_, _ready_, _failed_, and _unknown_
     #
@@ -287,11 +279,14 @@ module OMF::SFA::Resource
 
 
     before :save do
+      unless self.resource_type
+        self.resource_type = self.class.to_s.split('::')[-1].downcase
+      end
       unless self.uuid
         self.uuid = UUIDTools::UUID.random_create
       end
       unless self.name
-        self.name = self.urn ? GURN.create(self.urn).short_name : "r#{self.object_id}"
+        self.name = self.urn ? GURN.create(self.urn, :type => self.resource_type).short_name : "r#{self.object_id}"
       end
       unless self.urn
         # The purpose or function of a URN is to provide a globally unique,
@@ -301,7 +296,7 @@ module OMF::SFA::Resource
         # source: http://tools.ietf.org/html/rfc1737
         #
         name = self.name
-        self.urn = GURN.create(name, :model => self.class).to_s
+        self.urn = GURN.create(name, :type => self.resource_type).to_s
       end
     end
 

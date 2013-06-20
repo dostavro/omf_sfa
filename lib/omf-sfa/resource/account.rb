@@ -9,7 +9,7 @@ module OMF::SFA::Resource
   # This class represents a users or team's account. Each resource
   # belongs to an account.
   #
-  class OAccount < OGroup
+  class Account < OGroup
 
     @@def_duration = 100 * 86400 # 100 days
 
@@ -73,5 +73,5 @@ module OMF::SFA::Resource
       v
     end
 
-  end # OAccount
+  end # Account
 end # OMF::SFA::Resource

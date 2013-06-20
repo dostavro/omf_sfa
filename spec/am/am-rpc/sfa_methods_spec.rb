@@ -51,7 +51,7 @@ describe AMService do
 
   it 'will return all the resources of a slice' do
     
-    account = OMF::SFA::Resource::OAccount.new(:urn => "urn:publicid:IDN+omf:test+account+1")
+    account = OMF::SFA::Resource::Account.new(:urn => "urn:publicid:IDN+omf:test+account+1")
     OMF::SFA::Resource::Node.create({:name => 'node1', :account => account})
 
     authorizer.should_receive(:check_credentials).with(:ListResources, "urn:publicid:IDN+omf:test+account+1", "cred")
@@ -70,7 +70,7 @@ describe AMService do
   end
 
   it 'will create a sliver' do
-    account = OMF::SFA::Resource::OAccount.new(:urn => "urn:publicid:IDN+omf:test+account+1")
+    account = OMF::SFA::Resource::Account.new(:urn => "urn:publicid:IDN+omf:test+account+1")
     OMF::SFA::Resource::Node.create({:name => 'node1', :account => account})
 
     authorizer.should_receive(:check_credentials).with(:CreateSliver, "urn:publicid:IDN+omf:test+account+1", "cred")
@@ -89,7 +89,7 @@ describe AMService do
 
   it "will return the status of a sliver" do
 
-    account = OMF::SFA::Resource::OAccount.new(:urn => "urn:publicid:IDN+omf:test+account+1")
+    account = OMF::SFA::Resource::Account.new(:urn => "urn:publicid:IDN+omf:test+account+1")
     OMF::SFA::Resource::Node.create({:name => 'node1', :account => account})
 
     authorizer.should_receive(:check_credentials).with(:SliverStatus, "urn:publicid:IDN+omf:test+account+1", "cred")
@@ -121,12 +121,12 @@ describe AMService do
 
   it "will delete a sliver" do
 
-    OMF::SFA::Resource::OAccount.new(:urn => "urn:publicid:IDN+omf:test+account+1")
+    OMF::SFA::Resource::Account.new(:urn => "urn:publicid:IDN+omf:test+account+1")
 
     account = authorizer.should_receive(:check_credentials).with(:DeleteSliver, "urn:publicid:IDN+omf:test+account+1", "cred")
 
     manager.stub(:close_account) do |slice_urn, auth|
-      account = OMF::SFA::Resource::OAccount.first(slice_urn)
+      account = OMF::SFA::Resource::Account.first(slice_urn)
       account.close
       account.save
       account
@@ -138,7 +138,7 @@ describe AMService do
 
   it "will shutdown sliver" do
 
-    account = OMF::SFA::Resource::OAccount.new(:urn => "urn:publicid:IDN+omf:test+account+1")
+    account = OMF::SFA::Resource::Account.new(:urn => "urn:publicid:IDN+omf:test+account+1")
 
     authorizer.should_receive(:check_credentials).with(:Shutdown, "urn:publicid:IDN+omf:test+account+1", "cred")
     manager.should_receive(:find_account).and_return(account)

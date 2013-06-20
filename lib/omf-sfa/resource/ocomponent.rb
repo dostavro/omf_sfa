@@ -2,7 +2,7 @@
 require 'omf-sfa/resource/oresource'
 require 'omf-sfa/resource/ogroup'
 require 'omf-sfa/resource/sfa_base'
-require 'omf-sfa/resource/olease'
+require 'omf-sfa/resource/lease'
 
 module OMF::SFA::Resource
 
@@ -24,7 +24,7 @@ module OMF::SFA::Resource
     oproperty :provided_by, self
 
     has n, :component_leases, :child_key => [:component_id]
-    has n, :leases, :model => 'OLease', :through => :component_leases, :via => :lease
+    has n, :leases, :model => 'Lease', :through => :component_leases, :via => :lease
 
     extend OMF::SFA::Resource::Base::ClassMethods
     include OMF::SFA::Resource::Base::InstanceMethods
@@ -136,9 +136,9 @@ module OMF::SFA::Resource
       super
     end
 
-    before :save do
-      self.urn = GURN.create(self.name, self)
-    end
+    #before :save do
+    #  self.urn = GURN.create(self.name, self)
+    #end
 
     def destroy!
       #debug "OCOMPONENT destroy! #{self}"

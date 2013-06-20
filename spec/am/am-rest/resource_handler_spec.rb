@@ -70,7 +70,7 @@ describe 'Resource handler' do
 #    res2 = @h.on_get(r.uuid.to_s, @opts)
     @mgr.manage_resource(r)
     opts = create_def_opts
-    account = opts[:account] = OAccount.new()
+    account = opts[:account] = Account.new()
     r.account = account
     
     res2 = @h.on_get({:name => r.component_name}, @opts)
@@ -109,10 +109,10 @@ describe 'Resource handler' do
     OComponent.find(:name => 'r1').each {|r| r.destroy}
     r = OComponent.create(:name => 'r1')
     @mgr.manage_resource(r)
-    account1 = OAccount.create()
+    account1 = Account.create()
     r.account = account1
     r.save
-#    account1 = opts[:account] = OAccount.new()
+#    account1 = opts[:account] = Account.new()
     
     opts = create_def_opts(:path => '/resources/moo', :account_id => account1.uuid.to_uri)
     @mgr.get_requester_account(opts).should == account1
@@ -120,7 +120,7 @@ describe 'Resource handler' do
     r1h = {:name => 'r1'}
     res = @h.on_get(r1h, opts)
 
-    account2 = OAccount.create()    
+    account2 = Account.create()    
     opts = create_def_opts(:path => '/resources/moo', :account_id => UUIDTools::UUID.random_create.to_uri)
     lambda do
       res = @h.on_get(r1h, opts)
@@ -186,7 +186,7 @@ describe 'Resource handler' do
   it 'can delete a node on delete' do
     r = create_node('r1')
     @mgr.manage_resource(r)
-    account1 = OAccount.create()
+    account1 = Account.create()
     
     opts = create_def_opts(:path => '/resources/moo', :account_id => account1.uuid.to_uri)
     res = @h.on_delete({:name => 'r1'}, opts)
