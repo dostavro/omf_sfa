@@ -28,15 +28,13 @@ module OMF::SFA::AM
 
       OmfCommon.comm.subscribe('userController') do |user_rc|
         unless user_rc.error?
-          puts "User controller has been created: #{user_rc}"
-          cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
 
           user_rc.create(:user, hrn: 'newuser', username: account.name) do |reply_msg|
             if reply_msg.success?
               user = reply_msg.resource
 
               user.on_subscribed do
-                info ">>> Connected to newly created user #{reply_msg[:hrn]}(id: #{reply_msg[:res_id]})"
+                #info ">>> Connected to newly created user #{reply_msg[:hrn]}(id: #{reply_msg[:res_id]})"
 
                 user.on_message do |m|
 
@@ -44,25 +42,32 @@ module OMF::SFA::AM
                     if m.read_content("itype").eql?('STATUS')
                       #info "#{m.inspect}"
                       if m.read_property("status_type") == 'APP_EVENT'
-                        puts "Succesfully created user"
+                        #puts "Succesfully created user"
                         am_cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
                         # urn:publicid:IDN+omf:nitos+slice+alice
-                        #user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', account.valid_until, m.read_property('pub_key'))
-                        user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', 3600 * 365 * 10, m.read_property('pub_key'))
-                        user.configure(cert: user_cert.to_pem)
+                        puts "ACCOUNT #{account.valid_until}"
+                        duration = account.valid_until.to_i - Time.now.to_i
+                        user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', duration, m.read_property('pub_key'))
+                        user.configure(cert: user_cert.to_pem) do |reply|
+                          if reply.success?
+                            release_proxy(user_rc, user)
+                          else
+                            error "Configuration of the certificate failed - #{reply[:reason]}"
+                          end
+                        end
                       end
                     end
                   end
                 end
               end
             else
-              error ">>> Resource creation failed - #{user[:reason]}"
+              error ">>> Resource creation failed - #{reply_msg[:reason]}"
             end
           end
         else
-        raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
+          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
+        end
       end
-    end
     end
 
     def authorize_keys(user, account)
@@ -153,6 +158,17 @@ module OMF::SFA::AM
     #  raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{resource.inspect}'" unless resource_topic
 
     #end
+
+    private
+
+    def release_proxy(parent, child)
+      parent.release(child) do |reply_msg|
+        unless reply_msg.success?
+          error "Release of the proxy #{child} failed - #{reply_msg[:reason]}"
+        end
+      end
+    end
+
 
   end # AMLiaison
 end # OMF::SFA::AM
