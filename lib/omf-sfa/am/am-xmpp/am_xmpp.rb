@@ -1,6 +1,7 @@
 require 'omf_rc'
 require 'omf_common'
 require 'omf-sfa/am/am-xmpp/am_authorizer'
+require 'omf-sfa/resource'
 
 module OmfRc::ResourceProxy::AMController
   include OmfRc::ResourceProxyDSL
@@ -37,8 +38,9 @@ module OmfRc::ResourceProxy::AMController
   end
 
 
-  #configure :resource do |resource, value, cert|
-  #end
+  configure :resource do |resource, value, cert|
+    puts "CONFIGURE #{value} #{cert}"
+  end
 
 
   # We override the create method of AbstractResource
@@ -49,9 +51,38 @@ module OmfRc::ResourceProxy::AMController
   #end
 
   def handle_create_message(message, obj, response)
-    response[:foo] = 'bar'
+    #puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
+    @manager = obj.creation_opts[:manager]
+    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(message.peer_cert.to_x509, @manager)
+
+    opts = message.properties
+    new_props = opts.reject { |k| [:type, :uid, :hrn, :property, :instrument].include?(k.to_sym) }
+    puts "Message rtype #{message.rtype}"
+    puts "Message new properties #{new_props.to_hash}"
+
+    type = message.rtype.camelize
+    new_res = create_resource(type, new_props)
+
+    puts "NEW RES #{new_res.inspect}"
+    new_res.to_hash.each do |key, value|
+      response[key] = value
+    end
     self.inform(:creation_ok, response)
   end
+
+  private
+
+  def create_resource(type, props)
+    debug "Creating resource of type '#{type}' with properties '#{props}'"
+    res = eval("OMF::SFA::Resource::#{type}").create(props)
+    @manager.manage_resource(res)
+  end
+
+  #def create_node(props)
+  #  debug "Creating node with props: '#{props}'"
+  #  node = OMF::SFA::Resource::Node.create(props)
+  #  @manager.manage_resource(node)
+  #end
 
   #def handle_release_message(message, obj, response)
   #  puts "I'm not releasing anything"
