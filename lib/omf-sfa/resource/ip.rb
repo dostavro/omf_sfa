@@ -7,8 +7,9 @@ module OMF::SFA::Resource
     oproperty :address, String
     oproperty :netmask, String
     oproperty :ip_type, String
+    oproperty :interface, :Interface
 
-    belongs_to :interface, :required => false
+    #belongs_to :interface, :required => false
 
     extend OMF::SFA::Resource::Base::ClassMethods
     include OMF::SFA::Resource::Base::InstanceMethods

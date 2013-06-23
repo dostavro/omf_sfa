@@ -102,6 +102,7 @@ module OMF::SFA::Resource
       res.each do |r|
         catch :diff_prop do
           oprops.each do |key, value|
+            key = key.to_sym unless key.is_a? Symbol
             type = class_props[key][:__type__]
             if type.is_a? Symbol
               if class_props[key][:functional].nil?
@@ -367,7 +368,7 @@ module OMF::SFA::Resource
       unless self.name
         self.name = self.urn ? GURN.create(self.urn, :type => self.resource_type).short_name : "r#{self.object_id}"
       end
-      unless self.urn
+      #unless self.urn
         # The purpose or function of a URN is to provide a globally unique,
         # persistent identifier used for recognition, for access to
         # characteristics of the resource or for access to the resource
@@ -376,7 +377,7 @@ module OMF::SFA::Resource
         #
         name = self.name
         self.urn = GURN.create(name, :type => self.resource_type).to_s
-      end
+      #end
     end
 
     def destroy

@@ -7,14 +7,12 @@ module OMF::SFA::Resource
   class Channel < OComponent
 
     oproperty :interface, :Interface, :functional => false
-    oproperty :number, Integer
     oproperty :frequency, String
 
     # we have already added that in lease
     #sfa_add_namespace :ol, 'http://nitlab.inf.uth.gr/schema/sfa/rspec/1'
 
     sfa_class 'channel', :namespace => :ol
-    sfa :number, :attribute => true
     sfa :frequency, :attribute => true
     sfa :interfaces, :inline => true, :has_many => true
 

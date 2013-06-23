@@ -11,8 +11,10 @@ module OMF::SFA::Resource
     oproperty :role, String
     oproperty :node, :Node
     oproperty :channel, :Channel
+    oproperty :mac, String
+    oproperty :ip, :Ip
 
-    has 1, :ip
+    #has 1, :ip
 
     def sliver
       node.sliver

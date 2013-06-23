@@ -11,6 +11,8 @@ module OMF::SFA::Resource
     #oproperty :sliver_type, String, :required => false
     oproperty :interfaces, :Interface, :functional => false
     oproperty :exclusive, String, :default => true
+    oproperty :disk, String
+    oproperty :hostname, String
     #belongs_to :sliver
 
     sfa_class 'node'

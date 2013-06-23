@@ -36,6 +36,14 @@ describe OResource do
       node.interfaces.first.must_be_kind_of(Interface)
     end
 
+    it 'can create an ip when creating an interface' do
+      node = Node.create(name: 'node1', interfaces: {name: 'node1:if0', ip: {address: '10.0.0.1'}})
+      irf = node.interfaces.first
+      irf.must_be_kind_of(Interface)
+      irf.ip.must_be_kind_of(Ip)
+      irf.ip.address.must_equal('10.0.0.1')
+    end
+
     it 'can create an interface and link to a node' do
       node = Node.create(name: 'node1', interfaces: {name: 'node1:if0', node: {name: 'node1'}})
       node.must_be_kind_of(Node)
