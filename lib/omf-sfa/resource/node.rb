@@ -6,12 +6,11 @@ module OMF::SFA::Resource
 
   class Node < OComponent
 
-
     oproperty :hardware_type, String, :required => false
-    oproperty :available, Boolean, :default => true
+    oproperty :available, String, :default => true
     #oproperty :sliver_type, String, :required => false
-    oproperty :interfaces, :interface, :functional => false
-    oproperty :exclusive, Boolean, :default => true
+    oproperty :interfaces, :Interface, :functional => false
+    oproperty :exclusive, String, :default => true
     #belongs_to :sliver
 
     sfa_class 'node'
@@ -22,6 +21,7 @@ module OMF::SFA::Resource
     sfa :client_id, :attribute => true
     sfa :exclusive, :attribute => true
     alias_method :client_id, :name
+
 
     # Override xml serialization of 'interface'
     def _to_sfa_property_xml(pname, value, res_el, pdef, obj2id, opts)

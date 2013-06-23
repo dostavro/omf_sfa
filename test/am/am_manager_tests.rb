@@ -15,7 +15,7 @@ def init_dm
 
   DataMapper.setup(:default, 'sqlite::memory:')
   #DataMapper.setup(:default, 'sqlite:///tmp/am_test.db')
-  DataMapper::Model.raise_on_save_failure = true 
+  DataMapper::Model.raise_on_save_failure = true
   DataMapper.finalize
 
   DataMapper.auto_migrate!
@@ -57,7 +57,7 @@ describe AMManager do
         resource.destroy
       end
     end
-    scheduler 
+    scheduler
   end
 
   let (:manager) { AMManager.new(scheduler) }
@@ -66,7 +66,7 @@ describe AMManager do
     it 'can create an AM Manager' do
       manager
     end
-  
+
     it 'can manage a resource' do
       r = OMF::SFA::Resource::OResource.create(:name => 'r')
       manager.manage_resource(r)
@@ -75,13 +75,16 @@ describe AMManager do
 
   describe 'account' do
     let(:auth) { MiniTest::Mock.new }
+    let (:liaison) { MiniTest::Mock.new }
 
     before do
+      manager.liaison = liaison
       DataMapper.auto_migrate! # reset database
     end
-        
+
     it 'can create account' do
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       account = manager.find_or_create_account({:name => 'a'}, auth)
       account.must_be_instance_of(OMF::SFA::Resource::Account)
       auth.verify
@@ -89,74 +92,79 @@ describe AMManager do
 
     it 'can find created account' do
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a'}, auth)
-             
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
+
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       a2 = manager.find_or_create_account({:name => 'a'}, auth)
       a1.must_equal a2
-      
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
+
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       a3 = manager.find_account({:name => 'a'}, auth)
       a1.must_equal a3
       auth.verify
     end
-    
+
     it 'throws exception when looking for non-exisiting account' do
-      lambda do 
+      lambda do
         manager.find_account({:name => 'a'}, auth)
       end.must_raise(UnavailableResourceException)
     end
-    
+
     it 'can request all accounts visible to a user' do
-      manager.find_all_accounts(auth).must_be_empty 
+      manager.find_all_accounts(auth).must_be_empty
 
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
-      
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
+
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       manager.find_all_accounts(auth).must_equal [a1]
-      
+
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a2 = manager.find_or_create_account({:name => 'a2'}, auth)
-       
+
       auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      
+
       manager.find_all_accounts(auth).must_equal [a1, a2]
       auth.verify
 
       def auth.can_view_account?(account)
         raise InsufficientPrivilegesException
-      end  
+      end
       manager.find_all_accounts(auth).must_be_empty
-      
+
     end
-    
+
     it 'can request accounts which are active' do
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
-      
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
+
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       a2 = manager.find_active_account({:name => 'a1'}, auth)
       a2.wont_be_nil
 
       # Expire account
       a2.valid_until = Time.now - 100
       a2.save
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       lambda do
         manager.find_active_account({:name => 'a1'}, auth)
       end.must_raise(UnavailableResourceException)
       auth.verify
     end
-    
+
     it 'can renew accounts' do
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
 
       time = Time.now + 100
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
-      auth.expect(:can_renew_account?, true, [a1, time])            
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
+      auth.expect(:can_renew_account?, true, [a1, time])
       a2 = manager.renew_account_until({:name => 'a1'}, time, auth)
 
       # we convert the time to INT in order to round up fractional seconds
@@ -167,15 +175,16 @@ describe AMManager do
 
       auth.verify
     end
-    
+
     it 'can close account' do
       auth.expect(:can_create_account?, true)
+      liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
       a1.active?.must_equal true
       a1.closed?.must_equal false
-      
-      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])      
-      auth.expect(:can_close_account?, true, [a1])   
+
+      auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
+      auth.expect(:can_close_account?, true, [a1])
       a2 = manager.close_account({:name => 'a1'}, auth)
       a2.reload
       a2.active?.must_equal false
@@ -224,11 +233,11 @@ describe AMManager do
     before do
       DataMapper.auto_migrate! # reset database
     end
-        
+
     it 'can create lease' do
       auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
-      lease = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth) 
+      lease = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       lease.must_be_instance_of(OMF::SFA::Resource::Lease)
       auth.verify
     end
@@ -237,19 +246,19 @@ describe AMManager do
       auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       a1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
-             
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
+
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       a2 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       a1.must_equal a2
-      
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
+
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       a3 = manager.find_lease({:name => 'l1'}, {}, auth)
       a1.must_equal a3
       auth.verify
     end
 
     it 'throws exception when looking for non-exisiting lease' do
-      lambda do 
+      lambda do
         manager.find_lease({:name => 'l1'}, {}, auth)
       end.must_raise(UnavailableResourceException)
     end
@@ -258,28 +267,30 @@ describe AMManager do
       OMF::SFA::Resource::Lease.create({:name => "another_user's_lease"})
 
       auth.expect(:can_create_account?, true)
+      manager.liaison = MiniTest::Mock.new
+      manager.liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
       a1 = manager.find_or_create_account({:name => 'a1'}, auth)
       auth.expect(:account, a1)
 
-      manager.find_all_leases_for_account(a1, auth).must_be_empty   
+      manager.find_all_leases_for_account(a1, auth).must_be_empty
 
       auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       l1 = manager.find_or_create_lease({:name => 'l1', :account => a1}, lease_oproperties, auth)
-      
-      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])      
+
+      auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       manager.find_all_leases_for_account(a1, auth).must_equal [l1]
-      
+
       auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, a1)
       l2 = manager.find_or_create_lease({:name => 'l2', :account => a1}, lease_oproperties, auth)
-       
+
       auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       manager.find_all_leases_for_account(a1, auth).must_equal [l1, l2]
 
       def auth.can_view_lease?(lease)
         raise InsufficientPrivilegesException
-      end   
+      end
       manager.find_all_leases_for_account(a1, auth).must_be_empty
       auth.verify
     end
@@ -292,7 +303,7 @@ describe AMManager do
 
       valid_from = Time.now + 1000
       valid_until = valid_from + 1000
-      auth.expect(:can_modify_lease?, true, [l1])            
+      auth.expect(:can_modify_lease?, true, [l1])
       l2 = manager.modify_lease({:valid_from => valid_from, :valid_until => valid_until}, l1, auth)
       auth.verify
       l2.must_equal l1.reload
@@ -304,14 +315,14 @@ describe AMManager do
       time1 = Time.at(l2.valid_until.to_i)
       time1.must_equal Time.at(valid_until.to_i)
     end
-    
+
     it 'can release a lease' do
       auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       auth.expect(:account, account)
       l1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, auth)
       auth.verify
-      
-      auth.expect(:can_release_lease?, true, [l1])   
+
+      auth.expect(:can_release_lease?, true, [l1])
       manager.release_lease(l1, auth)
       auth.verify
       l1.reload
@@ -325,11 +336,11 @@ describe AMManager do
     account = OMF::SFA::Resource::Account.create(:name => 'a')
 
     auth = Minitest::Mock.new
-    
+
     before do
       DataMapper.auto_migrate! # reset database
     end
-    
+
     it 'finds single resource belonging to anyone through its name (Hash)' do
       r1 = OMF::SFA::Resource::OResource.create(:name => 'r1')
       manager.manage_resources([r1])
@@ -386,7 +397,7 @@ describe AMManager do
       def authorizerr.can_view_resource?(*args)
         raise InsufficientPrivilegesException.new
       end
-      
+
       lambda do
         manager.find_resource('r1', authorizerr)
       end.must_raise(InsufficientPrivilegesException)
@@ -395,13 +406,13 @@ describe AMManager do
     it 'finds single resource belonging to an account' do
       r1 = OMF::SFA::Resource::OResource.create(:name => 'r1')
       manager.manage_resources([r1])
-      
+
       auth.expect(:account, account)
       lambda do
         manager.find_resource_for_account({:name => 'r1'}, auth)
       end.must_raise(UnknownResourceException)
       auth.verify
- 
+
       # now, assign it to this account
       r1.account = account
       r1.save
@@ -474,12 +485,12 @@ describe AMManager do
           <node component_id="urn:publicid:IDN+openlab+node+node1" component_name="node1" client_id="omf">
           </node>
         </rspec>
-      } 
+      }
       req = Nokogiri.XML(rspec)
-      
+
       auth.expect(:can_create_resource?, true, [Hash, String])
       auth.expect(:account, account)
-      auth.expect(:account, account)    
+      auth.expect(:account, account)
       r = manager.update_resources_from_rspec(req.root, false, auth)
       auth.verify
       r.first.must_equal OMF::SFA::Resource::Node.first(:name => 'node1')

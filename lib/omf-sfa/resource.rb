@@ -15,5 +15,6 @@ require 'omf-sfa/resource/component_lease'
 
 #require 'omf-sfa/resource/sliver'
 require 'omf-sfa/resource/link'
+require 'omf-sfa/resource/channel'
 require 'omf-sfa/resource/interface'
 require 'omf-sfa/resource/node'

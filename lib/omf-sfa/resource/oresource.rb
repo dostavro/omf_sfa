@@ -64,6 +64,78 @@ module OMF::SFA::Resource
 
     belongs_to :account, :model => 'Account', :child_key  => [ :account_id ], :required => false
 
+    # Override of the Class method 'first' of DataMapper such that we can search with oproperties
+    def self.first(*args)
+      class_props = @@oprops[self]
+
+      if args.empty? || class_props.nil?
+        return super(*args)
+      elsif !args.last.kind_of? Enumerable
+        # if we get a possible Object argument then use DataMapper's first method
+        return super(*args)
+      end
+
+      # we separate properties from oproperties
+      query = args.last.dup
+      oprops = query.select do |k|
+        if k.is_a? String
+          k = k.to_sym
+        end
+        class_props.include?(k)
+      end
+      query.delete_if do |k|
+        if k.is_a? String
+          k = k.to_sym
+        end
+        class_props.include?(k)
+      end
+
+      if oprops.empty?
+        # nothing to do here just use DataMapper's first method
+        return super(*args)
+      else
+        # get all the resources that match the properties desctription and then
+        # we will pick the first one that matches the oproperties description
+        res = self.all(query)
+      end
+
+      res.each do |r|
+        catch :diff_prop do
+          oprops.each do |key, value|
+            type = class_props[key][:__type__]
+            if type.is_a? Symbol
+              if class_props[key][:functional].nil?
+                unless value.is_a? eval(type.to_s)
+                  value = eval(class_props[key][:__type__].to_s).first(value)
+                end
+              elsif class_props[key][:functional] == false
+                if value.is_a? Array
+                  value = value.map do |v|
+                    if v.is_a? eval(type.to_s)
+                      v
+                    else
+                      eval(class_props[key][:__type__].to_s).first(v)
+                    end
+                  end
+                else
+                  unless value.is_a? eval(type.to_s)
+                    value = eval(class_props[key][:__type__].to_s).first(value)
+                  end
+                  value = [value]
+                end
+              elsif class_props[key][:functional] == true
+                unless value.is_a? eval(type.to_s)
+                  value = eval(class_props[key][:__type__].to_s).first(value)
+                end
+              end
+            end # if Symbol
+            throw :diff_prop if r.send(key) != value
+          end
+          return r # all the oproperties of this resource match with the query
+        end # throw will end up here and continue with the next res
+      end
+      return nil # nothing found
+    end
 
     def self.oproperty(name, type, opts = {})
       name = name.to_s
@@ -75,7 +147,7 @@ module OMF::SFA::Resource
       if opts[:functional] == false
         # property is an array
         pname = DataMapper::Inflector.pluralize(name)
-        op[pname] = opts
+        op[pname.to_sym] = opts
 
         define_method pname do
           res = oproperty_get(pname)
@@ -90,27 +162,27 @@ module OMF::SFA::Resource
         end
 
         define_method "#{pname}=" do |v|
-          #unless v.kind_of? Enumerable
-          #  raise "property '#{pname}' expects a value of type Enumerable"
-          #end
 
-          #val = self.eval("#{pname}")
-          #puts "RESPOND: '#{respond_to?(pname.to_sym)}' self:'#{self.inspect}'"
-          #val = send(pname.to_sym).value#.dup
-          #val = oproperty_get(pname)
-          #unless v.is_a? PropValueArray
-          unless v.is_a? Array
-            # we really want to store it as a PropValueArray
-            #c = PropValueArray.new
-            #if v.respond_to?(:each)
-            #  v.each {|e| c << e}
-            #else
-            #  c << v
-            #end
-            #v = c
-            v = [v]
-            #puts "VAL is '#{val}'"
+          if (type.is_a? Symbol) && (!v.nil?)
+            # make sure i have saved myself in case the oproperty is pointing back to me
+            self.save
+            if v.is_a? Array
+              v = v.map do |val|
+                if val.is_a? eval(type.to_s)
+                  val
+                else
+                  eval(type.to_s).first_or_create(val)
+                end
+              end
+            else
+              if v.is_a? eval(type.to_s)
+                v = [v]
+              else
+                v = [eval(type.to_s).first_or_create(v)]
+              end
+            end
           end
+
           #puts "NAME is '#{name}'"
           #puts "V is '#{v}'"
           oproperty_set(pname, v)
@@ -118,7 +190,7 @@ module OMF::SFA::Resource
 
 
       else
-        op[name] = opts
+        op[name.to_sym] = opts
 
         define_method name do
           res = oproperty_get(name)
@@ -132,6 +204,13 @@ module OMF::SFA::Resource
         end
 
         define_method "#{name}=" do |v|
+          if (type.is_a? Symbol) && (!v.nil?)
+            # make sure i have saved myself in case the oproperty is pointing back to me
+            self.save
+            unless v.is_a? eval(type.to_s)
+              v = eval(type.to_s).first_or_create(v)
+            end
+          end
           oproperty_set(name, v)
         end
 

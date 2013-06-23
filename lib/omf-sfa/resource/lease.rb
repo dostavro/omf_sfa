@@ -7,9 +7,9 @@ module OMF::SFA::Resource
 
   class Lease < OResource
 
-    oproperty :valid_from, DataMapper::Property::Time
-    oproperty :valid_until, DataMapper::Property::Time
-    oproperty :status, DataMapper::Property::Enum[:pending, :accepted, :active, :past, :cancelled]
+    oproperty :valid_from, Time
+    oproperty :valid_until, Time
+    oproperty :status, String # one of 'pending', 'accepted', 'active', 'past', 'cancelled'
 
     has n, :component_leases, :child_key => [:lease_id]
     has n, :components, :model => 'OComponent', :through => :component_leases, :via => :component

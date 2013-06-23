@@ -3,8 +3,7 @@ gem 'minitest' # ensures you're using the gem, and not the built in MT
 require 'minitest/autorun'
 require 'minitest/pride'
 require 'dm-migrations'
-#require 'omf_common/load_yaml'
-require 'omf-sfa/resource/lease'
+require 'omf-sfa/resource'
 
 include OMF::SFA::Resource
 
@@ -46,12 +45,22 @@ describe 'Lease' do
   end
 
   it 'will find a lease by its oproperties' do
-    skip # it would be good to extend Datamapper in order to enable this feature
     l1 = OMF::SFA::Resource::Lease.create({:name => 'l1', :valid_from => valid_from, :valid_until => valid_until})
 
     l2 = OMF::SFA::Resource::Lease.first({:name => 'l1', :valid_from => valid_from, :valid_until => valid_until})
 
     l1.must_equal(l2)
+  end
+
+  it 'will find all the leases that start in the future' do
+    skip # it would be good to extend Datamapper in order to enable this feature
+    t1 = Time.now + 3600
+    t2 = t1 + 3600
+    l1 = OMF::SFA::Resource::Lease.create(name: 'l1', valid_from: t1, valid_until: t2)
+    OMF::SFA::Resource::Lease.create(name: 'l2', valid_from: Time.now, valid_until: Time.now + 3600)
+
+    leases = Lease.all(:valid_from.gt => Time.now)
+    leases.must_equal([l1])
   end
 
   it "will set the 'status' oproperty" do

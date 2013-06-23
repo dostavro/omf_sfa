@@ -21,9 +21,9 @@ module OMF::SFA::Resource
       'account'
     end
 
-    oproperty :created_at, DataMapper::Property::Time
-    oproperty :valid_until, DataMapper::Property::Time
-    oproperty :closed_at, DataMapper::Property::Time
+    oproperty :created_at, Time
+    oproperty :valid_until, Time
+    oproperty :closed_at, Time
 
 
     has n, :active_components, :model => 'OResource', :child_key  => [ :account_id ], :required => false

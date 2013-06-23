@@ -327,7 +327,7 @@ module OMF::SFA
         #
         def to_sfa_hash(href2obj = {}, opts = {})
           res = to_sfa_hash_short(opts)
-          res['comp_gurn'] = self.urn
+          #res['comp_gurn'] = self.urn # this is the same with the component_id
           href = res['href']
           if obj = href2obj[href]
             # have described myself before

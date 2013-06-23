@@ -1,11 +1,12 @@
 
-require 'omf-sfa/resource/ocomponent'
+#require 'omf-sfa/resource'
+require 'omf-sfa/resource/interface'
 
 module OMF::SFA::Resource
 
   class Channel < OComponent
 
-    oproperty :interface, :interface, :functional => false
+    oproperty :interface, :Interface, :functional => false
     oproperty :number, Integer
     oproperty :frequency, String
 
