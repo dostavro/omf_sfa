@@ -258,6 +258,49 @@ describe AMManager do
     end
   end # nodes and leases
 
+  describe 'channels and leases' do
+
+    before do
+      DataMapper.auto_migrate! # reset database
+    end
+
+    it 'will reserve a channel' do
+      authorizer = Minitest::Mock.new
+      rspec = %{
+      <?xml version="1.0" ?>
+      <rspec type="request" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/request.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/sfa/rspec/1/request-reservation.xsd">
+        <ol:lease id="l1" valid_from="2013-01-08T19:00:00Z" valid_until="2013-01-08T20:00:00Z"/>
+        <ol:channel id="584cbf7a-3755-4d12-b4fe-eab87d100e7a" component_id="urn:publicid:IDN+omf:nitos+channel+9" component_manager_id="urn:publicid:IDN+omf:nitos+authority+am" component_name="9" frequency="2.452GHz">
+          <ol:lease_ref id_ref="l1"/>
+        </ol:channel>
+      </rspec>
+      }
+      req = Nokogiri.XML(rspec)
+
+      2.times { authorizer.expect(:can_create_resource?, true, [Hash, String]) }
+      2.times {authorizer.expect(:account, account)}
+
+      r = manager.update_resources_from_rspec(req.root, false, authorizer)
+
+      channel = r.first
+      channel.must_be_kind_of(OMF::SFA::Resource::Channel)
+      channel.name.must_equal('9')
+      channel.resource_type.must_equal('channel')
+
+      a = channel.account
+      a.name.must_equal('a')
+
+      lease = channel.leases.first
+      lease.must_be_kind_of(OMF::SFA::Resource::Lease)
+      lease.name.must_equal(a.name)
+      lease.valid_from.must_equal(Time.parse('2013-01-08T19:00:00Z'))
+      lease.valid_until.must_equal(Time.parse('2013-01-08T20:00:00Z'))
+      lease.components.first.must_be_kind_of(OMF::SFA::Resource::Channel)
+
+      authorizer.verify
+    end
+  end # channel and leases
+
   describe 'clean state flag' do
 
     it 'will create a new node and lease without deleting the previous records' do

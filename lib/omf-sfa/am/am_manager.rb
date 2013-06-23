@@ -641,7 +641,7 @@ module OMF::SFA::AM
         end
 
 
-        resources = descr_el.xpath('//xmlns:node').collect do |el|
+        nodes = descr_el.xpath('//xmlns:node').collect do |el|
           #debug "create_resources_from_xml::EL: #{el.inspect}"
           if el.kind_of?(Nokogiri::XML::Element)
             # ignore any text elements
@@ -657,9 +657,11 @@ module OMF::SFA::AM
         end.compact
 
         # channel reservation
-        #resources = descr_el.xpath('/xmlns:rspec/ol:channel', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3").collect do |el|
-        #    update_resource_from_rspec(el, leases, clean_state, authorizer)
-        #end.compact
+        channels = descr_el.xpath('/xmlns:rspec/ol:channel', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3").collect do |el|
+          update_resource_from_rspec(el, leases, clean_state, authorizer)
+        end.compact
+
+        resources = nodes.concat(channels)
 
         # TODO: release the unused leases. The leases we have created but we never managed
         # to attach them to a resource because the scheduler denied it.

@@ -205,7 +205,7 @@ describe AMManager do
     end
 
     it 'can find an already created user' do
-      user_descr = {:urn => 'urn:publicid:IDN+topdomain:subdomain+user+pi'}
+      user_descr = {:name => 'pi'}
       u1 = OMF::SFA::Resource::User.create(user_descr)
       u2 = manager.find_or_create_user(user_descr)
       u1.must_equal u2
