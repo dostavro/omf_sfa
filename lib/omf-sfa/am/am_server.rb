@@ -5,6 +5,7 @@ require 'thin'
 require 'dm-migrations'
 require 'omf_common/lobject'
 require 'omf_common/load_yaml'
+require 'omf-sfa/resource'
 
 require 'omf-sfa/am/am_runner'
 require 'omf-sfa/am/am_manager'
@@ -23,6 +24,8 @@ module OMF::SFA::AM
     @@config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:omf_sfa_am]
     @@rpc = @@config[:endpoints].select { |v| v[:type] == 'xmlrpc' }.first
     @@xmpp = @@config[:endpoints].select { |v| v[:type] == 'xmpp' }.first
+
+    OMF::SFA::Resource::Constants.default_domain = @@config[:domain]
 
     def self.rpc_config
       @@rpc

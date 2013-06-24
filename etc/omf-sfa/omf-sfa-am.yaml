@@ -1,14 +1,16 @@
 
 omf_sfa_am:
-  name: urn:xxx
+  # This is your testbed's domain. It will be used in the URNs
+  # of the resources e.g. 'urn:publicid:IDN+domain+type+name'
+  domain: omf:xxx
 
   endpoints:
     -
       type: xmlrpc
       port: 8001
       ssl:
-        cert_chain_file: ~/.omf/am-cert.pem
-        private_key_file: ~/.omf/am-key.pem
+        cert_chain_file: ~/.omf/omf_am.pem
+        private_key_file: ~/.omf/omf_am_key.pem
       trusted_roots: ~/.omf/trusted_roots
     -
       type: xmpp

@@ -5,6 +5,7 @@ module OMF::SFA
 end
 
 require 'omf-sfa/resource/gurn'
+require 'omf-sfa/resource/constants'
 require 'omf-sfa/resource/oresource'
 require 'omf-sfa/resource/oproperty'
 require 'omf-sfa/resource/ogroup'

@@ -1,11 +1,9 @@
-
 require 'omf_common/lobject'
 
 module OMF::SFA::Resource
-#
+
   class GURN #< OMF::Common::MObject
 
-    @@def_domain = 'omf:nitos'
     @@name2obj = {}
 
     # Create a GURN
@@ -35,7 +33,7 @@ module OMF::SFA::Resource
           type =  model.resource_type
         end
       end
-      domain = opts[:domain] || @@def_domain
+      domain = opts[:domain] || OMF::SFA::Resource::Constants.default_domain
       return @@name2obj[name] = self.new(name, type, domain)
     end
 
@@ -63,12 +61,12 @@ module OMF::SFA::Resource
       end
     end
 
-    def self.default_domain=(domain)
-      @@def_domain = domain
-    end
+    #def self.default_domain=(domain)
+    #  @@def_domain = domain
+    #end
 
     def self.default_domain()
-      @@def_domain
+      Constants.default_domain
     end
 
     # This class maintains a cache between object name and it's GURN.
@@ -83,7 +81,7 @@ module OMF::SFA::Resource
 
     def initialize(short_name, type = nil, domain = nil)
       @short_name = short_name
-      @domain = domain || @@def_domain
+      @domain = domain || Constants.default_domain
       if type
         @type =  type
         @name = "#{@domain}+#{type}+#{short_name}"
