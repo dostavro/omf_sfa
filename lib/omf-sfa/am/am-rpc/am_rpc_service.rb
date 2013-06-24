@@ -10,6 +10,7 @@ require 'omf-sfa/am/am-rpc/am_authorizer'
 
 require 'omf-sfa/am/am-rpc/am_rpc_api'
 require 'omf-sfa/resource/gurn'
+require 'yaml'
 #require 'omf-sfa/am/privilege_credential'
 #require 'omf-sfa/am/user_credential'
 
@@ -25,8 +26,12 @@ module OMF::SFA::AM::RPC
     #implement ServiceAPI
     implement AMServiceAPI
 
+
     def get_version(options = {})
       debug "GetVersion"
+
+      config = YAML.load_file(File.dirname(__FILE__) + '/../../../../etc/omf-sfa/getVersion_ext.yaml')
+
       @return_struct[:geni_api] = 2
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = {
@@ -50,35 +55,8 @@ module OMF::SFA::AM::RPC
         }],
         :omf_am => "0.1"
       }
+      @return_struct[:value].merge!(config[:getversion]) unless config[:getversion].nil?
       return @return_struct
-      #{
-      #  :geni_api => 2,
-      #  :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => {
-      #    :geni_api => 2,
-      #    :geni_api_versions => {
-      #      2 => 'URL'
-      #    },
-      #    :geni_request_rspec_versions => [{
-      #      :type => "GENI",
-      #      :version => "3",
-      #      :schema => "http://www.geni.net/resources/rspec/3/request.xsd",
-      #      :namespace => "http://www.geni.net/resources/rspec/3",
-      #      :extensions => ["http://nitlab.inf.uth.gr/schema/sfa/rspec/1/request-reservation.xsd"]
-      #    }],
-      #    :geni_ad_rspec_versions => [{
-      #      :type => "GENI",
-      #      :version => "3",
-      #      :schema => "http://www.geni.net/resources/rspec/3/ad.xsd",
-      #      :namespace => "http://www.geni.net/resources/rspec/3",
-      #      :extensions => ["http://nitlab.inf.uth.gr/schema/sfa/rspec/1/ad-reservation.xsd"]
-      #    }],
-      #    :omf_am => "0.1"
-      #  },
-      #  :output => {}
-      #}
     end
 
     def list_resources(credentials, options)
@@ -118,7 +96,7 @@ module OMF::SFA::AM::RPC
       end
 
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
-      #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
+
       if slice_urn
         # have leases in top of rspec
         resources = @manager.find_all_leases_for_account(authorizer.account, authorizer)
