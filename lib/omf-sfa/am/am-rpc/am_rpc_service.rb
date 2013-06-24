@@ -9,6 +9,7 @@ require 'omf-sfa/am/am-rpc/abstract_rpc_service'
 require 'omf-sfa/am/am-rpc/am_authorizer'
 
 require 'omf-sfa/am/am-rpc/am_rpc_api'
+require 'omf-sfa/resource/gurn'
 #require 'omf-sfa/am/privilege_credential'
 #require 'omf-sfa/am/user_credential'
 
@@ -188,7 +189,11 @@ module OMF::SFA::AM::RPC
       rspec = Nokogiri::XML.parse(rspec_s)
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
 
-      # TODO: Still need to implement USER handling
+      users.each do |user|
+        #FIXME: We should fix the gurns in our resource model
+        gurn = OMF::SFA::Resource::GURN.parse(user["urn"])
+        @manager.find_or_create_user({name: gurn.short_name}, user["keys"])
+      end
 
       res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources, {:type => 'manifest'}).to_s
 

@@ -1,6 +1,7 @@
 require 'omf_rc'
 require 'omf_common'
-require 'omf-sfa/am/am-xmpp/am_authorizer'
+#require 'omf-sfa/am/am-xmpp/am_authorizer'
+require 'omf-sfa/am/default_authorizer'
 require 'omf-sfa/resource'
 
 module OmfRc::ResourceProxy::AMController
@@ -13,47 +14,35 @@ module OmfRc::ResourceProxy::AMController
     @manager = resource.creation_opts[:manager]
   end
 
-  request :resources do |resource, cert|
-    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(cert.to_x509, @manager)
+  request :resources do |resource|
     resources = @manager.find_all_resources_for_account(@manager._get_nil_account, authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(resources)
   end
 
-  request :components do |resource, cert|
-    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(cert.to_x509, @manager)
+  request :components do |resource|
     components = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(components)
   end
 
-  request :leases do |resource, cert|
-    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(cert.to_x509, @manager)
+  request :leases do |resource|
     leases = @manager.find_all_leases(authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(leases)
   end
 
-  request :slices do |resource, cert|
-    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(cert.to_x509, @manager)
+  request :slices do |resource|
     accounts = @manager.find_all_accounts(authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(accounts)
   end
 
 
-  configure :resource do |resource, value, cert|
-    puts "CONFIGURE #{value} #{cert}"
+  configure :resource do |resource, value|
+    puts "CONFIGURE #{value}"
   end
 
-
-  # We override the create method of AbstractResource
-  #def create(type, opts = {}, creation_opts = {}, &creation_callback)
-  #  response = {}
-  #  response[:res_id] = self.resource_address
-  #  self.inform(:creation_ok, response)
-  #end
 
   def handle_create_message(message, obj, response)
     #puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
     @manager = obj.creation_opts[:manager]
-    authorizer = OMF::SFA::AM::XMPP::AMAuthorizer.create_for_xmpp_request(message.peer_cert.to_x509, @manager)
 
     opts = message.properties
     new_props = opts.reject { |k| [:type, :uid, :hrn, :property, :instrument].include?(k.to_sym) }
@@ -78,11 +67,6 @@ module OmfRc::ResourceProxy::AMController
     @manager.manage_resource(res)
   end
 
-  #def create_node(props)
-  #  debug "Creating node with props: '#{props}'"
-  #  node = OMF::SFA::Resource::Node.create(props)
-  #  @manager.manage_resource(node)
-  #end
 
   #def handle_release_message(message, obj, response)
   #  puts "I'm not releasing anything"
@@ -98,6 +82,7 @@ module OMF::SFA::AM::XMPP
 
     def initialize(opts)
       @manager = opts[:manager]
+      @authorizer = create_authorizer
 
       EM.next_tick do
         OmfCommon.comm.on_connected do |comm|
@@ -117,6 +102,29 @@ module OMF::SFA::AM::XMPP
       end
 
     end
+
+    # This is temporary until we use an xmpp authorizer
+    def create_authorizer
+      auth = {}
+      [
+        # ACCOUNT
+        :can_create_account?,
+        :can_view_account?,
+        :can_renew_account?,
+        :can_close_account?,
+        # RESOURCE
+        :can_create_resource?,
+        :can_view_resource?,
+        :can_release_resource?,
+        # LEASE
+        :can_create_lease?,
+        :can_view_lease?,
+        :can_modify_lease?,
+        :can_release_lease?,
+      ].each do |m| auth[m] = true end
+      OMF::SFA::AM::DefaultAuthorizer.new(auth)
+    end
+
   end # AMController
 end # module
 

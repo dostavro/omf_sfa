@@ -73,15 +73,25 @@ module OMF::SFA::AM
     def authorize_keys(user, account)
       debug "authorize_keys: user:'#{user.inspect}', account:'#{account.inspect}'"
 
-      OmfCommon.comm.subscribe('user_controller') do |user_rc|
+      OmfCommon.comm.subscribe('userController') do |user_rc|
         unless user_rc.error?
-          puts "User controller has been created: #{user_rc}"
-          user_rc.create(:user, hrn: account.name) do |u|
-            if u.success?
-              puts "Succesfully created user"
-              u.configure(keys: user.keys)
+
+          user_rc.create(:user, hrn: 'existing_user', username: account.name) do |reply_msg|
+            if reply_msg.success?
+              u = reply_msg.resource
+
+              u.on_subscribed do
+
+                u.configure(auth_keys: user.keys) do |reply|
+                  if reply.success?
+                    release_proxy(user_rc, u)
+                  else
+                    error "Configuration of the public keys failed - #{reply[:reason]}"
+                  end
+                end
+              end
             else
-              error ">>> Resource creation failed - #{u[:reason]}"
+              error ">>> Resource creation failed - #{reply_msg[:reason]}"
             end
           end
         else

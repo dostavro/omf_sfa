@@ -47,10 +47,10 @@ module OMF::SFA::AM::RPC
 
       raise OMF::SFA::AM::InsufficientPrivilegesException.new "Credentials are missing." if credentials.nil?
 
-      unless peer.valid_at?     
+      unless peer.valid_at?
         OMF::SFA::AM::InsufficientPrivilegesException.new "The certificate has expired or not valid yet. Check the dates."
       end
-      user = am_manager.find_or_create_user({:uuid => peer.user_uuid, :urn => peer.user_urn})
+      user = am_manager.find_or_create_user({:uuid => peer.user_uuid, :urn => peer.user_urn}, [])
 
       creds = credentials.map do |cs|
         cs = OMF::SFA::AM::PrivilegeCredential.unmarshall(cs)
@@ -61,8 +61,8 @@ module OMF::SFA::AM::RPC
         end
       end
 
-            
-      self.new(account_urn, peer, creds, am_manager)
+
+      self.new(account_urn, peer, creds, am_manager, user)
     end
 
 
@@ -70,41 +70,42 @@ module OMF::SFA::AM::RPC
 
     def can_renew_account?(account, expiration_time)
       debug "Check permission 'can_renew_account?' (#{account == @account}, #{@permissions[:can_renew_account?]}, #{@user_cred.valid_at?(expiration_time)})"
-      unless account == @account && 
-          @permissions[:can_renew_account?] && 
+      unless account == @account &&
+          @permissions[:can_renew_account?] &&
           @user_cred.valid_at?(expiration_time) # not sure if this is the right check
         raise OMF::SFA::AM::InsufficientPrivilegesException.new("Can't renew account after the expiration of the credentials")
       end
     end
-        
+
     ##### RESOURCE
-    
+
     def can_release_resource?(resource)
       unless resource.account == @account && @permissions[:can_release_resource?]
-        raise OMF::SFA::AM::InsufficientPrivilegesException.new      
+        raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
     end
-    
+
     protected
 
-    def initialize(account_urn, user_cert, credentials, am_manager)
+    def initialize(account_urn, user_cert, credentials, am_manager, user)
       super()
-      
+
       @user_cert = user_cert
-      
+      @user = user
+
       # NOTE: We only look at the first cred
       credential = credentials[0]
       debug "cred: #{credential.inspect}"
       unless (user_cert.user_urn == credential.user_urn)
-        raise OMF::SFA::AM::InsufficientPrivilegesException.new "User urn mismatch in certificate and credentials. cert:'#{user_cert.user_urn}' cred:'#{credential.user_urn}'" 
+        raise OMF::SFA::AM::InsufficientPrivilegesException.new "User urn mismatch in certificate and credentials. cert:'#{user_cert.user_urn}' cred:'#{credential.user_urn}'"
       end
-      
+
       @user_cred = credential
-      
-      
+
+
       if credential.type == 'slice'
         if credential.privilege?('*')
-          @permissions[:can_create_account?] = true 
+          @permissions[:can_create_account?] = true
           @permissions[:can_view_account?] = true
           @permissions[:can_renew_account?] = true
           @permissions[:can_close_account?] = true
@@ -134,16 +135,17 @@ module OMF::SFA::AM::RPC
         @permissions[:can_release_lease?] = credential.privilege?('refresh')
       end
 
-      
+
       debug "Have permission '#{@permissions.inspect}'"
 
       unless account_urn.nil?
         unless account_urn.eql?(credential.target_urn)
           raise OMF::SFA::AM::InsufficientPrivilegesException.new "Slice urn mismatch in XML call and credentials"
-        end 
+        end
 
         @account = am_manager.find_or_create_account({:urn => account_urn}, self)
         @account.valid_until = @user_cred.valid_until
+        @account.project = OMF::SFA::Resource::Project.create
         if @account.closed?
           if @permissions[:can_create_account?]
             @account.closed_at = nil
@@ -151,10 +153,18 @@ module OMF::SFA::AM::RPC
             raise OMF::SFA::AM::InsufficientPrivilegesException.new("You don't have the privilege to enable a closed account")
           end
         end
+        @account.save
+
         # XXX: decide where/when to create the Project. Right now we are creating it along with the account in the above method
         @project = @account.project
+        @project.account = @account
+        @project.users << @user
+        @project.save
+
+        @user.projects << @project
+        @user.save
       end
-      
+
     end
 
   end

@@ -44,9 +44,9 @@ module OMF::SFA::AM::XMPP
       end
 
       if peer.user_uuid
-        user = am_manager.find_or_create_user(:uuid => peer.user_uuid)
+        user = am_manager.find_or_create_user(:uuid => peer.user_uuid, [])
       elsif peer.user_urn
-        user = am_manager.find_or_create_user(:urn => peer.user_urn)
+        user = am_manager.find_or_create_user(:urn => peer.user_urn, [])
       else
         raise OMF::SFA::AM::InsufficientPrivilegesException.new "The certificate doesn't contain user information"
       end

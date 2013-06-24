@@ -197,13 +197,14 @@ module OMF::SFA::AM
     # @return [User] The requested user
     # @raise [UnknownResourceException] if requested user cannot be created
     #
-    def find_or_create_user(user_descr)
+    def find_or_create_user(user_descr, keys)
       debug "find_or_create_user: '#{user_descr.inspect}'"
       begin
-        return find_user(user_descr)
+        user = find_user(user_descr)
       rescue UnavailableResourceException
+        user = OMF::SFA::Resource::User.create(user_descr)
       end
-      user = OMF::SFA::Resource::User.create(user_descr)
+      user.keys << keys
       unless user.keys.empty?
         user.projects.each do |project|
           @liaison.authorize_keys(user, project.account)
