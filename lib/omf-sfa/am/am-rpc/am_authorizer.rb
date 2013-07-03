@@ -50,6 +50,11 @@ module OMF::SFA::AM::RPC
       unless peer.valid_at?
         OMF::SFA::AM::InsufficientPrivilegesException.new "The certificate has expired or not valid yet. Check the dates."
       end
+
+      user_descr = {}
+      user_descr.merge!({uuid: peer.user_uuid}) unless peer.user_uuid.nil?
+      user_descr.merge!({urn: peer.user_urn}) unless peer.user_urn.nil?
+      raise OMF::SFA::AM::InsufficientPrivilegesException.new "URN and UUID are missing." if user_descr.empty?
       user = am_manager.find_or_create_user({:uuid => peer.user_uuid, :urn => peer.user_urn}, [])
 
       creds = credentials.map do |cs|

@@ -170,7 +170,7 @@ module OMF::SFA::AM::RPC
       users.each do |user|
         #FIXME: We should fix the gurns in our resource model
         gurn = OMF::SFA::Resource::GURN.parse(user["urn"])
-        @manager.find_or_create_user({name: gurn.short_name}, user["keys"])
+        @manager.find_or_create_user({urn: gurn.urn}, user["keys"])
       end
 
       res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources, {:type => 'manifest'}).to_s

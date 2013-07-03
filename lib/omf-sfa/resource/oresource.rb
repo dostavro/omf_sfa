@@ -165,7 +165,7 @@ module OMF::SFA::Resource
         define_method "#{pname}=" do |v|
 
           if (type.is_a? Symbol) && (!v.nil?)
-            # make sure i have saved myself in case the oproperty is pointing back to me
+            # make sure i have saved myself in case the oproperty is an oresource pointing back to me
             self.save
             if v.is_a? Array
               v = v.map do |val|
@@ -206,7 +206,7 @@ module OMF::SFA::Resource
 
         define_method "#{name}=" do |v|
           if (type.is_a? Symbol) && (!v.nil?)
-            # make sure i have saved myself in case the oproperty is pointing back to me
+            # make sure i have saved myself in case the oproperty is an oresource pointing back to me
             self.save
             unless v.is_a? eval(type.to_s)
               v = eval(type.to_s).first_or_create(v)
