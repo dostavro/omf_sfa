@@ -257,7 +257,11 @@ module OMF::SFA
           unless id = attribute_get(:component_id)
             #self.component_id ||= GURN.create(self.uuid.to_s, self)
             #return GURN.create(self.uuid.to_s, { :model => self.class })
-            return GURN.create(self.urn, { :model => self.class })
+            if self.urn
+              return GURN.create(self.urn, { :model => self.class })
+            else
+              return GURN.create(self.name, { :model => self.class })
+            end
           end
           id
         end
