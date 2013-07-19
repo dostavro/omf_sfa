@@ -58,7 +58,9 @@ module OMF::SFA::AM
                       end
                     end
                   end
+
                 end
+
               end
             else
               error ">>> Resource creation failed - #{reply_msg[:reason]}"
@@ -70,8 +72,8 @@ module OMF::SFA::AM
       end
     end
 
-    def authorize_keys(user, account)
-      debug "authorize_keys: user:'#{user.inspect}', account:'#{account.inspect}'"
+    def configure_keys(keys, account)
+      debug "configure_keys: keys:'#{keys.inspect}', account:'#{account.inspect}'"
 
       OmfCommon.comm.subscribe('userController') do |user_rc|
         unless user_rc.error?
@@ -82,7 +84,7 @@ module OMF::SFA::AM
 
               u.on_subscribed do
 
-                u.configure(auth_keys: user.keys) do |reply|
+                u.configure(auth_keys: keys) do |reply|
                   if reply.success?
                     release_proxy(user_rc, u)
                   else

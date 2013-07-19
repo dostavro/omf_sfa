@@ -20,5 +20,10 @@ module OMF::SFA::Resource
       h
     end
 
+    def add_user(user)
+      users << user unless users.include?(user)
+      self.save
+    end
+
   end
 end

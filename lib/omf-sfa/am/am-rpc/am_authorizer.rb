@@ -55,7 +55,7 @@ module OMF::SFA::AM::RPC
       user_descr.merge!({uuid: peer.user_uuid}) unless peer.user_uuid.nil?
       user_descr.merge!({urn: peer.user_urn}) unless peer.user_urn.nil?
       raise OMF::SFA::AM::InsufficientPrivilegesException.new "URN and UUID are missing." if user_descr.empty?
-      user = am_manager.find_or_create_user({:uuid => peer.user_uuid, :urn => peer.user_urn}, [])
+      user = am_manager.find_or_create_user(user_descr, [])
 
       creds = credentials.map do |cs|
         cs = OMF::SFA::AM::PrivilegeCredential.unmarshall(cs)
@@ -150,7 +150,6 @@ module OMF::SFA::AM::RPC
 
         @account = am_manager.find_or_create_account({:urn => account_urn}, self)
         @account.valid_until = @user_cred.valid_until
-        @account.project = OMF::SFA::Resource::Project.create
         if @account.closed?
           if @permissions[:can_create_account?]
             @account.closed_at = nil
@@ -160,14 +159,8 @@ module OMF::SFA::AM::RPC
         end
         @account.save
 
-        # XXX: decide where/when to create the Project. Right now we are creating it along with the account in the above method
         @project = @account.project
-        @project.account = @account
-        @project.users << @user
-        @project.save
-
-        @user.projects << @project
-        @user.save
+        @project.add_user(@user)
       end
 
     end

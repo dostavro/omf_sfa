@@ -93,9 +93,9 @@ module OMF::SFA::AM
 
 
     def load_test_am(options)
-      require  'dm-migrations'
+      #require  'dm-migrations'
       #DataMapper.auto_migrate!
-      DataMapper.auto_upgrade!
+      #DataMapper.auto_upgrade!
 
       am = options[:am][:manager]
       if am.is_a? Proc
@@ -122,7 +122,7 @@ module OMF::SFA::AM
       r << OMF::SFA::Resource::Channel.create(:name => '1', :frequency => "2.412GHZ")
       lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
       2.times do |i|
-        r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}")
+        r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
         ip = OMF::SFA::Resource::Ip.create(address: "10.0.1.#{i}", netmask: "255.255.255.0", ip_type: "ipv4", interface: ifr)
         n.interfaces << ifr

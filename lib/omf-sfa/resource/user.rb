@@ -19,5 +19,10 @@ module OMF::SFA::Resource
       h
     end
 
+    def add_project(project)
+      projects << project unless projects.include?(project)
+      self.save
+    end
+
   end # User
 end # module
