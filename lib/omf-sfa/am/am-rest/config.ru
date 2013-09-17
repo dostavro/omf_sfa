@@ -8,7 +8,7 @@ class MyFile < Rack::File
     c, h, b = super
     #h['Access-Control-Allow-Origin'] = '*'
     [c, h, b]
-  end  
+  end
 end
 
 use ::Rack::Lint
@@ -39,7 +39,7 @@ wrapper = %{
      stroke: #fff;
      stroke-width: 1.5px;
    }
-      
+
       line.link {
         stroke: #999;
         stroke-opacity: .6;
@@ -53,8 +53,8 @@ wrapper = %{
   </body>
 </html>
 }
-  p = lambda do |env| 
-    return [200, {"Content-Type" => "text/html"}, wrapper % frag] 
+  p = lambda do |env|
+    return [200, {"Content-Type" => "text/html"}, wrapper % frag]
   end
   run p
 end

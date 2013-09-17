@@ -17,7 +17,7 @@ module OMF::SFA::AM
     end
 
     @@xmlsec = 'xmlsec1'
-   
+
     # <?xml version="1.0"?>
     # <signed-credential>
       # <credential xml:id="ref0">
@@ -55,13 +55,13 @@ module OMF::SFA::AM
         raise "Credential doesn't contain 'type' element"
       end
       self.verify_type(type_el.content)
-      
+
       #<owner_urn>urn:publicid:IDN+geni:gpo:gcf+user+alice</owner_urn>
       self.new(cred, signer_urn)
     end
-    
+
     # The xml _content_ (provided as string) should
-    # contain a _Signature_ tag. 
+    # contain a _Signature_ tag.
     #
     # Returns urn of signer if signature is valid,  otherwise throw an exception
     #
@@ -79,10 +79,10 @@ module OMF::SFA::AM
         #cmd = "#{@@xmlsec} verify --trusted-pem #{@@root_certs} --print-xml-debug #{tf.path} 2> /dev/null"
         out = []
         result = nil
-        IO.popen(cmd) do |so| 
+        IO.popen(cmd) do |so|
           result = Nokogiri::XML.parse(so)
           #debug result
-        end 
+        end
         unless (result.xpath('/VerificationContext')[0]['status'] == 'succeeded')
           raise OMF::SFA::AM::InsufficientPrivilegesException.new("Error: Signature doesn't verify")#\n#{@signature.to_xml}"
         end
@@ -90,7 +90,7 @@ module OMF::SFA::AM
           #   <SubjectName>/CN=geni//gpo//gcf.authority.sa</SubjectName>
           #   <IssuerName>/CN=geni//gpo//gcf.authority.sa</IssuerName>
           #   <SerialNumber>3</SerialNumber>
-          # </Certificate>        
+          # </Certificate>
         signer = result.xpath('//Certificate/SubjectName')[0].content
         debug "Signer of cert is '#{signer}'"
         return signer
@@ -98,24 +98,24 @@ module OMF::SFA::AM
         tf.close! if tf
       end
     end
-    
+
     def self.verify_type(type)
       raise "Implement 'verify_type' in '#{self}'"
     end
 
 
     attr_reader :owner_urn
-    attr_reader :target_urn    
-    attr_reader :signer_urn 
+    attr_reader :target_urn
+    attr_reader :signer_urn
     attr_reader :valid_until
 
     def valid_at?(time = Time.now)
       #debug ">>>> #{valid_until}"
-      time <= @valid_until     
+      time <= @valid_until
     end
 
     protected
-    
+
     # Create a credential described in +description_doc+
     #
     def initialize(description_doc, signer_urn)
@@ -136,10 +136,10 @@ module OMF::SFA::AM
         raise "Missing element 'expires' in credential"
       end
       @valid_until = Time.parse(el.content)
-      
+
       @signer_urn = signer_urn
     end
 
-    
-  end # Credential                     
+
+  end # Credential
 end # OMF::GENI::AM

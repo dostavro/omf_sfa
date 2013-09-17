@@ -3,7 +3,7 @@ module OMF::GENI::AM
   class Signature
 
     # The xml _content_ (provided as string) should
-    # contain a _Signature_ tag. 
+    # contain a _Signature_ tag.
     #
     # Returns a _Signature_ object if valid.
     # Raises exception if not valid
@@ -16,10 +16,10 @@ module OMF::GENI::AM
         tf.close
         cmd = "#{@@xmlsec} verify --trusted-pem #{@@root_certs} --print-xml-debug #{tf.path} 2> /dev/null"
         out = []
-        #IO.popen("#{cmd} 2>&1") do |so| 
-        IO.popen(cmd) do |so| 
+        #IO.popen("#{cmd} 2>&1") do |so|
+        IO.popen(cmd) do |so|
           sig = Nokogiri::XML.parse(so)
-        end 
+        end
         unless (sig.xpath('/VerificationContext')[0]['status'] == 'succeeded')
           raise "Error: Signature doesn't verify\n#{sig.to_xml}"
         end
@@ -28,7 +28,7 @@ module OMF::GENI::AM
       end
       return Signature.new(sig)
     end
-    
+
     def initialize(sig_doc)
       @sig_doc = sig_doc
     end

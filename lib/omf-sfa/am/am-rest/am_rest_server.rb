@@ -13,16 +13,16 @@ config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) +
 
 class MyRunner < Thin::Runner
   @@instance = nil
-  
+
   def self.instance
     @@instance
   end
 
   def initialize(argv, opts = {})
     raise "SINGLETON" if @@instance
-    
+
     @argv = argv
-    
+
     # Default options values
     @options = {
       :chdir                => Dir.pwd,
@@ -37,34 +37,34 @@ class MyRunner < Thin::Runner
       :require              => [],
       :wait                 => Thin::Controllers::Cluster::DEFAULT_WAIT_TIME
     }.merge(opts)
-    
+
     p = parser
     p.separator ""
     p.separator "Datamapper options:"
-    p.on("--dm-db URL", "Datamapper database [#{@options[:dm_db]}]") do |u| @options[:dm_db] = u end    
+    p.on("--dm-db URL", "Datamapper database [#{@options[:dm_db]}]") do |u| @options[:dm_db] = u end
     p.on("--dm-log FILE", "Datamapper log file [#{@options[:dm_log]}]") do |n| @options[:dm_log] = n end
-    p.on("--dm-auto-upgrade", "Run Datamapper's auto upgrade") do |n| @options[:dm_auto_upgrade] = true end      
+    p.on("--dm-auto-upgrade", "Run Datamapper's auto upgrade") do |n| @options[:dm_auto_upgrade] = true end
     p.separator ""
     p.separator "Testing options:"
-    p.on("--test-load-am", "Load an AM configuration for testing") do |n| @options[:load_test_am] = true end          
+    p.on("--test-load-am", "Load an AM configuration for testing") do |n| @options[:load_test_am] = true end
     p.separator ""
     p.separator "Common options:"
 
     parse!
     @@instance = self
   end
-  
+
   def init_data_mapper
 
     # Configure the data store
     #
     DataMapper::Logger.new(@options[:dm_log] || $stdout, :debug)
-    
+
     #DataMapper.setup(:default, config[:data_mapper] || {:adapter => 'yaml', :path => '/tmp/am_test2'})
-    dm = DataMapper.setup(:default, @options[:dm_db])    
-    DataMapper::Model.raise_on_save_failure = true 
-    
-    require 'omf-sfa/resource'    
+    dm = DataMapper.setup(:default, @options[:dm_db])
+    DataMapper::Model.raise_on_save_failure = true
+
+    require 'omf-sfa/resource'
     DataMapper.finalize
 
     DataMapper.auto_upgrade! if @options[:dm_auto_upgrade]
@@ -76,12 +76,12 @@ end
 def load_test_am
   require  'dm-migrations'
   DataMapper.auto_migrate!
-  
+
   am = @options[:am_mgr]
 
   require 'omf-sfa/resource/account'
   account = am.find_or_create_account(:name => 'foo')
-  
+
   require 'omf-sfa/resource/node'
   nodes = []
   3.times do |i|
@@ -91,7 +91,7 @@ def load_test_am
     am.manage_resource(n)
   end
 #  am.find_resource 'n1', :requester_account => account
-  
+
 end
 
 # Configure the web server
@@ -102,8 +102,8 @@ opts = {
     :manager => OMF::SFA::AM::DefaultManager.new
   },
   :sslX => {
-    :cert_chain_file => File.expand_path("~/.gcf/am-cert.pem"), 
-    :private_key_file => File.expand_path("~/.gcf/am-key.pem"), 
+    :cert_chain_file => File.expand_path("~/.gcf/am-cert.pem"),
+    :private_key_file => File.expand_path("~/.gcf/am-key.pem"),
     #:verify_peer => true
     :verify_peer => true
   },
@@ -111,7 +111,7 @@ opts = {
   :dm_db => 'sqlite::memory:', # 'sqlite:///tmp/am_test.db',
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
-  
+
 }
 
 

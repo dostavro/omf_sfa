@@ -1,8 +1,8 @@
 
 
 module OMF::SFA::Resource
-  
-  # Provides a many-to-many relationship 
+
+  # Provides a many-to-many relationship
   # between resources and groups
   #
   class GroupMembership
@@ -11,7 +11,7 @@ module OMF::SFA::Resource
     belongs_to :o_resource
     belongs_to :o_group
     #has n, :groups
-    
-    property :id,   Serial    
+
+    property :id,   Serial
   end
 end

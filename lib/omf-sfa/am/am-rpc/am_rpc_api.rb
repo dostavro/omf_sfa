@@ -1,8 +1,8 @@
- 
+
 module OMF::SFA::ServiceAPI
   Struct.new("MethodDescription", :rpc_name, :method_name, :opts)
-  
-  # This defines a method to declare the service methods and all their 
+
+  # This defines a method to declare the service methods and all their
   # parameters.
   #
   def declare(rpc_name, method_name, opts = {}, &block)
@@ -10,7 +10,7 @@ module OMF::SFA::ServiceAPI
     m = (@@declarations[self] ||= [])
     m << Struct::MethodDescription.new(rpc_name.to_sym, method_name.to_sym, opts)
   end
-  
+
   def api_description()
     @@declarations ||= {}
     @@declarations[self] || []
@@ -21,23 +21,23 @@ end
 
 module OMF::SFA::AM::RPC::AMServiceAPI
   extend OMF::SFA::ServiceAPI
-    
+
   declare :GetVersion, :get_version, {
     :short => "",
     :params => {},
     :return => {
       :type => :hash,
       :description => %{
-         Return the version of the GENI Aggregate API 
+         Return the version of the GENI Aggregate API
          supported by this aggregate.
       },
       :params => [
-        { 
+        {
           :name => 'geni_api',
           :type => :integer,
           :descriptiosn => %{
-            Indicating the revision of the Aggregate Manager API that 
-            an aggregate supports. The current version of the API 
+            Indicating the revision of the Aggregate Manager API that
+            an aggregate supports. The current version of the API
             is 1 (one).
           }
         }
@@ -46,7 +46,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
   }
 
   declare :ListResources, :list_resources, {
-    :short => %{Return information about available resources 
+    :short => %{Return information about available resources
                 or resources allocated to a slice.},
     :params => [
       {
@@ -59,7 +59,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           the semantics of this argument is not clear. Alternative
           interpretations might, for example, accumulate privileges from each
           valid credential to determine overall caller permissions.
-        } 
+        }
       }, {
         :name => 'options',
         :type  => :hash,
@@ -110,27 +110,27 @@ module OMF::SFA::AM::RPC::AMServiceAPI
     :return => {
       :type => :hash,
       :description => %{
-        For ListResources, value is an RSpec listing and describing resources 
+        For ListResources, value is an RSpec listing and describing resources
         at this aggregate. Depending on the arguments, this may be an advertisement
-        RSpec showing all local resources, or one showing only available local resources, 
+        RSpec showing all local resources, or one showing only available local resources,
         or a manifest RSpec of resources reserved for a particular slice.
       },
       :params => [
-        { 
+        {
           :name => 'code',
           :type => :hash,
           :description => %{
-            A struct indicating the success or failure of this call at 
-            the Aggregate Manager. It consists of 1 required field and 2 optional fields. 
+            A struct indicating the success or failure of this call at
+            the Aggregate Manager. It consists of 1 required field and 2 optional fields.
           },
           :params => [
             {
               :name => 'geni_code',
               :type => :integer,
               :description => %{
-                An integer supplying the GENI standard return code indicating 
-                the success or failure of this call. Error codes are standardized 
-                and defined in the attached XML document. Codes may be negative. 
+                An integer supplying the GENI standard return code indicating
+                the success or failure of this call. Error codes are standardized
+                and defined in the attached XML document. Codes may be negative.
                 A success return is defined as geni_code of 0.
               }
             }
@@ -140,18 +140,18 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           :name => 'value',
           :type => :text_xml,
           :description => %{
-            For ListResources, value is an RSpec listing and describing resources at 
-            this aggregate. Depending on the arguments, this may be an advertisement 
-            RSpec showing all local resources, or one showing only available local 
-            resources, or a manifest RSpec of resources reserved for a particular slice. 
+            For ListResources, value is an RSpec listing and describing resources at
+            this aggregate. Depending on the arguments, this may be an advertisement
+            RSpec showing all local resources, or one showing only available local
+            resources, or a manifest RSpec of resources reserved for a particular slice.
           }
         }
       ]
     }
   }
 
-  declare :CreateSliver, :create_sliver, { 
-    :description => %{ 
+  declare :CreateSliver, :create_sliver, {
+    :description => %{
       Allocate resources to a slice. This operation is expected to start the
       allocated resources asynchronously after the operation has
       successfully completed. Callers can check on the status of the
@@ -179,7 +179,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           ensure that the expiration time of the slice does not exceed
           the expiration time of the slice credential used to perform
           this operation.
-        } 
+        }
       }, {
         :name => 'rspec',
         :type => :text_xml,
@@ -188,7 +188,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           requesting for allocation to the slice specified in
           slice_urn. These are expected to be based on resources
           returned by a previous invocation of ListResources.
-        } 
+        }
       }, {
         :name => 'users',
         :type => :array,
@@ -223,8 +223,8 @@ module OMF::SFA::AM::RPC::AMServiceAPI
     }
   }
 
-  declare :DeleteSliver, :delete_sliver, { 
-    :description => %{ 
+  declare :DeleteSliver, :delete_sliver, {
+    :description => %{
       Delete a sliver by stopping it if it is still running, and then
       deallocating the resources associated with it. This call will
       stop and deallocate all resources associated with the given
@@ -247,18 +247,18 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           clear. Alternative interpretations might, for example,
           accumulate privileges from each valid credential to
           determine overall caller permissions.
-        } 
+        }
       }
     ],
     :return => {
       :type => :boolean,
       :description => %{
-         Returns true on success and false on failure.       
+         Returns true on success and false on failure.
       }
     }
   }
 
-  declare :SliverStatus, :sliver_status, { 
+  declare :SliverStatus, :sliver_status, {
     :description => "Get the status of a sliver.",
     :params => [
       {
@@ -277,14 +277,14 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           clear. Alternative interpretations might, for example,
           accumulate privileges from each valid credential to
           determine overall caller permissions.
-        } 
+        }
       }
     ],
     :return => {
       :type => :hash,
       :description => %{
-         Returns an XMLRPC struct upon successful completion. The 
-         struct is of the following form: 
+         Returns an XMLRPC struct upon successful completion. The
+         struct is of the following form:
       },
       :params => [
         {
@@ -359,7 +359,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
     }
   }
 
-  declare :RenewSliver, :renew_sliver, { 
+  declare :RenewSliver, :renew_sliver, {
     :description => %{
       Renews the resources in a sliver, extending the lifetime of the slice.
 
@@ -384,7 +384,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           clear. Alternative interpretations might, for example,
           accumulate privileges from each valid credential to
           determine overall caller permissions.
-        } 
+        }
       }, {
         :name => 'expiration_time',
         :type => :string_date,
@@ -396,7 +396,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
            other words, at least one supplied (slice) credential must
            still be valid at the desired new expiration time for this
            call to succeed.
-        } 
+        }
       }
     ],
     :return => {
@@ -407,7 +407,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
     }
   }
 
-  declare :Shutdown, :shutdown_sliver, { 
+  declare :Shutdown, :shutdown_sliver, {
     :description => %{
       Perform an emergency shut down of a sliver. This operation is
       intended for administrative use. The sliver is shut down but
@@ -431,7 +431,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
           clear. Alternative interpretations might, for example,
           accumulate privileges from each valid credential to
           determine overall caller permissions.
-        } 
+        }
       }
     ],
     :return => {
@@ -441,7 +441,7 @@ module OMF::SFA::AM::RPC::AMServiceAPI
       }
     }
   }
-  
+
 end # module OMF::SFA:AM
 
 
