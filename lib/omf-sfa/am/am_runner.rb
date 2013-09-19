@@ -5,9 +5,19 @@ require 'omf-sfa/am'
 #
 module Thin
   class Connection
+
     def ssl_verify_peer(cert_s)
-      true # will be verified later
+      cert = OpenSSL::X509::Certificate.new(cert_s)
+
+      if OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert)
+        return true
+      else
+        warn("Non valid user cert:\n #{cert}")
+        return false
+      end
+      #true # will be verified later
     end
+
   end
 end
 
