@@ -30,6 +30,8 @@ module OMF::SFA
         @@sfa_classes = {}
         @@sfa_name2class = {}
 
+        # Add the class in the 'sfa_classes' and add a prefix to the name
+        # if a namespace is given.
         #
         # @opts
         #   :namespace
@@ -46,6 +48,8 @@ module OMF::SFA
           end
         end
 
+        # Add a namespace with its prefix in the 'sfa_namespaces'
+        #
         def sfa_add_namespace(prefix, urn)
           @@sfa_namespaces[prefix] = urn
         end
@@ -177,6 +181,7 @@ module OMF::SFA
         end
 
         # Return all the property definitions for this class.
+        # It returns also the properties that have been inherited.
         #
         # +cached+ - If false, recalculate
         #
@@ -227,12 +232,14 @@ module OMF::SFA
           value
         end
 
+        # Add the corresponding prefix to the name given a namespace
+        #
         def _sfa_add_ns(name, opts = {})
-          if ns = opts[:namespace]
-            unless @@sfa_namespaces[ns]
-              raise "Unknown namespace '#{ns}'"
+          if prefix = opts[:namespace]
+            unless @@sfa_namespaces[prefix]
+              raise "Unknown namespace '#{prefix}'"
             end
-            name = "#{ns}:#{name}"
+            name = "#{prefix}:#{name}"
           end
           name
         end
@@ -396,54 +403,62 @@ module OMF::SFA
         def to_sfa_xml(parent = nil, obj2id = {}, opts = {})
           if parent.nil?
             parent = Nokogiri::XML::Document.new
+            #if parent.document == parent
+            # first time around, add namespace
+            self.class.sfa_add_namespaces_to_document(parent)
+            #end
           end
           _to_sfa_xml(parent, obj2id, opts)
           parent
         end
 
         def _to_sfa_xml(parent, obj2id, opts)
-          new_element = parent.add_child(Nokogiri::XML::Element.new(_xml_name(), parent.document))
-          if parent.document == parent
-            # first time around, add namespace
-            self.class.sfa_add_namespaces_to_document(parent)
-          end
+
           defs = self.class.sfa_defs()
-          if (id = obj2id[self])
-            new_element.set_attribute('idref', id)
-            return parent
+          debug "SFA opts: #{opts}"
+
+          if opts.delete(:can_be_referred) == true # consume option
+            if (id = obj2id[self])
+              # make a reference instead of having the full description
+              #opts.clear # make sure we don't carry old properties to the next levels
+              opts[:reference] = defs['component_id'].nil? ? 'id' : 'component_id'
+              _to_sfa_ref_xml(parent, opts)
+              return parent
+            end
           end
+
+          new_element = parent.add_child(Nokogiri::XML::Element.new(_xml_name(), parent.document))
 
           id = sfa_id()
           obj2id[self] = id
-          new_element.set_attribute('id', id) #if detail_level > 0
-          #if href = self.href(opts)
-          #  new_element.set_attribute('omf:href', href)
-          #end
-          level = opts[:level] ? opts[:level] : 0
-          opts[:level] = level + 1
+          new_element.set_attribute('id', id) if defs['component_id'].nil?
+
           defs.keys.sort.each do |key|
             next if key.start_with?('_')
             pdef = defs[key]
-            if (ilevel = pdef[:include_level])
-              #next if level > ilevel
-            end
-            #puts ">>>> #{k} <#{self}> #{pdef.inspect}"
+
             value = send(key.to_sym)
             #puts "#{k} <#{v}> #{pdef.inspect}"
             if value.nil?
               value = pdef[:default]
             end
             unless value.nil?
-              #if detail_level > 0 || k == 'component_name'
               if value.is_a?(Time)
                 value = value.xmlschema # xs:dateTime
               end
-                _to_sfa_property_xml(key, value, new_element, pdef, obj2id, opts)
-              #end
+              _to_sfa_property_xml(key, value, new_element, pdef, obj2id, opts)
             end
           end
-          opts[:level] = level # restore original level
           new_element
+        end
+
+        def _to_sfa_ref_xml(parent, opts)
+          el = parent.add_child(Nokogiri::XML::Element.new("#{_xml_name()}_ref", parent.document))
+          if opts.delete(:reference) == 'component_id' # consume option
+            el.set_attribute('component_id', self.component_id.to_s)
+          else
+            el.set_attribute('id_ref', self.uuid.to_s)
+          end
         end
 
         def _to_sfa_property_xml(pname, value, res_el, pdef, obj2id, opts)
@@ -462,6 +477,9 @@ module OMF::SFA
             if !value.kind_of?(String) && value.kind_of?(Enumerable)
               value.each do |v|
                 if v.respond_to?(:to_sfa_xml)
+                  # make a reference instead of having the full description
+                  #opts.clear # make sure we don't carry old properties to the next levels
+                  opts[:can_be_referred] = true if pdef[:can_be_referred] == true
                   v.to_sfa_xml(cel, obj2id, opts)
                 else
                   el = cel.add_child(Nokogiri::XML::Element.new(pname, cel.document))
