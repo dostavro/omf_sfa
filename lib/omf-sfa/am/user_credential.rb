@@ -11,9 +11,9 @@ module OMF::SFA::AM
     def self.unmarshall(cert_s)
       cert = OpenSSL::X509::Certificate.new(cert_s)
       #puts cert
-      unless OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert)
-        raise OMF::SFA::AM::InsufficientPrivilegesException.new("Non valid user cert")
-      end
+      #unless OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert)
+      #  raise OMF::SFA::AM::InsufficientPrivilegesException.new("Non valid user cert")
+      #end
       self.new(cert)
     end
 

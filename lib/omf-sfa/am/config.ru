@@ -57,7 +57,7 @@ map "/resources" do
   require 'omf-sfa/am/am-rest/resource_handler'
   # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
   # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
-    run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
+  run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
 end
 
 if REQUIRE_LOGIN

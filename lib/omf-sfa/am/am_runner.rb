@@ -3,23 +3,28 @@ require 'omf-sfa/am'
 
 # Add code to Thin::Connection to verify peer certificate
 #
-module Thin
-  class Connection
-
-    def ssl_verify_peer(cert_s)
-      cert = OpenSSL::X509::Certificate.new(cert_s)
-
-      if OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert)
-        return true
-      else
-        warn("Non valid user cert:\n #{cert}")
-        return false
-      end
-      #true # will be verified later
-    end
-
-  end
-end
+#module Thin
+#  class Connection
+#
+#    def ssl_verify_peer(cert_s)
+#      puts "AAAAAAAAAAAAAAAAAAAAAAAAAA"
+#      cert = OpenSSL::X509::Certificate.new(cert_s)
+#
+#      if OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert)
+#        return true
+#      else
+#        warn("Non valid user cert:\n #{cert}")
+#        return false
+#      end
+#      #true # will be verified later
+#    end
+#
+#    def ssl_handshake_completed
+#      puts "BBBBBBBBBBBBBBBBBBBB"
+#    end
+#
+#  end
+#end
 
 module OMF::SFA::AM
   class Runner < Thin::Runner

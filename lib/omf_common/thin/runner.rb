@@ -5,13 +5,34 @@ require 'omf_common/thin/logging'
 #
 # Add code to Thin::Connection to verify peer certificate
 #
-#module Thin
-#  class Connection
-#    def ssl_verify_peer(cert_s)
-#      true # will be verified later
-#    end
-#  end
-#end
+module Thin
+  class Connection
+    @intermediate_certs
+
+    def ssl_verify_peer(cert_s)
+      @intermediate_certs = OpenSSL::X509::Store.new if @intermediate_certs.nil?
+      cert = OpenSSL::X509::Certificate.new(cert_s)
+
+      if OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert) || @intermediate_certs.verify(cert)
+        debug("Verified:\n#{cert}")
+        @intermediate_certs.add_cert(cert)
+        return true
+      else
+        warn("Non valid user cert:\n#{cert}")
+        return false
+      end
+    rescue OpenSSL::X509::StoreError => e
+      if e.message == "cert already in hash table"
+        warn "X509 cert '#{cert}' already registered in X509 store"
+        return true
+      else
+        raise e
+      end
+    end
+  end
+end
+
+
 
 module OMF::Common::Thin
   class Runner < Thin::Runner
@@ -43,15 +64,15 @@ module OMF::Common::Thin
         :log                  => "/tmp/#{app_name}_thin.log",
         :pid                  => "/tmp/#{app_name}.pid",
         :max_conns            => Thin::Server::DEFAULT_MAXIMUM_CONNECTIONS,
-        :max_persistent_conns => Thin::Server::DEFAULT_MAXIMUM_PERSISTENT_CONNECTIONS,
-        :require              => [],
-        :wait                 => Thin::Controllers::Cluster::DEFAULT_WAIT_TIME,
+          :max_persistent_conns => Thin::Server::DEFAULT_MAXIMUM_PERSISTENT_CONNECTIONS,
+          :require              => [],
+          :wait                 => Thin::Controllers::Cluster::DEFAULT_WAIT_TIME,
 
-        :rackup               => File.dirname(__FILE__) + '/../config.ru',
-        :static_dirs          => ["#{File.dirname(__FILE__)}/../../../share/htdocs"],
-        :static_dirs_pre      => ["./resources"],  # directories to prepend to 'static_dirs'
+          :rackup               => File.dirname(__FILE__) + '/../config.ru',
+          :static_dirs          => ["#{File.dirname(__FILE__)}/../../../share/htdocs"],
+          :static_dirs_pre      => ["./resources"],  # directories to prepend to 'static_dirs'
 
-        :handlers             => {}  # procs to call at various times of the server's life cycle
+          :handlers             => {}  # procs to call at various times of the server's life cycle
       }.merge(opts)
       # Search path for resource files is concatination of 'pre' and 'standard' static dirs
       @options[:static_dirs] = @options[:static_dirs_pre].concat(@options[:static_dirs])
