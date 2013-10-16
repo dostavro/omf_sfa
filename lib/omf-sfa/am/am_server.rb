@@ -105,7 +105,7 @@ module OMF::SFA::AM
 
       require 'omf-sfa/resource/account'
       #account = am.find_or_create_account(:name => 'foo')
-      account = OMF::SFA::Resource::Account.create(:name => 'foo')
+      account = OMF::SFA::Resource::Account.create(:name => 'root')
 
       require 'omf-sfa/resource/link'
       require 'omf-sfa/resource/node'
@@ -118,20 +118,26 @@ module OMF::SFA::AM
       # end
 
       r = []
-      r << l = OMF::SFA::Resource::Link.create(:name => 'l')
-      r << OMF::SFA::Resource::Channel.create(:name => '1', :frequency => "2.412GHZ")
+#       r << l = OMF::SFA::Resource::Link.create(:name => 'l')
+#       r << OMF::SFA::Resource::Channel.create(:name => '1', :frequency => "2.412GHZ")
       lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
-      2.times do |i|
-        r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
-        ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
-        ip = OMF::SFA::Resource::Ip.create(address: "10.0.1.#{i}", netmask: "255.255.255.0", ip_type: "ipv4", interface: ifr)
-        ifr.ip = ip
-        n.interfaces << ifr
-        l.interfaces << ifr
-        n.leases << lease
-      end
-      r.last.leases << OMF::SFA::Resource::Lease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
-
+#       2.times do |i|
+#         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
+#         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
+#         ip = OMF::SFA::Resource::Ip.create(address: "10.0.1.#{i}", netmask: "255.255.255.0", ip_type: "ipv4", interface: ifr)
+#         n.interfaces << ifr
+#         l.interfaces << ifr
+#         n.leases << lease
+#       end
+#       r.last.leases << OMF::SFA::Resource::Lease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
+      r << n = OMF::SFA::Resource::Node.create(:name => "node1", :urn => OMF::SFA::Resource::GURN.create("node1", :type => 'node'))
+      ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.0.1", netmask: "255.255.255.0", ip_type: "ipv4")
+      ifr1 = OMF::SFA::Resource::Interface.create(role: "control_network", name: "node1:if0", mac: "00:03:1D:0D:4B:96", node: n, ip: ip1)
+      ip2 = OMF::SFA::Resource::Ip.create(address: "10.0.0.101", netmask: "255.255.255.0", ip_type: "ipv4")
+      ifr2 = OMF::SFA::Resource::Interface.create(role: "cm_network", name: "node1:if1", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
+      n.interfaces << ifr1
+      n.interfaces << ifr2
+      n.leases << lease
       am.manage_resources(r)
     end
 
@@ -200,12 +206,9 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
-  #:log => '/tmp/am_server.log',
   :dm_db => 'sqlite:///tmp/am_test.db',
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
 }
 OMF::SFA::AM::AMServer.new.run(opts)
-
-
 
