@@ -12,25 +12,33 @@ module OmfRc::ResourceProxy::AMController
   hook :before_ready do |resource|
     #logger.debug "creation opts #{resource.creation_opts}"
     @manager = resource.creation_opts[:manager]
+    @authorizer = resource.creation_opts[:authorizer]
   end
 
   request :resources do |resource|
-    resources = @manager.find_all_resources_for_account(@manager._get_nil_account, authorizer)
+    resources = @manager.find_all_resources_for_account(@manager._get_nil_account, @authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(resources)
   end
 
   request :components do |resource|
-    components = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
+    components = @manager.find_all_components_for_account(@manager._get_nil_account, @authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(components)
   end
 
+  request :nodes do |resource|
+    nodes = @manager.find_all_components({:resource_type => "node"}, @authorizer)
+    res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 4})
+    puts res
+    res
+  end
+
   request :leases do |resource|
-    leases = @manager.find_all_leases(authorizer)
+    leases = @manager.find_all_leases(@authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(leases)
   end
 
   request :slices do |resource|
-    accounts = @manager.find_all_accounts(authorizer)
+    accounts = @manager.find_all_accounts(@authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(accounts)
   end
 
@@ -96,7 +104,7 @@ module OMF::SFA::AM::XMPP
           trusted_roots = File.expand_path(auth[:root_cert_dir])
           OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)
 
-          OmfRc::ResourceFactory.create(:am_controller, {uid: 'am_controller', certificate: @cert}, {manager: @manager})
+          OmfRc::ResourceFactory.create(:am_controller, {uid: 'am_controller', certificate: @cert}, {manager: @manager, authorizer: @authorizer})
           puts "AM Resource Controller ready."
         end
       end
