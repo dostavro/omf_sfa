@@ -61,6 +61,12 @@ module OMF::SFA::AM::Rest
     end
   end
 
+  class UnsupportedMethodException < RackException
+    def initialize()
+      super 403, "Unsupported Method"
+    end
+  end
+
   class UnknownResourceException < RackException
     def initialize(reason)
       super 404, reason
@@ -85,9 +91,16 @@ module OMF::SFA::AM::Rest
     def call(env)
       begin
         req = ::Rack::Request.new(env)
+        if req.request_method == 'OPTIONS'
+          return [200 ,{
+            'Access-Control-Allow-Origin' => '*' ,
+            'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers' => 'origin, x-csrftoken, content-type, accept'
+          }, ""]
+        end
         content_type, body = dispatch(req)
         #return [200 ,{'Content-Type' => 'application/json'}, JSON.pretty_generate(body)]
-        return [200 ,{'Content-Type' => content_type}, body]
+        return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS' }, body + "\n"]
       rescue RackException => rex
         return rex.reply
       rescue OMF::SFA::AM::AMManagerException => aex
@@ -107,11 +120,148 @@ module OMF::SFA::AM::Rest
         # reason.content = ex.to_s
         # reason = root.add_child(Nokogiri::XML::Element.new('bt', doc))
         # reason.content = ex.backtrace.join("\n\t")
-        return [500, {"Content-Type" => 'application/json'}, JSON.pretty_generate(body)]
+        return [500, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS' }, JSON.pretty_generate(body)]
       end
     end
 
+    def on_get(resource_uri, opts)
+      debug 'get: resource_uri: "', resource_uri, '"'
+      if resource_uri
+        resource = opts[:resource]
+        show_resource_status(resource, opts)
+      else
+        show_resource_list(opts)
+      end
+    end
+
+    def on_post(resource_uri, opts)
+      #debug 'POST: resource_uri "', resource_uri, '" - ', opts.inspect
+      description, format = parse_body(opts, [:json, :form])
+      debug 'POST(', resource_uri, '): body(', format, '): "', description, '"'
+
+      if resource = opts[:resource]
+        debug 'POST: Modify ', resource
+        modify_resource(resource, description, opts)
+      else
+        debug 'POST: Create? ', description.class
+        if description.is_a? Array
+          resources = description.map do |d|
+            create_resource(d, opts)
+          end
+          return show_resources(resources, nil, opts)
+        else
+          debug 'POST: Create ', resource_uri
+          if resource_uri
+            if UUID.validate(resource_uri)
+              description[:uuid] = resource_uri
+            else
+              description[:name] = resource_uri
+            end
+          end
+          resource = create_resource(description, opts, resource_uri)
+        end
+      end
+
+      if resource
+        show_resource_status(resource, opts)
+      elsif context = opts[:context]
+        show_resource_status(context, opts)
+      else
+        raise "Report me. Should never get here"
+      end
+    end
+
+    def on_delete(resource_uri, opts)
+      if resource = opts[:resource]
+        if (context = opts[:context])
+          remove_resource_from_context(resource, context)
+          res = show_resource_status(resource, opts)
+        else
+          debug "Delete resource #{resource}"
+          res = show_deleted_resource(resource.uuid)
+          resource.destroy
+        end
+      else
+        # Delete ALL resources of this type
+        raise OMF::SFA::AM::Rest::BadRequestException.new "I'm sorry, Dave. I'm afraid I can't do that."
+      end
+      resource.reload
+      return res
+    end
+
+
+    def find_handler(path, opts)
+      debug "find_handler: path; '#{path}' opts: #{opts}"
+      resource_id = opts[:resource_uri] = path.shift
+      opts[:resource] = nil
+      if resource_id
+        resource = opts[:resource] = find_resource(resource_id)
+      end
+      return self if path.empty?
+
+      raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource '#{resource_id}'." unless resource
+      opts[:context] = resource
+      comp = path.shift
+      if (handler = @coll_handlers[comp.to_sym])
+        opts[:resource_uri] = path.join('/')
+        if handler.is_a? Proc
+          return handler.call(path, opts)
+        end
+        return handler.find_handler(path, opts)
+      end
+      raise UnknownResourceException.new "Unknown sub collection '#{comp}' for '#{resource_id}:#{resource.class}'."
+    end
+
+
+
     protected
+    
+
+    def modify_resource(resource, description, opts)
+      if description[:uuid]
+        raise "Can't change uuid" unless  description[:uuid] == resource.uuid.to_s
+      end
+      description.delete(:href)
+      resource.update(description) ? resource : nil
+      #raise UnsupportedMethodException.new
+    end
+
+
+    def create_resource(description, opts, resource_uri = nil)
+      debug "Create: #{description.class}--#{description}"
+
+      if resource_uri
+        if UUID.validate(resource_uri)
+          description[:uuid] = resource_uri
+        else
+          description[:name] = resource_uri
+        end
+      end
+
+      # Let's find if the resource already exists. If yes, just modify it
+      if uuid = description[:uuid]
+        debug 'Trying to find resource ', uuid, "'"
+        resource = @resource_class.first(uuid: uuid)
+      end
+      if resource
+        modify_resource(resource, description, opts)
+      else
+        resource = @resource_class.create(description)
+        debug "Created: #{resource}"
+      end
+      if (context = opts[:context])
+        add_resource_to_context(resource, context)
+      end
+      return resource
+    end
+
+    def add_resource_to_context(user, context)
+      raise UnsupportedMethodException.new
+    end
+
+    def remove_resource_from_context(user, context)
+      raise UnsupportedMethodException.new
+    end
 
 
     # Extract information from the request object and
@@ -126,34 +276,54 @@ module OMF::SFA::AM::Rest
       #opts[:target].inspect
       opts
     end
-
-
+    
 
     def parse_body(opts, allowed_formats = [:json, :xml])
       req = opts[:req]
-      post = req.POST
-      raise EmptyBodyException.new unless post
-      body = post.to_a[0][1]  # HACK ALERT
-
-      puts "PARSE_BODY(#{post.class}): #{post}"
-      puts "PARSE_BODY2: #{body}"
-      body.strip!
+      body = req.body #req.POST
+      raise EmptyBodyException.new unless body
+      if body.is_a? Hash
+        raise UnsupportedBodyFormatException.new('Send body raw, not as form data')
+      end
+      (body = body.string) if body.is_a? StringIO
+      debug 'PARSE_BODY(ct: ', req.content_type, '): ', body.inspect
+      unless content_type = req.content_type
+        body.strip!
+        if ['/', '{', '['].include?(body[0])
+          content_type = 'application/json'
+        else
+          if body.empty?
+            params = req.params.inject({}){|h,(k,v)| h[k.to_sym] = v; h}
+            if allowed_formats.include?(:json)
+              return [params, :json]
+            elsif allowed_formats.include?(:form)
+              return [params, :form]
+            end
+          end
+          # default is XML
+          content_type = 'text/xml'
+        end
+      end
       begin
-        if body.start_with?('/') || body.start_with?('{') || body.start_with?('[')
+        case content_type
+        when 'application/json'
           raise UnsupportedBodyFormatException.new(:json) unless allowed_formats.include?(:json)
           jb = JSON.parse(body)
-          return [jb, :json]
-        else
+          return [_rec_sym_keys(jb), :json]
+        when 'text/xml'
           xb = Nokogiri::XML(body)
           raise UnsupportedBodyFormatException.new(:xml) unless allowed_formats.include?(:xml)
-          #puts "PARSE_BODY2: #{xb.to_s}"
           return [xb, :xml]
+        when 'application/x-www-form-urlencoded'
+          raise UnsupportedBodyFormatException.new(:xml) unless allowed_formats.include?(:form)
+          fb = req.POST
+          puts "FORM: #{fb.inspect}"
+          return [fb, :form]
         end
       rescue Exception => ex
         raise BadRequestException.new "Problems parsing body (#{ex})"
       end
-      raise UnsupportedBodyFormatException.new() unless allowed_formats.include?(:xml)
-      #raise BadRequestException.new "Unsupported message format '#{format}'" unless format ==
+      raise UnsupportedBodyFormatException.new(content_type)
     end
 
     private
@@ -186,60 +356,90 @@ module OMF::SFA::AM::Rest
     def show_resource_status(resource, opts)
       if resource
         about = opts[:req].path
-        props = resource.to_hash({}, :href_use_class_prefix => true)
+        props = resource.to_hash({}, :href_use_class_prefix => true, :max_levels => 1)
         props.delete(:type)
         res = {
-          :about => about,
+          #:about => about,
           :type => resource.resource_type,
         }.merge!(props)
-        res = {"#{resource.resource_type}_response" => res}
+        #res = {"#{resource.resource_type}_response" => res}
       else
-        res = {:error_response => {:error => 'Unknown resource'}}
+        res = {:error => 'Unknown resource'}
       end
 
       ['application/json', JSON.pretty_generate(res)]
     end
 
 
-    def find_resource(resource_id, resource_class)
-      if resource_id.start_with?('urn')
-        fopts = {:urn => resource_id}
+
+
+    def find_resource(resource_uri, description = {})
+      descr = description.dup
+      descr.delete(:resource_uri)
+      if UUID.validate(resource_uri)
+        descr[:uuid] = resource_uri
       else
-        begin
-          fopts = {:uuid => UUIDTools::UUID.parse(resource_id)}
-        rescue ArgumentError => ax
-          fopts = {:name => resource_id}
-        end
+        descr[:name] = resource_uri
+      end
+      if resource_uri.start_with?('urn')
+        descr[:urn] = resource_uri
       end
       #authenticator = Thread.current["authenticator"]
-      resource_class.first(fopts)
+      debug "Finding #{@resource_class}.first(#{descr})"
+      @resource_class.first(descr)
     end
 
+    def show_resources(resources, resource_name, opts)
+      res_hash = resources.map do |a|
+        a.to_hash_brief(:href_use_class_prefix => true)
+      end
+      if resource_name
+        prefix = about = opts[:req].path
+        res = {
+          #:about => opts[:req].path,
+          resource_name => res_hash
+        }
+      else
+        res = res_hash
+      end
+      ['application/json', JSON.pretty_generate(res)]
+    end
 
-    # Helper functions
+    def show_deleted_resource(uuid)
+      res = {
+        uuid: uuid,
+        deleted: true
+      }
+      ['application/json', JSON.pretty_generate(res)]
+    end
 
-    # Return relevant Sliver instance.
+    def show_deleted_resources(uuid_a)
+      res = {
+        uuids: uuid_a,
+        deleted: true
+      }
+      ['application/json', JSON.pretty_generate(res)]
+    end
+
+    # Recursively Symbolize keys of hash
     #
-    # +opts+ is assume to contain a ':sliver_id' entry holding the
-    # sliver name. It will also store the returned sliver in
-    # 'opts[sliver]'.
-    #
-    # If the names sliver cannot be found an +UnknownResourceException+
-    # exception is raised, excpet if +raise_if_nil+ is set to false.
-    #
-    # @returns Sliver instance
-    #
-    # def _get_sliver(opts, raise_if_nil = true)
-      # sliver = opts[:sliver]
-      # return sliver if sliver
-#
-      # sliver_id = opts[:sliver_id] ||= @opts[:sliver_id]
-      # sliver = OMF::SFA::Resource::Sliver.first(:name => sliver_id)
-      # if raise_if_nil && sliver.nil?
-        # raise UnknownResourceException.new "Sliver '#{sliver_id}' doesn't exist"
-      # end
-      # sliver
-    # end
+    def _rec_sym_keys(array_or_hash)
+      if array_or_hash.is_a? Array
+        return array_or_hash.map {|e| e.is_a?(Hash) ? _rec_sym_keys(e) : e }
+      end
+
+      h = {}
+      array_or_hash.each do |k, v|
+        if v.is_a? Hash
+          v = _rec_sym_keys(v)
+        elsif v.is_a? Array
+          v = v.map {|e| e.is_a?(Hash) ? _rec_sym_keys(e) : e }
+        end
+        h[k.to_sym] = v
+      end
+      h
+    end
+
 
   end
 end

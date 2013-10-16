@@ -1,3 +1,4 @@
+
 require 'omf-sfa/resource/ocomponent'
 require 'omf-sfa/resource/ip'
 require 'omf-sfa/resource/node'
@@ -51,6 +52,29 @@ module OMF::SFA::Resource
       end
       super
     end
+
+    #def _from_sfa_ip_property_xml(resource_el, props, context)
+    #  resource_el.children.each do |el|
+    #    next unless el.is_a? Nokogiri::XML::Element
+    #    next unless el.name == 'ip' # should check namespace as well
+
+    #    unless address_attr = el.attributes['address']
+    #      raise "Expected 'address' attr for ip in '#{el}'"
+    #    end
+    #    address = address_attr.value
+    #    ip = self.ip_addresses.find do |r|
+    #      r.address == address
+    #    end
+    #    unless ip
+    #      # doesn't exist yet, create new one
+    #      ip = Ip.new(:interface => self)
+    #    end
+    #    #puts "IP -----"
+    #    ip.from_sfa(el)
+    #    #puts "IP '#{ip.inspect}'"
+    #    self.ip_addresses << ip
+    #  end
+    #end
 
 
   end # Interface

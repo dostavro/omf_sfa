@@ -4,6 +4,7 @@ require 'dm-types'
 require 'dm-validations'
 require 'omf_common/lobject'
 require 'set'
+require 'active_support/inflector'
 
 #require 'omf-sfa/resource/oproperty'
 autoload :OProperty, 'omf-sfa/resource/oproperty'
@@ -253,6 +254,14 @@ module OMF::SFA::Resource
       href
     end
 
+    def resource_type()
+      unless rt = attribute_get(:resource_type)
+        rt = self.class.to_s.split('::')[-1].downcase
+      end
+      rt
+    end
+
+
     # Return the status of the resource. Should be
     # one of: _configuring_, _ready_, _failed_, and _unknown_
     #
@@ -346,7 +355,7 @@ module OMF::SFA::Resource
       if resource.kind_of? Enumerable
         res = []
         resource.each do |r|
-          res << resources_to_hash(r, already_described)
+          res << resources_to_hash(r, opts, already_described)
         end
         res = {:resources => res}
       else
@@ -418,6 +427,14 @@ module OMF::SFA::Resource
       }.to_json(*a)
     end
 
+    def as_json(options = { })
+      {
+        "json_class" => self.class.name,
+        "id" => self.id
+      }
+    end
+
+
     #def self.from_json(o)
     #  puts "FROM_JSON"
     #  klass = o['json_class']
@@ -440,7 +457,15 @@ module OMF::SFA::Resource
       objs[self] = true
       return h if opts[:brief]
 
-      to_hash_long(h, objs.merge(brief: true), opts)
+      if max_levels = opts[:max_levels]
+        level = (opts[:level] || 0) + 1
+        opts = opts.merge(level: level)
+        opts[:brief] = true if level > max_levels
+      else
+        opts = opts.merge(brief: true)
+      end
+      #puts ">>>> #{opts}"
+      to_hash_long(h, objs, opts)
       h
     end
 
@@ -453,12 +478,11 @@ module OMF::SFA::Resource
         h[:name] = self.name
       end
       h[:type] = self.resource_type
-      h[:account] = self.account.name unless self.account.nil?
       h
     end
 
     def to_hash_long(h, objs = {}, opts = {})
-      _oprops_to_hash(h, opts.merge(brief: true))
+      _oprops_to_hash(h, objs, opts)
       h
     end
 
@@ -466,7 +490,7 @@ module OMF::SFA::Resource
       @@default_href_prefix
     end
 
-    def _oprops_to_hash(h, opts)
+    def _oprops_to_hash(h, objs, opts)
       klass = self.class
       while klass
         if op = @@oprops[klass]
@@ -474,13 +498,16 @@ module OMF::SFA::Resource
             k = k.to_sym
             unless (value = send(k)).nil?
               #puts "OPROPS_TO_HAHS(#{k}): #{value}::#{value.class}--#{oproperty_get(k)}"
-              if value.kind_of? OResource
-                value = value.to_hash_brief(opts)
+              if value.is_a? OResource
+                value = value.to_hash(objs, opts)
+              end
+              if value.is_a? Time
+                value = value.iso8601
               end
               if value.kind_of? Array
                 next if value.empty?
                 value = value.collect do |e|
-                  (e.kind_of? OResource) ? e.to_hash_brief(opts) : e
+                  (e.kind_of? OResource) ? e.to_hash(objs, opts) : e
                 end
               end
 

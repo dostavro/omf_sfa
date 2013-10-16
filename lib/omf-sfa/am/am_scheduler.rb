@@ -72,10 +72,27 @@ module OMF::SFA::AM
     # @return [Boolean] Returns true for success otherwise false
     #
     def release_resource(resource, authorizer)
+      debug "release_resource: resource-> '#{resource.to_json}'"
       unless resource.is_a? OMF::SFA::Resource::OResource
-        raise "Expected OResource but got '#{resource.inspect}"
+        raise "Expected OResource but got '#{resource.inspect}'"
       end
 
+      base = resource.provided_by
+
+      unless resource.leases.empty?
+        base.leases.each do |l|
+          if (l.id == resource.leases.first.id)
+            time = Time.now
+            if (l.valid_until <= time)
+              l.status = "past"
+            else
+              l.status = "cancelled"
+            end
+          end
+        end
+        msg = resource.leases.first.component_leases.destroy!
+        raise "Failed to destroy component_leases" unless msg
+      end
       resource = resource.destroy!
       raise "Failed to destroy resource" unless resource
       resource
@@ -90,11 +107,25 @@ module OMF::SFA::AM
     def lease_component(lease, component)
       # TODO: Implement a basic FCFS for the competing leases of a component.
       # Basic Component provides itself(clones) so many times as the accepted leases on it.
+      debug "lease_component: lease:'#{lease.name}' to component:'#{component.name}'"
 
+      base = component.provided_by
+      base.leases.each do |l|
+        if (lease.valid_from >= l.valid_until || lease.valid_until <= l.valid_from)
+          #all ok, do nothing
+        elsif (lease.valid_from <= l.valid_from && lease.valid_until > l.valid_from)#overlapping time
+          raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
+        elsif (lease.valid_from >= l.valid_from && lease.valid_from <= l.valid_until)#overlapping time
+          raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
+        end
+      end
+      lease.status = "accepted"
+      base.leases << lease
+      base.save
       component.leases << lease
       component.save
-
-      @am_liaison.enable_lease(lease, component)
+      #@am_liaison.enable_lease(lease, component)
+      return true
     end
 
     # It returns the default account, normally used for admin account.

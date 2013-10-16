@@ -199,9 +199,12 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
+  #:log => '/tmp/am_server.log',
   :dm_db => 'sqlite:///tmp/am_test.db',
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
 }
 OMF::SFA::AM::AMServer.new.run(opts)
+
+
 

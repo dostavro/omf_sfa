@@ -163,6 +163,7 @@ module OMF::SFA::AM
       end
     end
 
+
     #def release_lease(resource)
 
     #  resource_topic = @comm.get_topic(resource.name)

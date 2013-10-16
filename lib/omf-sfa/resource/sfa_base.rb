@@ -346,6 +346,7 @@ module OMF::SFA
             return res
           end
           href2obj[href] = self
+          res['sfa_class'] = sfa_class()
 
           defs = self.class.sfa_defs()
           #puts ">> #{defs.inspect}"

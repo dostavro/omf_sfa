@@ -1,5 +1,6 @@
 require 'omf-sfa/resource/oresource'
 require 'json'
+require 'time'
 
 # We use the JSON serialization for Time objecs from 'json/add/core' in order to avoid
 # the conflicts with the 'active_support/core_ext' which is included in 'omf_common'
@@ -27,6 +28,7 @@ class Time
   end
 end
 
+#raise "JSON deserialisation no longer working - require 'json' early" unless JSON.load(Time.now.to_json).is_a? Time
 
 module OMF::SFA::Resource
 
@@ -58,6 +60,7 @@ module OMF::SFA::Resource
       js = attribute_get(:value)
       # http://www.ruby-lang.org/en/news/2013/02/22/json-dos-cve-2013-0269/
       val = JSON.load(js)[0]
+      #puts "VALUE: #{js.inspect}-#{val.inspect}-#{val.class}"
       if val.kind_of? Array
         val.tap {|v| v.extend(ArrayProxy).instance_variable_set(:@oproperty, self) }
       end
@@ -71,6 +74,7 @@ module OMF::SFA::Resource
       attribute_set(:value, JSON.generate([v]))
       save
     end
+
     #def value()
     #  #puts "VALUE() @value_:'#{@value_.inspect}'"
     #  unless @value_

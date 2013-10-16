@@ -1,5 +1,4 @@
 
-#require 'omf-sfa/resource'
 require 'omf-sfa/resource/interface'
 
 module OMF::SFA::Resource
@@ -13,6 +12,7 @@ module OMF::SFA::Resource
     #sfa_add_namespace :ol, 'http://nitlab.inf.uth.gr/schema/sfa/rspec/1'
 
     sfa_class 'channel', :namespace => :ol
+    #sfa :number, :attribute => true
     sfa :frequency, :attribute => true
     sfa :interfaces, :inline => true, :has_many => true
 
