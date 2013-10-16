@@ -125,6 +125,7 @@ module OMF::SFA::AM
         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
         ip = OMF::SFA::Resource::Ip.create(address: "10.0.1.#{i}", netmask: "255.255.255.0", ip_type: "ipv4", interface: ifr)
+        ifr.ip = ip
         n.interfaces << ifr
         l.interfaces << ifr
         n.leases << lease

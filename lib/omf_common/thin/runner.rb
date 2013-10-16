@@ -10,6 +10,7 @@ module Thin
     @intermediate_certs
 
     def ssl_verify_peer(cert_s)
+      puts "VERIFYYYYYYYYYYYYYYYYYYYYYYYY"
       @intermediate_certs = OpenSSL::X509::Store.new if @intermediate_certs.nil?
       cert = OpenSSL::X509::Certificate.new(cert_s)
 
@@ -28,6 +29,13 @@ module Thin
       else
         raise e
       end
+    end
+
+    def ssl_handshake_completed
+      puts self.class
+      puts @app.class
+      puts "=================="
+      puts @backend.class
     end
   end
 end

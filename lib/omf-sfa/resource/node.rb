@@ -19,8 +19,8 @@ module OMF::SFA::Resource
     sfa :hardware_type, :inline => true, :has_many => true
     sfa :available, :attr_value => 'now'  # <available now="true">
     #sfa :sliver_type, :attr_value => 'name'
-    sfa :interfaces, :inline => true, :has_many => true, :can_be_referred => true
-    sfa :client_id, :attribute => true
+    sfa :interfaces, :inline => true, :has_many => true
+    #sfa :client_id, :attribute => true
     sfa :exclusive, :attribute => true
     alias_method :client_id, :name
 

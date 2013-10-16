@@ -19,7 +19,7 @@ module OMF::SFA::Resource
 
     sfa_add_namespace :ol, 'http://nitlab.inf.uth.gr/schema/sfa/rspec/1'
 
-    sfa_class 'lease', :namespace => :ol
+    sfa_class 'lease', :namespace => :ol, :can_be_referred => true
     #sfa :name, :attribute => true
     #sfa :uuid, :attribute => true
     sfa :valid_from, :attribute => true

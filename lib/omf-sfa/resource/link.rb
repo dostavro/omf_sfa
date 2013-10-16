@@ -20,8 +20,12 @@ module OMF::SFA::Resource
     #has 2, :interfaces
 
     sfa_class 'link'
-    sfa :link_type, :content_attribute => :name
+    sfa :link_type#, :content_attribute => :name
+    sfa :component_manager, :attr_value => :name
+    sfa :component_manager_id, :disabled => :true
     #sfa :properties, LinkProperty, :inline => true, :has_many => true
+
+    alias_method :component_manager, :component_manager_id
 
   end
 

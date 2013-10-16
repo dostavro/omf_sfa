@@ -36,7 +36,7 @@ module OMF::SFA::Resource
     sfa :component_id, :attribute => true#, :prop_name => :urn # "urn:publicid:IDN+plc:cornell+node+planetlab3-dsl.cs.cornell.edu"
     sfa :component_manager_id, :attribute => true#, :prop_name => :component_manager_gurn # "urn:publicid:IDN+plc+authority+am"
     sfa :component_name, :attribute => true # "plane
-    sfa :leases, :inline => true, :has_many => true, :can_be_referred => true
+    sfa :leases, :inline => true, :has_many => true
 
     #def component_id
     #  res = oproperty_get(:id)
