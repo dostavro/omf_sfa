@@ -514,10 +514,10 @@ module OMF::SFA::AM
     #
     # @return [Array<OComponent>] The components requested
     #
-    #def find_all_components
-    #  res = OMF::SFA::Resource::OComponent.all
-    #  res
-    #end
+    def find_all_components(comp_descr, authorizer)
+     res = OMF::SFA::Resource::OComponent.all
+     res
+    end
 
     def find_or_create_resource(resource_descr, type_to_create, oproperties, authorizer)
       debug "find_or_create_resource: resource '#{resource_descr.inspect}' type: '#{type_to_create}'"
