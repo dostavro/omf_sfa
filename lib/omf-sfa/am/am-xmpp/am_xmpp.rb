@@ -3,6 +3,7 @@ require 'omf_common'
 #require 'omf-sfa/am/am-xmpp/am_authorizer'
 require 'omf-sfa/am/default_authorizer'
 require 'omf-sfa/resource'
+require 'pp'
 
 module OmfRc::ResourceProxy::AMController
   include OmfRc::ResourceProxyDSL
@@ -27,14 +28,37 @@ module OmfRc::ResourceProxy::AMController
 
   request :nodes do |resource|
     nodes = @manager.find_all_components({:resource_type => "node"}, @authorizer)
-    res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 4})
-    puts res
+    res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 3})
+    pp res
     res
   end
 
   request :leases do |resource|
     leases = @manager.find_all_leases(@authorizer)
-    OMF::SFA::Resource::OResource.resources_to_hash(leases)
+    puts "######### AAAAAAAAAAAAAAAAAA MPIKEEEEEEEEEEEEE"
+
+    #this does not work because resources_to_hash and to_hash methods only works for
+    #oproperties and account is not an oprop in lease
+    #res = OMF::SFA::Resource::OResource.resources_to_hash(leases)
+    #pp res
+    #res
+    res = []
+    leases.each do |l|
+      lease = {}
+      lease[:name] = l.name
+      lease[:account] = l.account.name
+      lease[:valid_from] = l.valid_from
+      lease[:valid_until] = l.valid_until
+      lease[:component_names] = []
+      l.components.each do |c|
+        name = {}
+        name[:component_name] = c.name
+        lease[:component_names] << name
+      end
+      res << lease
+    end
+    pp res
+    Hash.new[:leases] = res
   end
 
   request :slices do |resource|
