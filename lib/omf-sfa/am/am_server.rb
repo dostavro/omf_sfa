@@ -120,7 +120,7 @@ module OMF::SFA::AM
       r = []
 #       r << l = OMF::SFA::Resource::Link.create(:name => 'l')
 #       r << OMF::SFA::Resource::Channel.create(:name => '1', :frequency => "2.412GHZ")
-      lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 3600)
+      lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000)
 #       2.times do |i|
 #         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
 #         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
