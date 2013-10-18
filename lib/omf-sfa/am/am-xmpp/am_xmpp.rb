@@ -29,13 +29,11 @@ module OmfRc::ResourceProxy::AMController
   request :nodes do |resource|
     nodes = @manager.find_all_components({:resource_type => "node"}, @authorizer)
     res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 3})
-    pp res
     res
   end
 
   request :leases do |resource|
     leases = @manager.find_all_leases(@authorizer)
-    puts "######### AAAAAAAAAAAAAAAAAA MPIKEEEEEEEEEEEEE"
 
     #this does not work because resources_to_hash and to_hash methods only works for
     #oproperties and account is not an oprop in lease
@@ -57,7 +55,6 @@ module OmfRc::ResourceProxy::AMController
       end
       res << lease
     end
-    pp res
     Hash.new[:leases] = res
   end
 
