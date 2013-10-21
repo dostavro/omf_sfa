@@ -36,26 +36,14 @@ module OmfRc::ResourceProxy::AMController
     leases = @manager.find_all_leases(@authorizer)
 
     #this does not work because resources_to_hash and to_hash methods only works for
-    #oproperties and account is not an oprop in lease
-    #res = OMF::SFA::Resource::OResource.resources_to_hash(leases)
-    #pp res
-    #res
-    res = []
+    #oproperties and account is not an oprop in lease so we need to add it
+    res = OMF::SFA::Resource::OResource.resources_to_hash(leases)
+    i=0
     leases.each do |l|
-      lease = {}
-      lease[:name] = l.name
-      lease[:account] = l.account.name
-      lease[:valid_from] = l.valid_from
-      lease[:valid_until] = l.valid_until
-      lease[:component_names] = []
-      l.components.each do |c|
-        name = {}
-        name[:component_name] = c.name
-        lease[:component_names] << name
-      end
-      res << lease
+      res[:resources][i][:resource][:account] = l.account.to_hash
+      i = i + 1
     end
-    Hash.new[:leases] = res
+    res
   end
 
   request :slices do |resource|
