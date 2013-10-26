@@ -645,6 +645,8 @@ module OMF::SFA::AM
           #leases = descr_el.xpath('/rspec//ol:lease', 'ol' => OL_NAMESPACE)
           leases = descr_el.xpath('/xmlns:rspec/ol:lease', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3")
           leases = update_leases_from_rspec(leases, authorizer)
+        else
+          leases = []
         end
 
 

@@ -15,3 +15,7 @@
 #     tool_logo: http://mytestbed.net/attachments/download/797/oml.png
 #     tool_version: 2.10
 #     tool_name: OML
+#  hrn: nitos
+#  urn: urn:publicid:IDN+nitos+authority+am
+#  hostname: http://nitlab.inf.uth.gr
+#  code_tag: https://github.com/dostavro/omf_sfa/tree/xmpp

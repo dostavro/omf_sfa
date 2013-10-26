@@ -26,7 +26,7 @@ module OMF::SFA::AM
     def create_account(account)
       debug "create_account: '#{account.inspect}'"
 
-      OmfCommon.comm.subscribe('userController') do |user_rc|
+      OmfCommon.comm.subscribe('user_factory') do |user_rc|
         unless user_rc.error?
 
           user_rc.create(:user, hrn: 'newuser', username: account.name) do |reply_msg|
@@ -75,7 +75,7 @@ module OMF::SFA::AM
     def configure_keys(keys, account)
       debug "configure_keys: keys:'#{keys.inspect}', account:'#{account.inspect}'"
 
-      OmfCommon.comm.subscribe('userController') do |user_rc|
+      OmfCommon.comm.subscribe('user_factory') do |user_rc|
         unless user_rc.error?
 
           user_rc.create(:user, hrn: 'existing_user', username: account.name) do |reply_msg|

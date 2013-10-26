@@ -14,8 +14,8 @@ omf_sfa_am:
       trusted_roots: ~/.omf/trusted_roots
     -
       type: xmpp
-      user: am_mgr-1.0
-      password: pw
+      user: am_mgr_1.0
+      password: am_mgr_1.0
       server: localhost
       auth:
         :entity_cert: ~/.omf/omf_am.pem
