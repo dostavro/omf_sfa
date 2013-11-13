@@ -83,7 +83,7 @@ module OMF::SFA::AM::RPC
       unless rspec_version["type"].downcase.eql?("geni") && (rspec_version["version"].eql?("3.0") ||
                                                              rspec_version["version"].eql?("3"))
         @return_struct[:code][:geni_code] = 4 # Bad Version
-        @return_struct[:output] = "'Version' or 'Type' of RSpecs are not the same with that 'GetVersion' returns."
+        @return_struct[:output] = "'Version' or 'Type' of RSpecs are not the same with what 'GetVersion' returns."
         @return_struct[:value] = {}
         return @return_struct
         #ans = {
@@ -98,23 +98,16 @@ module OMF::SFA::AM::RPC
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
       if slice_urn
-        # have leases in top of rspec
-        resources = @manager.find_all_leases_for_account(authorizer.account, authorizer)
-        resources.concat(@manager.find_all_components_for_account(authorizer.account, authorizer))
+        #resources = @manager.find_all_leases_for_account(authorizer.account, authorizer)
+        #resources.concat(@manager.find_all_components_for_account(authorizer.account, authorizer))
+        resources = @manager.find_all_resources_for_account(authorizer.account, authorizer)
 
-        # have leases inside the components
-        #resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
-
-        res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources, {:type => 'manifest'}).to_xml
+        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'manifest').to_xml
       else
-        # have leases in top of rspec
         resources = @manager.find_all_leases(authorizer)
         resources.concat(@manager.find_all_components_for_account(@manager._get_nil_account, authorizer))
 
-        # have leases inside the components
-        #resources = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
-
-        res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources).to_xml
+        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'advertisement').to_xml
       end
       # TODO: implement the "available_only" option
 
@@ -176,7 +169,7 @@ module OMF::SFA::AM::RPC
         end
       end
 
-      res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources, {:type => 'manifest'}).to_s
+      res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res

@@ -71,8 +71,8 @@ module OMF::SFA
         #
         # @param [Symbol] name name of resource in RSpec
         # @param [Hash] opts options to further describe mappings
-        # @option opts [Boolean] :inline If true, then given a parent element, a property name and value, this will result in <parent_element>value</parent_element>
-        # @option opts [Boolean] :attribute If true, then given a parent element, a property name and value, this will result in <parent_element property_name="value"/>
+        # @option opts [Boolean] :inline If true, then given a parent element, a property name and a value, this will result in <parent_element>value</parent_element>
+        # @option opts [Boolean] :attribute If true, then given a parent element, a property name and a value, this will result in <parent_element property_name="value"/>
         # @option opts [String] :attr_value If set, then the property will be a new element with an attribute named by the :attr_value: <property_name attr_value_content="property_value"/>
         # @option opts [Boolean] :has_manny If true, can occur multiple times, forming an array
         # @option opts [Boolean] :disabled If true, then this property will not be exposed through SFA. Useful for disabling inherited properties when needed. (e.g. link)
@@ -95,38 +95,47 @@ module OMF::SFA
         # opts:
         #   :valid_for - valid [sec] from now
         #
-        def sfa_advertisement_xml(resources, opts = {})
+        def sfa_response_xml(resources, opts = {type: 'advertisement'})
 
           # arrange resources with the following order: lease, channel, node, link
           # leases and interfaces should be declared first and later on referenced
           # inside nodes and links respectively
-          leases = resources.select {|v| v.resource_type == 'lease'}
-          channels = resources.select {|v| v.resource_type == 'channel'}
-          nodes = resources.select {|v| v.resource_type == 'node'}
+          leases = resources.select {|v| v.resource_type.downcase == 'lease'}
+          channels = resources.select {|v| v.resource_type.downcase == 'channel'}
+          nodes = resources.select {|v| v.resource_type.downcase == 'node'}
           rest = resources - leases - channels - nodes
           resources = leases + channels + nodes + rest
 
           doc = Nokogiri::XML::Document.new
-          #<rspec expires="2011-09-13T09:07:09Z" generated="2011-09-13T09:07:09Z" type="advertisement" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/ad.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/schema/sfa/rspec/1/ad-reservation.xsd">
           root = doc.add_child(Nokogiri::XML::Element.new('rspec', doc))
           root.add_namespace(nil, SFA_NAMESPACE_URI)
           root.add_namespace('xsi', "http://www.w3.org/2001/XMLSchema-instance")
+          root.set_attribute('type', opts[:type])
 
-          #opts[:type] = 'advertisement' unless opts[:type]
-          #if opts[:type] == 'manifest'
-          #  schema = 'manifest.xsd'
-          #else
-          #  schema = 'ad.xsd'
-          #end
-          root['xsi:schemaLocation'] = "#{SFA_NAMESPACE_URI} #{SFA_NAMESPACE_URI}/ad.xsd #{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/ad-reservation.xsd"
-          @@sfa_namespaces.each do |prefix, urn|
-            root.add_namespace(prefix.to_s, urn)
+          if opts[:type].downcase.eql?('advertisement')
+            #<rspec expires="2011-09-13T09:07:09Z" generated="2011-09-13T09:07:09Z" type="advertisement" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/ad.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/schema/sfa/rspec/1/ad-reservation.xsd">
+
+            root['xsi:schemaLocation'] = "#{SFA_NAMESPACE_URI} #{SFA_NAMESPACE_URI}/ad.xsd #{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/ad-reservation.xsd"
+            @@sfa_namespaces.each do |prefix, urn|
+              root.add_namespace(prefix.to_s, urn)
+            end
+
+            now = Time.now
+            root.set_attribute('generated', now.iso8601)
+            root.set_attribute('expires', (now + (opts[:valid_for] || 600)).iso8601)
+          elsif opts[:type].downcase.eql?('manifest')
+            #<rspec xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.geni.net/resources/rspec/3" type="manifest" generated="2013-01-16T14:20:39Z" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/manifest.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/schema/sfa/rspec/1/request-reservation.xsd">
+
+            root['xsi:schemaLocation'] = "#{SFA_NAMESPACE_URI} #{SFA_NAMESPACE_URI}/manifest.xsd #{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/request-reservation.xsd"
+            @@sfa_namespaces.each do |prefix, urn|
+              root.add_namespace(prefix.to_s, urn)
+            end
+
+            now = Time.now
+            root.set_attribute('generated', now.iso8601)
+          else
+            raise "Unknown SFA response type: '#{opts[:type]}'"
           end
-
-          root.set_attribute('type', 'advertisement')
-          now = Time.now
-          root.set_attribute('generated', now.iso8601)
-          root.set_attribute('expires', (now + (opts[:valid_for] || 600)).iso8601)
 
           obj2id = {}
           _to_sfa_xml(resources, root, obj2id, opts)
@@ -312,6 +321,8 @@ module OMF::SFA
 
       module InstanceMethods
 
+        attr_accessor :client_id
+
         # Returns the component id of this resource if exists.
         # If not, then return its URN or create a new one containing its name.
         #
@@ -479,6 +490,10 @@ module OMF::SFA
 
           unless class_props[:expose_id] == false
             new_element.set_attribute('id', id) if defs['component_id'].nil?
+          end
+
+          if opts[:type].downcase.eql?('manifest') && self.client_id
+            new_element.set_attribute('client_id', self.client_id)
           end
 
           defs.keys.sort.each do |key|
