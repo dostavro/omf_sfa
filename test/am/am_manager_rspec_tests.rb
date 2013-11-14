@@ -47,7 +47,7 @@ describe AMManager do
         #resource_descr[:account] = auth.account
         type = type_to_create.camelize
         resource = eval("OMF::SFA::Resource::#{type}").create(resource_descr)
-        if type_to_create.eql?('Lease')
+        if type_to_create.downcase.eql?('lease')
           resource.valid_from = oproperties[:valid_from]
           resource.valid_until = oproperties[:valid_until]
           resource.save
@@ -71,6 +71,75 @@ describe AMManager do
   OMF::SFA::Resource::Account.create({:name => 'a'})
   account = OMF::SFA::Resource::Account.first({:name => 'a'})
 
+  describe 'resource creation' do
+
+    it "won't create anything" do
+      authorizer = Minitest::Mock.new
+
+      rspec = %{
+      <?xml version="1.0" ?>
+      <rspec type="request" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/request.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/sfa/rspec/1/request-reservation.xsd">
+      </rspec>
+      }
+      request = Nokogiri.XML(rspec)
+
+      2.times {authorizer.expect(:account, account)}
+      resources = manager.update_resources_from_rspec(request.root, true, authorizer)
+      resources.must_be_empty
+
+      authorizer.verify
+    end
+
+    it 'will create a node' do
+      authorizer = Minitest::Mock.new
+
+      rspec = %{
+      <?xml version="1.0" ?>
+      <rspec type="request" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/request.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/sfa/rspec/1/request-reservation.xsd">
+        <node component_id="urn:publicid:IDN+omf:nitos+node+node1" component_manager_id="urn:publicid:IDN+omf:nitos+authority+am" component_name="node1" client_id="my_node" exclusive="true">
+        </node>
+      </rspec>
+      }
+      request = Nokogiri.XML(rspec)
+
+      3.times {authorizer.expect(:account, account)}
+      authorizer.expect(:can_create_resource?, true, [Hash, String])
+      authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
+      resources = manager.update_resources_from_rspec(request.root, true, authorizer)
+      resources.size.must_equal(1)
+      node = resources.first
+
+      node.component_name.must_equal("node1")
+      node.client_id.must_equal("my_node")
+
+      authorizer.verify
+    end
+
+    it "won't create a node that doesn't exist" do
+      authorizer = Minitest::Mock.new
+
+      rspec = %{
+      <?xml version="1.0" ?>
+      <rspec type="request" xmlns="http://www.geni.net/resources/rspec/3" xmlns:ol="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.geni.net/resources/rspec/3 http://www.geni.net/resources/rspec/3/request.xsd http://nitlab.inf.uth.gr/schema/sfa/rspec/1 http://nitlab.inf.uth.gr/sfa/rspec/1/request-reservation.xsd">
+        <node component_id="urn:publicid:IDN+omf:nitos+node+node1" component_manager_id="urn:publicid:IDN+omf:nitos+authority+am" component_name="node1" exclusive="true">
+        </node>
+      </rspec>
+      }
+      request = Nokogiri.XML(rspec)
+
+      3.times {authorizer.expect(:account, account)}
+      authorizer.expect(:can_create_resource?, true, [Hash, String])
+      authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
+      resources = manager.update_resources_from_rspec(request.root, true, authorizer)
+      resources.size.must_equal(1)
+      node = resources.first
+
+      node.component_name.must_equal("node1")
+
+      authorizer.verify
+    end
+  end
+
   describe 'nodes and leases' do
 
     it 'will create a node with a lease attached to it' do
@@ -92,20 +161,22 @@ describe AMManager do
 
       r = manager.update_resources_from_rspec(req.root, false, authorizer)
 
-      node = r.first
+      node = r.last
       node.must_be_kind_of(OMF::SFA::Resource::Node)
       node.name.must_equal('node1')
       node.resource_type.must_equal('node')
+      node.client_id.must_equal('my_node')
 
       a = node.account
       a.name.must_equal('a')
 
-      lease = node.leases.first
+      lease = r.first
       lease.must_be_kind_of(OMF::SFA::Resource::Lease)
       lease.name.must_equal(a.name)
       lease.valid_from.must_equal(Time.parse('2013-01-08T19:00:00Z'))
       lease.valid_until.must_equal(Time.parse('2013-01-08T20:00:00Z'))
       lease.components.first.must_be_kind_of(OMF::SFA::Resource::Node)
+      lease.client_id.must_equal('l1')
 
       authorizer.verify
     end

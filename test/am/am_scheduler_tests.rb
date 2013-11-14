@@ -73,15 +73,22 @@ describe AMScheduler do
       r1.provides.must_include(res)
 
       authorizer.verify
-      #time = Time.now
-      #l1 = scheduler.create_resource({:name => 'l1'}, 'OLease', {:valid_from => time, :valid_until => (time + 100)}, authorizer)
-      #l1 = OMF::SFA::Resource::OLease.create({:name => 'l1', :valid_from => time, :valid_until => (time + 100)})
-      #o = scheduler.lease_component(l1, res)
-      #puts o.to_json
+    end
 
-      #o.leases.each do |l|
-        #puts l.to_json
-      #end
+    it 'can create a lease' do
+      authorizer = MiniTest::Mock.new
+
+      time = Time.now
+      authorizer.expect(:account, account)
+      lease = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => (time + 100) }, authorizer)
+
+      lease.must_be_instance_of(OMF::SFA::Resource::Lease)
+      lease.name.must_equal('l1')
+      lease.account.must_equal(account)
+      lease.valid_from.must_equal(time)
+      lease.valid_until.must_equal(time + 100)
+
+      authorizer.verify
     end
 
     it 'can lease a component' do
@@ -97,7 +104,8 @@ describe AMScheduler do
       res.provided_by.must_equal(r)
 
       time = Time.now
-      l1 = scheduler.create_resource({:name => 'l1'}, 'OLease', {:valid_from => time, :valid_until => (time + 100)}, authorizer)
+      authorizer.expect(:account, account)
+      l1 = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => (time + 100)}, authorizer)
       o = scheduler.lease_component(l1, res)
     end
 
@@ -114,11 +122,12 @@ describe AMScheduler do
       res.provided_by.must_equal(r)
 
       time = Time.now
-      l1 = scheduler.create_resource({:name => 'l1'}, 'OLease', {:valid_from => time, :valid_until => (time + 100) }, authorizer)
-      l2 = scheduler.create_resource({:name => 'l2'}, 'OLease', {:valid_from => time + 400, :valid_until => (time + 500)}, authorizer)
-      l3 = scheduler.create_resource({:name => 'l3'}, 'OLease', {:valid_from => time + 10, :valid_until => (time + 20)}, authorizer)
-      l4 = scheduler.create_resource({:name => 'l4'}, 'OLease', {:valid_from => time - 10, :valid_until => (time + 20)}, authorizer)
-      l5 = scheduler.create_resource({:name => 'l5'}, 'OLease', {:valid_from => time - 410, :valid_until => (time + 490)}, authorizer)
+      5.times {authorizer.expect(:account, account)}
+      l1 = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => (time + 100) }, authorizer)
+      l2 = scheduler.create_resource({:name => 'l2'}, 'Lease', {:valid_from => time + 400, :valid_until => (time + 500)}, authorizer)
+      l3 = scheduler.create_resource({:name => 'l3'}, 'Lease', {:valid_from => time + 10, :valid_until => (time + 20)}, authorizer)
+      l4 = scheduler.create_resource({:name => 'l4'}, 'Lease', {:valid_from => time - 10, :valid_until => (time + 20)}, authorizer)
+      l5 = scheduler.create_resource({:name => 'l5'}, 'Lease', {:valid_from => time - 410, :valid_until => (time + 490)}, authorizer)
 
       o1 = scheduler.lease_component(l1, res)
       o2 = scheduler.lease_component(l2, res)
@@ -127,20 +136,21 @@ describe AMScheduler do
       proc{o4 = scheduler.lease_component(l4, res)}.must_raise(UnavailableResourceException)
     end
 
-    it '123 can release a resource' do
+    it 'can release a resource' do
       r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})
 
       authorizer = MiniTest::Mock.new
-      3.times{authorizer.expect(:account, account)}
 
       time = Time.now
+      2.times{authorizer.expect(:account, account)}
       r1 = scheduler.create_resource({:name => 'r1', :account => account}, 'node', {}, authorizer)
-      l1 = scheduler.create_resource({:name => 'l1'}, 'OLease', {:valid_from => time, :valid_until => (time + 1000) }, authorizer)
+      l1 = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => (time + 1000) }, authorizer)
       l1.status.must_equal("pending")
       scheduler.lease_component(l1, r1)
 
+      2.times{authorizer.expect(:account, account)}
       r2 = scheduler.create_resource({:name => 'r1', :account => account}, 'node', {}, authorizer)
-      l2 = scheduler.create_resource({:name => 'l2'}, 'OLease', {:valid_from => time - 1000, :valid_until => (time -100) }, authorizer)
+      l2 = scheduler.create_resource({:name => 'l2'}, 'Lease', {:valid_from => time - 1000, :valid_until => (time -100) }, authorizer)
       l2.status.must_equal("pending")
       scheduler.lease_component(l2, r2)
       l1.reload;l2.reload
