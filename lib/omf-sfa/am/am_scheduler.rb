@@ -29,7 +29,7 @@ module OMF::SFA::AM
     #
     def create_resource(resource_descr, type_to_create, oproperties, authorizer)
       debug "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}' oproperties:'#{oproperties}' authorizer:'#{authorizer.inspect}'"
-      if type_to_create.eql?('node')
+      if type_to_create.downcase.eql?('node')
         desc = resource_descr.dup
         desc[:account] = get_nil_account()
 
@@ -52,13 +52,14 @@ module OMF::SFA::AM
         base_resource.save
 
         return vr
-      elsif type_to_create.eql?('Lease')
+      elsif type_to_create.downcase.eql?('lease')
 
         resource_descr[:resource_type] = type_to_create
-        lease = OMF::SFA::Resource::Lease.create(lease_descr)
+        resource_descr[:account] = authorizer.account
+        lease = OMF::SFA::Resource::Lease.create(resource_descr)
         lease.valid_from = oproperties[:valid_from]
         lease.valid_until = oproperties[:valid_until]
-        raise UnavailableResourceException.new "Cannot create '#{lease_descr.inspect}'" unless lease.save
+        raise UnavailableResourceException.new "Cannot create '#{resource_descr.inspect}'" unless lease.save
         lease
       else
         raise "Uknown type of resource '#{type_to_create}'. Expected one of 'Node' or 'Lease'"

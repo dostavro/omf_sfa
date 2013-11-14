@@ -367,7 +367,8 @@ module OMF::SFA::AM
       rescue UnavailableResourceException
         lease_descr = {:name => authorizer.account.name}
         lease = find_or_create_lease(lease_descr, lease_properties, authorizer)
-        return { lease_el[:id] => lease }
+        lease.client_id = lease_el[:client_id]
+        return { (lease_el[:client_id] || lease_el[:id]) => lease }
       end
 
       #unless lease_el[:uuid].nil?
@@ -549,9 +550,8 @@ module OMF::SFA::AM
       resource
     end
 
-    # Find or create a resource for authorizer's account. If it doesn't exist,
-    # is already assigned to
-    # someone else, or cannot be created, throws +UnknownResourceException+.
+    # Find or create a resource for an account. If it doesn't exist,
+    # is already assigned to someone else, or cannot be created, throws +UnknownResourceException+.
     #
     # @param [Hash] describing properties of the requested resource
     # @param [String] Type to create if not already exist
@@ -562,9 +562,9 @@ module OMF::SFA::AM
     #
     def find_or_create_resource_for_account(resource_descr, type_to_create, oproperties, authorizer)
       debug "find_or_create_resource_for_account: r_descr:'#{resource_descr}' type:'#{type_to_create}' authorizer:'#{authorizer.inspect}'"
-      rdescr = resource_descr.dup
-      rdescr[:account] = authorizer.account
-      find_or_create_resource(rdescr, type_to_create, oproperties, authorizer)
+      #rdescr = resource_descr.dup
+      resource_descr[:account] = authorizer.account
+      find_or_create_resource(resource_descr, type_to_create, oproperties, authorizer)
     end
 
     # def _create_resource(resource_descr, type_to_create, authorizer)
@@ -646,9 +646,10 @@ module OMF::SFA::AM
           leases = descr_el.xpath('/xmlns:rspec/ol:lease', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3")
           leases = update_leases_from_rspec(leases, authorizer)
         else
-          leases = []
+          leases = {}
         end
 
+        resources = leases.values
 
         nodes = descr_el.xpath('//xmlns:node').collect do |el|
           #debug "create_resources_from_xml::EL: #{el.inspect}"
@@ -665,12 +666,14 @@ module OMF::SFA::AM
           end
         end.compact
 
+        resources = resources.concat(nodes)
+
         # channel reservation
         channels = descr_el.xpath('/xmlns:rspec/ol:channel', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3").collect do |el|
           update_resource_from_rspec(el, leases, clean_state, authorizer)
         end.compact
 
-        resources = nodes.concat(channels)
+        resources = resources.concat(channels)
 
         # TODO: release the unused leases. The leases we have created but we never managed
         # to attach them to a resource because the scheduler denied it.
@@ -681,7 +684,7 @@ module OMF::SFA::AM
           #  update_leases_from_rspec(leases, authorizer)
           #end.compact
 
-          leases.each {|l| l.all_resources(all_leases)}
+          leases.each_value {|l| l.all_resources(all_leases)}
           unused = find_all_leases_for_account(authorizer.account, authorizer).to_set - all_leases
           unused.each do |u|
             release_lease(u, authorizer)
@@ -730,13 +733,17 @@ module OMF::SFA::AM
         raise FormatException.new "Unknown resource description '#{resource_el.attributes.inspect}"
       end
 
+      resource.client_id = resource_el['client_id']
+
       leases_el = resource_el.xpath('child::ol:lease_ref', 'ol' => OL_NAMESPACE)
       leases_el.each do |lease_el|
         #TODO: provide the scheduler with the resource and the lease to attach them according to its policy.
         # if the scheduler refuses to attach the lease to the resource, we should release both of them.
+        # start by catching the exceptions of @scheduler
         lease_id = lease_el['id_ref']
         lease = leases[lease_id]
-        @scheduler.lease_component(lease, resource)
+        # Only the new leases will have the client_id attribute
+        @scheduler.lease_component(lease, resource) unless lease.client_id.nil?
       end
 
       if resource.group?

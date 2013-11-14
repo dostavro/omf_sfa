@@ -5,6 +5,7 @@ require 'dm-validations'
 require 'omf_common/lobject'
 require 'set'
 require 'active_support/inflector'
+require 'uuid'
 
 #require 'omf-sfa/resource/oproperty'
 autoload :OProperty, 'omf-sfa/resource/oproperty'

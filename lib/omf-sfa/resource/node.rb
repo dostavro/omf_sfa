@@ -22,7 +22,6 @@ module OMF::SFA::Resource
     sfa :interfaces, :inline => true, :has_many => true
     #sfa :client_id, :attribute => true
     sfa :exclusive, :attribute => true
-    alias_method :client_id, :name
 
 
     # Override xml serialization of 'interface'
