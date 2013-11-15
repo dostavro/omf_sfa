@@ -790,6 +790,7 @@ module OMF::SFA::AM
     # @param [Authorizer] Authorization context
     #
     def release_resource(resource, authorizer)
+      #debug "release_resource: '#{resource.inspect}'"
       authorizer.can_release_resource?(resource)
       @scheduler.release_resource(resource, authorizer)
       #resource.remove_from_all_groups
@@ -802,6 +803,21 @@ module OMF::SFA::AM
       #   r.save
       # end
       #resource.destroy
+    end
+
+    #
+    # This method finds all the resources of the specific account and
+    # detaches them. The account itself is not included in the resources
+    # which will be released.
+    #
+    # @param [Account] Account who owns the resources
+    # @param [Authorizer] Authorization context
+    #
+    def release_all_resources_for_account(account, authorizer)
+      resources = find_all_resources_for_account(account, authorizer)
+      debug "resources before: #{resources}"
+      #resources.delete(account)
+      release_resources(resources, authorizer)
     end
 
     #
