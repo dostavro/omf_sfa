@@ -72,6 +72,10 @@ module OMF::SFA::AM
       end
     end
 
+    def close_account(account)
+      warn "Implementation missing!"
+    end
+
     def configure_keys(keys, account)
       debug "configure_keys: keys:'#{keys.inspect}', account:'#{account.inspect}'"
 

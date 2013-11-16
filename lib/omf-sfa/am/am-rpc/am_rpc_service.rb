@@ -308,14 +308,11 @@ module OMF::SFA::AM::RPC
         @return_struct[:value] = {}
         return @return_struct
       end
-      #@authorizer.check_credentials(slice_urn, credentials.first, @manager)
+
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
 
-      # We don't like deleting things
+      # close account and release resources
       account = @manager.close_account({ :urn => slice_urn }, authorizer)
-      # TODO: Should this really be here? Seems to be the job of the AM manager.
-      #account = authorizer.account
-      @manager.release_all_components_for_account(account, authorizer)
       debug "Slice '#{slice_urn}' associated with account '#{account.id}:#{account.closed_at}'"
 
       @return_struct[:code][:geni_code] = 0

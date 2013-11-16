@@ -177,13 +177,13 @@ module OMF::SFA::AM
     def close_account(account_descr, authorizer)
       account = find_account(account_descr, authorizer)
       authorizer.can_close_account?(account)
-      # TODO: Free all resources associated with this account!!!!
-      # OMF::SFA::Resource::OComponent.all(:account => account).each do |c|
-      # c.account = def_account
-      # c.save
-      # end
+
+      release_all_resources_for_account(account, authorizer)
+
       account.close
       account.save
+
+      @liaison.close_account(account)
       account
     end
 

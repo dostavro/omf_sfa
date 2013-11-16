@@ -77,25 +77,24 @@ describe AMManager do
 
     before do
       @auth = MiniTest::Mock.new
-      @liaison = MiniTest::Mock.new
-      manager.liaison = @liaison
       DataMapper.auto_migrate! # reset database
     end
 
     it 'can create account' do
       @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
+
+      manager.liaison = MiniTest::Mock.new
+      manager.liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
+
       account = manager.find_or_create_account({:name => 'a'}, @auth)
       account.must_be_instance_of(OMF::SFA::Resource::Account)
 
-      @liaison.verify
+      manager.liaison.verify
       @auth.verify
     end
 
     it 'can find created account' do
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a1 = manager.find_or_create_account({:name => 'a'}, @auth)
+      a1 = OMF::SFA::Resource::Account.create(name: 'a')
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       a2 = manager.find_or_create_account({:name => 'a'}, @auth)
@@ -105,7 +104,6 @@ describe AMManager do
       a3 = manager.find_account({:name => 'a'}, @auth)
       a1.must_equal a3
 
-      @liaison.verify
       @auth.verify
     end
 
@@ -118,23 +116,18 @@ describe AMManager do
     it 'can request all accounts visible to a user' do
       manager.find_all_accounts(@auth).must_be_empty
 
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a1 = manager.find_or_create_account({:name => 'a1'}, @auth)
+      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       manager.find_all_accounts(@auth).must_equal [a1]
 
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a2 = manager.find_or_create_account({:name => 'a2'}, @auth)
+      a2 = OMF::SFA::Resource::Account.create(name: 'a2')
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
 
       manager.find_all_accounts(@auth).must_equal [a1, a2]
 
-      @liaison.verify
       @auth.verify
 
       def @auth.can_view_account?(account)
@@ -144,9 +137,7 @@ describe AMManager do
     end
 
     it 'can request accounts which are active' do
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a1 = manager.find_or_create_account({:name => 'a1'}, @auth)
+      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       a2 = manager.find_active_account({:name => 'a1'}, @auth)
@@ -160,14 +151,11 @@ describe AMManager do
         manager.find_active_account({:name => 'a1'}, @auth)
       end.must_raise(UnavailableResourceException)
 
-      @liaison.verify
       @auth.verify
     end
 
     it 'can renew accounts' do
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a1 = manager.find_or_create_account({:name => 'a1'}, @auth)
+      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
 
       time = Time.now + 100
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
@@ -180,25 +168,35 @@ describe AMManager do
       time2 = Time.at(time.to_i)
       time1.must_equal time2
 
-      @liaison.verify
       @auth.verify
     end
 
-    it 'can close account' do
-      @auth.expect(:can_create_account?, true)
-      @liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
-      a1 = manager.find_or_create_account({:name => 'a1'}, @auth)
-      a1.active?.must_equal true
-      a1.closed?.must_equal false
+    it 'can close account and release its resources' do
+      manager.liaison = MiniTest::Mock.new
+
+      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
+
+      OMF::SFA::Resource::Node.create(account: a1)
+      OMF::SFA::Resource::Lease.create(account: a1)
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       @auth.expect(:can_close_account?, true, [a1])
+
+      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
+      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Lease])
+
+      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
+      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Lease])
+      manager.liaison.expect(:close_account, true, [a1])
       a2 = manager.close_account({:name => 'a1'}, @auth)
       a2.reload
       a2.active?.must_equal false
       a2.closed?.must_equal true
 
-      @liaison.verify
+      OMF::SFA::Resource::Node.first(account: a1).must_be_nil
+      OMF::SFA::Resource::Lease.first(account: a1).must_be_nil
+
+      manager.liaison.verify
       @auth.verify
     end
   end #account
