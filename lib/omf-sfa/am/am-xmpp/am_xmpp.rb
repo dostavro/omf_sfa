@@ -38,10 +38,8 @@ module OmfRc::ResourceProxy::AMController
     #this does not work because resources_to_hash and to_hash methods only works for
     #oproperties and account is not an oprop in lease so we need to add it
     res = OMF::SFA::Resource::OResource.resources_to_hash(leases)
-    i=0
-    leases.each do |l|
+    leases.each_with_index do |l, i=0|
       res[:resources][i][:resource][:account] = l.account.to_hash
-      i = i + 1
     end
     res
   end
