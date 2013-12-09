@@ -3,6 +3,20 @@ omf_sfa_am:
   # This is your testbed's domain. It will be used in the URNs
   # of the resources e.g. 'urn:publicid:IDN+domain+type+name'
   domain: omf:testserver
+  #operation mode for OmfCommon.init (development, production, etc)
+  operationMode: development
+  #database info
+  database:
+    #database type (sqlite, mysql, postgres)
+    dbType: sqlite
+    #username for database (not used for sqlite db)
+    username: am_user
+    #password for database (not used for sqlite db)
+    password: pw
+    #localhost for database (not used for sqlite db)
+    dbHostname: localhost
+    #database name, (for sqlite this is a filename)
+    dbName: /tmp/test.sq3
 
   endpoints:
     -

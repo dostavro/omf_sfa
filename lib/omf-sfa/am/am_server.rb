@@ -24,6 +24,7 @@ module OMF::SFA::AM
     @@config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:omf_sfa_am]
     @@rpc = @@config[:endpoints].select { |v| v[:type] == 'xmlrpc' }.first
     @@xmpp = @@config[:endpoints].select { |v| v[:type] == 'xmpp' }.first
+    @@db = @@config[:database]
 
     OMF::SFA::Resource::Constants.default_domain = @@config[:domain]
 
@@ -33,6 +34,9 @@ module OMF::SFA::AM
 
     def self.xmpp_config
       @@xmpp
+    end
+    def self.db_config
+      @@db
     end
 
     def init_logger
@@ -88,7 +92,7 @@ module OMF::SFA::AM
       # require  'dm-migrations'
       # DataMapper.auto_migrate!
 
-      DataMapper.auto_upgrade! if options[:dm_auto_upgrade]
+      #DataMapper.auto_upgrade! if options[:dm_auto_upgrade]
     end
 
 
@@ -155,7 +159,7 @@ module OMF::SFA::AM
         # Should be done in a better way
         :pre_rackup => lambda do
           EM.next_tick do
-            OmfCommon.init(:development, :communication => {:url => "xmpp://#{@@xmpp[:user]}:#{@@xmpp[:password]}@#{@@xmpp[:server]}", :auth => {}}) do |el|
+            OmfCommon.init(@@config[:operationMode], :communication => {:url => "xmpp://#{@@xmpp[:user]}:#{@@xmpp[:password]}@#{@@xmpp[:server]}", :auth => {}}) do |el|
               puts "Connected to the XMPP."
             end
           end
@@ -193,6 +197,7 @@ end # module
 #
 rpc = OMF::SFA::AM::AMServer.rpc_config
 xmpp = OMF::SFA::AM::AMServer.xmpp_config
+db = OMF::SFA::AM::AMServer.db_config
 opts = {
   :app_name => 'am_server',
   :port => 8001,
@@ -206,7 +211,7 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
-  :dm_db => 'sqlite:///tmp/am_test.db',
+  :dm_db => "#{db[:dbType]}://#{db[:dbName]}",#for mysql "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
 }
