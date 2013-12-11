@@ -13,6 +13,7 @@ module OMF::SFA::Resource
 
     oproperty :domain, String #, readonly => true
     oproperty :exclusive, String
+    oproperty :available, String, :default => true
 
     # Status of component. Should be any of configuring, ready, failed, and unknown
     oproperty :status, String, :default => 'unknown'

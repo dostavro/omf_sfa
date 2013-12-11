@@ -165,7 +165,7 @@ module OMF::SFA::AM
 
     # Close the account described by +account+ hash.
     #
-    # Make sure that all associated resources are freed as well
+    # Make sure that all associated components are freed as well
     #
     # @param [Hash] properties of account
     # @param [Authorizer] Defines context for authorization decisions
@@ -178,7 +178,7 @@ module OMF::SFA::AM
       account = find_account(account_descr, authorizer)
       authorizer.can_close_account?(account)
 
-      release_all_resources_for_account(account, authorizer)
+      release_all_components_for_account(account, authorizer)
 
       account.close
       account.save
@@ -708,7 +708,7 @@ module OMF::SFA::AM
     # will be reset to it's default value. Returns the resource updated.
     #
     def update_resource_from_rspec(resource_el, leases, clean_state, authorizer)
-      if uuid_attr = (resource_el.attributes['uuid'] || resource_el.attributes['idref'])
+      if uuid_attr = (resource_el.attributes['uuid'] || resource_el.attributes['id'])
         uuid = UUIDTools::UUID.parse(uuid_attr.value)
         resource = find_resource({:uuid => uuid}, authorizer) # wouldn't know what to create
       elsif comp_id_attr = resource_el.attributes['component_id']
@@ -742,8 +742,10 @@ module OMF::SFA::AM
         # start by catching the exceptions of @scheduler
         lease_id = lease_el['id_ref']
         lease = leases[lease_id]
-        # Only the new leases will have the client_id attribute
-        @scheduler.lease_component(lease, resource) unless lease.client_id.nil?
+
+        unless lease.components.first(resource)
+          @scheduler.lease_component(lease, resource)
+        end
       end
 
       if resource.group?

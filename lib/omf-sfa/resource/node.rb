@@ -7,7 +7,7 @@ module OMF::SFA::Resource
   class Node < OComponent
 
     oproperty :hardware_type, String, :required => false
-    oproperty :available, String, :default => true
+    #oproperty :available, String, :default => true
     #oproperty :sliver_type, String, :required => false
     oproperty :interfaces, :Interface, :functional => false
     oproperty :exclusive, String, :default => true
