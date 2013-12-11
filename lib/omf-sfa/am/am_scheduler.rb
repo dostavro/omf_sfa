@@ -29,7 +29,16 @@ module OMF::SFA::AM
     #
     def create_resource(resource_descr, type_to_create, oproperties, authorizer)
       debug "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}' oproperties:'#{oproperties}' authorizer:'#{authorizer.inspect}'"
-      if type_to_create.downcase.eql?('node')
+      if type_to_create.downcase.eql?('lease')
+
+        resource_descr[:resource_type] = type_to_create
+        resource_descr[:account] = authorizer.account
+        lease = OMF::SFA::Resource::Lease.create(resource_descr)
+        lease.valid_from = oproperties[:valid_from]
+        lease.valid_until = oproperties[:valid_until]
+        raise UnavailableResourceException.new "Cannot create '#{resource_descr.inspect}'" unless lease.save
+        lease
+      else
         desc = resource_descr.dup
         desc[:account] = get_nil_account()
 
@@ -52,17 +61,6 @@ module OMF::SFA::AM
         base_resource.save
 
         return vr
-      elsif type_to_create.downcase.eql?('lease')
-
-        resource_descr[:resource_type] = type_to_create
-        resource_descr[:account] = authorizer.account
-        lease = OMF::SFA::Resource::Lease.create(resource_descr)
-        lease.valid_from = oproperties[:valid_from]
-        lease.valid_until = oproperties[:valid_until]
-        raise UnavailableResourceException.new "Cannot create '#{resource_descr.inspect}'" unless lease.save
-        lease
-      else
-        raise "Uknown type of resource '#{type_to_create}'. Expected one of 'Node' or 'Lease'"
       end
     end
 
@@ -106,7 +104,6 @@ module OMF::SFA::AM
     # @return [Boolean] returns true or false depending on the outcome of the request
     #
     def lease_component(lease, component)
-      # TODO: Implement a basic FCFS for the competing leases of a component.
       # Basic Component provides itself(clones) so many times as the accepted leases on it.
       debug "lease_component: lease:'#{lease.name}' to component:'#{component.name}'"
 

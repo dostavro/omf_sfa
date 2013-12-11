@@ -46,18 +46,18 @@ describe AMScheduler do
     end
 
     it 'can return the default account' do
-      a = scheduler.get_nil_account()
-      a.must_be_instance_of(OMF::SFA::Resource::Account)
+      default_account = scheduler.get_nil_account()
+      default_account.must_be_instance_of(OMF::SFA::Resource::Account)
     end
   end
 
   describe 'resources' do
 
-    a = scheduler.get_nil_account()
+    default_account = scheduler.get_nil_account()
     account = OMF::SFA::Resource::Account.create({:name => 'a1'})
 
     it 'can create a node' do
-      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:account, account)
@@ -68,7 +68,7 @@ describe AMScheduler do
       res.provides.must_be_empty
       res.provided_by.must_equal(r)
 
-      r1 = OMF::SFA::Resource::Node.first({:name => 'r1', :account => a})
+      r1 = OMF::SFA::Resource::Node.first({:name => 'r1', :account => default_account})
       r1.must_equal(r)
       r1.provides.must_include(res)
 
@@ -91,8 +91,28 @@ describe AMScheduler do
       authorizer.verify
     end
 
+    it "should create a channel" do
+      authorizer = MiniTest::Mock.new
+
+      channel = OMF::SFA::Resource::Channel.create({:name => 'c1', :account => default_account})
+
+      authorizer.expect(:account, account)
+      res = scheduler.create_resource({:name => 'c1', :account => account}, 'channel', {}, authorizer)
+
+      res.must_be_instance_of(OMF::SFA::Resource::Channel)
+      res.account.must_equal(account)
+      res.provides.must_be_empty
+      res.provided_by.must_equal(channel)
+
+      c1 = OMF::SFA::Resource::Channel.first({:name => 'c1', :account => default_account})
+      c1.must_equal(channel)
+      c1.provides.must_include(res)
+
+      authorizer.verify
+    end
+
     it 'can lease a component' do
-      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:account, account)
@@ -110,7 +130,7 @@ describe AMScheduler do
     end
 
     it 'cannot lease components on overlapping time' do
-      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:account, account)
@@ -137,7 +157,7 @@ describe AMScheduler do
     end
 
     it 'can release a resource' do
-      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => a})
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
 
       authorizer = MiniTest::Mock.new
 
@@ -169,7 +189,7 @@ describe AMScheduler do
     end
 
     it 'can release a resource without leases' do
-      n = OMF::SFA::Resource::Node.create(name: 'n1', account: a)
+      n = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account)
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:account, account)

@@ -177,16 +177,13 @@ describe AMManager do
       a1 = OMF::SFA::Resource::Account.create(name: 'a1')
 
       OMF::SFA::Resource::Node.create(account: a1)
-      OMF::SFA::Resource::Lease.create(account: a1)
 
       @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
       @auth.expect(:can_close_account?, true, [a1])
 
       @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Lease])
 
       @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Lease])
       manager.liaison.expect(:close_account, true, [a1])
       a2 = manager.close_account({:name => 'a1'}, @auth)
       a2.reload
@@ -194,7 +191,6 @@ describe AMManager do
       a2.closed?.must_equal true
 
       OMF::SFA::Resource::Node.first(account: a1).must_be_nil
-      OMF::SFA::Resource::Lease.first(account: a1).must_be_nil
 
       manager.liaison.verify
       @auth.verify
