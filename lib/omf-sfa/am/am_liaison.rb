@@ -73,7 +73,21 @@ module OMF::SFA::AM
     end
 
     def close_account(account)
-      warn "Implementation missing!"
+      OmfCommon.comm.subscribe('user_factory') do |user_rc|
+        unless user_rc.error?
+
+          user_rc.configure(deluser: {username: account.name}) do |msg|
+            if msg.success?
+              info "Account: '#{account.inspect}' successfully deleted."
+            else
+              error "Account: '#{account.inspect}' couldn't deleted."
+            end
+          end
+
+        else
+          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{user_rc.inspect}'"
+        end
+      end
     end
 
     def configure_keys(keys, account)
