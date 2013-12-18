@@ -336,7 +336,8 @@ module OMF::SFA::AM
       lease.component_leases.each do |l|
         l.destroy # unlink the lease with the corresponding components
       end
-      lease.status = :cancelled
+
+      lease.valid_until <= Time.now ? lease.status = "past" : lease.status = "cancelled"
     end
 
     #
@@ -352,6 +353,10 @@ module OMF::SFA::AM
     # @raise [FormatException] if RSpec elements are not known
     #
     def update_lease_from_rspec(lease_el, authorizer)
+
+      if (lease_el[:valid_from].nil? || lease_el[:valid_until].nil?)
+        raise UnavailablePropertiesException.new "Cannot create lease without ':valid_from' and 'valid_until' properties"
+      end
 
       lease_properties = {:valid_from => Time.parse(lease_el[:valid_from]), :valid_until => Time.parse(lease_el[:valid_until])}
 
@@ -370,21 +375,6 @@ module OMF::SFA::AM
         lease.client_id = lease_el[:client_id]
         return { (lease_el[:client_id] || lease_el[:id]) => lease }
       end
-
-      #unless lease_el[:uuid].nil?
-      #  lease = find_lease({:uuid => lease_el[:uuid]}, {}, authorizer)
-      #  raise UnavailableResourceException.new "Unknown lease uuid'#{lease_el[:uuid]}'" unless lease
-      #  if lease.valid_from != lease_properties[:valid_from] || lease.valid_until != lease_properties[:valid_until]
-      #    lease = modify_lease(lease_properties, lease, authorizer)
-      #    { lease_el[:leaseID] => lease }
-      #  else
-      #    { lease_el[:leaseID] => lease }
-      #  end
-      #else
-      #  lease_descr = {:name => authorizer.account.name}
-      #  lease = find_or_create_lease(lease_descr, lease_properties, authorizer)
-      #  { lease_el[:leaseID] => lease }
-      #end
     end
 
     # Update the leases described in +leases+. Any lease not already assigned to the
@@ -642,8 +632,8 @@ module OMF::SFA::AM
 
 
         if descr_el.namespaces.values.include?(OL_NAMESPACE)
-          #leases = descr_el.xpath('/rspec//ol:lease', 'ol' => OL_NAMESPACE)
-          leases = descr_el.xpath('/xmlns:rspec/ol:lease', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3")
+          leases = descr_el.xpath('//ol:lease', 'ol' => OL_NAMESPACE)
+          # leases = descr_el.xpath('/xmlns:rspec/ol:lease', 'ol' => OL_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3")
           leases = update_leases_from_rspec(leases, authorizer)
         else
           leases = {}
@@ -735,15 +725,15 @@ module OMF::SFA::AM
 
       resource.client_id = resource_el['client_id']
 
-      leases_el = resource_el.xpath('child::ol:lease_ref', 'ol' => OL_NAMESPACE)
+      leases_el = resource_el.xpath('child::ol:lease_ref|child::ol:lease', 'ol' => OL_NAMESPACE)
       leases_el.each do |lease_el|
         #TODO: provide the scheduler with the resource and the lease to attach them according to its policy.
         # if the scheduler refuses to attach the lease to the resource, we should release both of them.
         # start by catching the exceptions of @scheduler
-        lease_id = lease_el['id_ref']
+        lease_id = lease_el['id_ref'] || lease_el['client_id']
         lease = leases[lease_id]
 
-        unless lease.components.first(resource)
+        unless lease.nil? || lease.components.first(:uuid => resource.uuid)
           @scheduler.lease_component(lease, resource)
         end
       end
