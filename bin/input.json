@@ -1,0 +1,26 @@
+{
+  "name": "node2",
+  "available": "true",
+  "interfaces": [
+    {
+      "name": "node2:if0",
+      "role": "control_network",
+      "mac": "00-03-1d-0d-4b-96",
+      "ip": {
+        "address": "10.0.0.2",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    },
+    {
+      "name": "node2:if1",
+      "role": "cm_network",
+      "mac": "00-03-1d-0d-4b-96",
+      "ip": {
+        "address": "10.0.0.102",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  ]
+}
