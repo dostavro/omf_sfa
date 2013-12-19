@@ -2,22 +2,36 @@
 omf_sfa_am:
   # This is your testbed's domain. It will be used in the URNs
   # of the resources e.g. 'urn:publicid:IDN+domain+type+name'
-  domain: omf:xxx
+  domain: omf:testserver
+  #operation mode for OmfCommon.init (development, production, etc)
+  operationMode: development
+  #database info
+  database:
+    #database type (sqlite, mysql, postgres)
+    dbType: sqlite
+    #username for database (not used for sqlite db)
+    username: am_user
+    #password for database (not used for sqlite db)
+    password: pw
+    #localhost for database (not used for sqlite db)
+    dbHostname: localhost
+    #database name, (for sqlite this is a filename)
+    dbName: /tmp/test.sq3
 
   endpoints:
     -
       type: xmlrpc
       port: 8001
       ssl:
-        cert_chain_file: ~/.omf/omf_am.pem
-        private_key_file: ~/.omf/omf_am_key.pem
+        cert_chain_file: ~/.omf/am.pem
+        private_key_file: ~/.omf/am_key.pem
       trusted_roots: ~/.omf/trusted_roots
     -
       type: xmpp
-      user: am_mgr_1.0
-      password: am_mgr_1.0
-      server: localhost
+      user: am_mgr-1.0
+      password: pw
+      server: testserver
       auth:
-        :entity_cert: ~/.omf/omf_am.pem
-        :entity_key: ~/.omf/omf_am_key.pem
+        :entity_cert: ~/.omf/am.pem
+        :entity_key: ~/.omf/am_key.pem
         :root_cert_dir: ~/.omf/trusted_roots

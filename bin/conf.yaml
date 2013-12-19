@@ -1,0 +1,10 @@
+:auth:
+  :root_cert_dir: ~/.omf/trusted_roots
+  :entity_cert: ~/.omf/user_cert.pem
+  :entity_key: ~/.omf/user_cert.pkey
+:xmpp:
+  :username: one
+  :password: pw
+  :server: testserver
+  :topic: am_controller
+  :operation_mode: development
