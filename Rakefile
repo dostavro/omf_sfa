@@ -1,4 +1,3 @@
-
 require 'rubygems'
 #require 'rake/testtask'
 #require "bundler/gem_tasks"
@@ -48,12 +47,21 @@ task :initDB do
   DataMapper::Model.raise_on_save_failure = true
   DataMapper.finalize
 
-  DataMapper.auto_upgrade!
   puts "Database is created."
 end
 
+desc "Datamapper's Auto upgrade."
+task :autoUpgrade => [:initDB] do
+    DataMapper.auto_upgrade!
+end
+
+desc "Datamapper's Auto migrade."
+task :autoMigrate => [:initDB] do
+    DataMapper.auto_migrate!
+end
+
 desc "Init database using datamapper"
-task :loadTestDB => [:initDB] do
+task :loadTestDB => [:initDB, :autoMigrate] do
   puts "Loading test data to db."
   @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
   if @am_manager.is_a? Proc
