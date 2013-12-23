@@ -52,16 +52,20 @@ end
 
 desc "Datamapper's Auto upgrade."
 task :autoUpgrade => [:initDB] do
-    DataMapper.auto_upgrade!
+  puts "Auto upgrade started"
+  DataMapper.auto_upgrade!
+  puts "Auto upgrade completed"
 end
 
 desc "Datamapper's Auto migrade."
 task :autoMigrate => [:initDB] do
-    DataMapper.auto_migrate!
+  puts "Auto migrate started"
+  DataMapper.auto_migrate!
+  puts "Auto migrate completed"
 end
 
 desc "Init database using datamapper"
-task :loadTestDB => [:initDB, :autoMigrate] do
+task :loadTestDB => [:autoMigrate] do
   puts "Loading test data to db."
   @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
   if @am_manager.is_a? Proc
@@ -71,13 +75,15 @@ task :loadTestDB => [:initDB, :autoMigrate] do
   r = []
   r << account = OMF::SFA::Resource::Account.create(:name => 'root')
   lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000)
-  r << n = OMF::SFA::Resource::Node.create(:name => "node1", :urn => OMF::SFA::Resource::GURN.create("node1", :type => 'node'))
+  r << n = OMF::SFA::Resource::Node.create(:name => "node1", :urn => OMF::SFA::Resource::GURN.create("node1", :type => 'node'), :hostname => "node1")
   r << ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.0.1", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control_network", name: "node1:if0", mac: "00-03-1d-0d-4b-96", node: n, ip: ip1)
+  r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node1:if0", mac: "00-03-1d-0d-4b-96", node: n, ip: ip1)
+  r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node1:if1", mac: "00-03-1d-0d-4b-97", node: n)
   r << ip2 = OMF::SFA::Resource::Ip.create(address: "10.0.0.101", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << ifr2 = OMF::SFA::Resource::Interface.create(role: "cm_network", name: "node1:if1", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
+  r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node1:cm", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
   n.interfaces << ifr1
   n.interfaces << ifr2
+  n.cmc = cmc
   n.leases << lease
 
   @am_manager.manage_resources(r)

@@ -13,6 +13,7 @@ module OMF::SFA::Resource
     oproperty :exclusive, String, :default => true
     oproperty :disk, String
     oproperty :hostname, String
+    oproperty :cmc, :ChasisManagerCard
     #belongs_to :sliver
 
     sfa_class 'node'
