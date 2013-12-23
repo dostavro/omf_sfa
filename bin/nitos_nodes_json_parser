@@ -1,0 +1,98 @@
+#!/usr/bin/env ruby
+BIN_DIR = File.dirname(File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__)
+TOP_DIR = File.join(BIN_DIR, '..')
+$: << File.join(TOP_DIR, 'lib')
+
+require 'json'
+
+OUT_FILE = 'nitos_nodes_out.json'
+BASE_CMC_IP = '10.1.0'
+
+infile = ARGV[0]
+
+json = JSON.parse(File.read(infile))
+
+@base_node = {
+              name: "",
+              hostname: "",
+              interfaces: [
+                {
+                  name: "",
+                  role: "control",
+                  mac: "",
+                  ip: {
+                    address: "",
+                    netmask: "255.255.255.0",
+                    ip_type: "ipv4"
+                  }
+                },
+                {
+                  name: "",
+                  role: "experimental",
+                  mac: ""
+                }
+              ],
+              cmc: {
+                name: "",
+                mac: "09:A2:DA:0D:F1:00",
+                ip: {
+                  address: "",
+                  netmask: "255.255.255.0",
+                  ip_type: "ipv4"
+                }
+              }
+            }
+
+
+#adds i to the last element of the mac address
+def calc_mac(base_mac, i = 1)
+  mac_array = base_mac.split(/:/)
+
+  mac_array[-1] = sprintf("%02x", mac_array.last.hex + i).upcase
+  mac_array.join(":")
+end
+
+def calc_cmc_ip(base_ip)
+  ip_array = base_ip.split(/\./)
+  BASE_CMC_IP + ".#{ip_array.last}"
+end
+
+#this matches each node of the input node to the output json
+def match_node_to_res(node, i)
+  n = Marshal.load(Marshal.dump(@base_node))
+  puts "new node: '#{n.inspect}'"
+  n[:name] = node['hostname']
+  n[:hostname] = node['hostname']
+  n[:interfaces].each do |interface|
+    if interface[:role] == "control"
+      interface[:name] = node['hostname'] + ":if0"
+      interface[:ip][:address] = node['control_ip']
+      interface[:mac] = node['control_mac']
+    elsif interface[:role] == "experimental"
+      interface[:name] = node['hostname'] + ":if1"
+      interface[:mac] = calc_mac(node['control_mac'])
+    end
+  end
+  n[:cmc][:name] = node['hostname'] + ":cm"
+  n[:cmc][:mac] = calc_mac(n[:cmc][:mac], i)
+  n[:cmc][:ip][:address] = calc_cmc_ip(node['control_ip'])
+  n
+end
+
+# mac = "09:A2:DA:0D:F1:01"
+# puts mac_pp(mac)
+#
+# exit
+res = []
+json.each_with_index do |node, i|
+  i += 1
+  puts "#{i}: '#{node}'"
+  tmp = {}
+  tmp =  match_node_to_res(node, i)
+  puts "result: '#{tmp}'"
+  res << tmp.clone
+end
+
+puts "FINAL: #{res.to_json}"
+
+File.open(OUT_FILE, 'w') { |file| file.write(JSON.pretty_generate(res)) }

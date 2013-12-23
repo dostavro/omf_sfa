@@ -1,0 +1,1142 @@
+[
+  {
+    "name": "node001",
+    "hostname": "node001",
+    "interfaces": [
+      {
+        "name": "node001:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:1A:05",
+        "ip": {
+          "address": "10.0.1.1",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node001:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:1A:06"
+      }
+    ],
+    "cmc": {
+      "name": "node001:cm",
+      "mac": "09:A2:DA:0D:F1:01",
+      "ip": {
+        "address": "10.1.0.1",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node002",
+    "hostname": "node002",
+    "interfaces": [
+      {
+        "name": "node002:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:41:C1",
+        "ip": {
+          "address": "10.0.1.2",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node002:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:41:C2"
+      }
+    ],
+    "cmc": {
+      "name": "node002:cm",
+      "mac": "09:A2:DA:0D:F1:02",
+      "ip": {
+        "address": "10.1.0.2",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node003",
+    "hostname": "node003",
+    "interfaces": [
+      {
+        "name": "node003:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:19:E9",
+        "ip": {
+          "address": "10.0.1.3",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node003:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:19:EA"
+      }
+    ],
+    "cmc": {
+      "name": "node003:cm",
+      "mac": "09:A2:DA:0D:F1:03",
+      "ip": {
+        "address": "10.1.0.3",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node004",
+    "hostname": "node004",
+    "interfaces": [
+      {
+        "name": "node004:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:19:ED",
+        "ip": {
+          "address": "10.0.1.4",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node004:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:19:EE"
+      }
+    ],
+    "cmc": {
+      "name": "node004:cm",
+      "mac": "09:A2:DA:0D:F1:04",
+      "ip": {
+        "address": "10.1.0.4",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node005",
+    "hostname": "node005",
+    "interfaces": [
+      {
+        "name": "node005:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:19:E7",
+        "ip": {
+          "address": "10.0.1.5",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node005:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:19:E8"
+      }
+    ],
+    "cmc": {
+      "name": "node005:cm",
+      "mac": "09:A2:DA:0D:F1:05",
+      "ip": {
+        "address": "10.1.0.5",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node006",
+    "hostname": "node006",
+    "interfaces": [
+      {
+        "name": "node006:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:41:BB",
+        "ip": {
+          "address": "10.0.1.6",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node006:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:41:BC"
+      }
+    ],
+    "cmc": {
+      "name": "node006:cm",
+      "mac": "09:A2:DA:0D:F1:06",
+      "ip": {
+        "address": "10.1.0.6",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node007",
+    "hostname": "node007",
+    "interfaces": [
+      {
+        "name": "node007:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:1A:0F",
+        "ip": {
+          "address": "10.0.1.7",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node007:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:1A:10"
+      }
+    ],
+    "cmc": {
+      "name": "node007:cm",
+      "mac": "09:A2:DA:0D:F1:07",
+      "ip": {
+        "address": "10.1.0.7",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node008",
+    "hostname": "node008",
+    "interfaces": [
+      {
+        "name": "node008:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:19:F5",
+        "ip": {
+          "address": "10.0.1.8",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node008:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:19:F6"
+      }
+    ],
+    "cmc": {
+      "name": "node008:cm",
+      "mac": "09:A2:DA:0D:F1:08",
+      "ip": {
+        "address": "10.1.0.8",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node009",
+    "hostname": "node009",
+    "interfaces": [
+      {
+        "name": "node009:if0",
+        "role": "control",
+        "mac": "00:03:2D:08:41:B9",
+        "ip": {
+          "address": "10.0.1.9",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node009:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:08:41:BA"
+      }
+    ],
+    "cmc": {
+      "name": "node009:cm",
+      "mac": "09:A2:DA:0D:F1:09",
+      "ip": {
+        "address": "10.1.0.9",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node010",
+    "hostname": "node010",
+    "interfaces": [
+      {
+        "name": "node010:if0",
+        "role": "control",
+        "mac": "00:03:2D:07:67:D0",
+        "ip": {
+          "address": "10.0.1.10",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node010:if1",
+        "role": "experimental",
+        "mac": "00:03:2D:07:67:D1"
+      }
+    ],
+    "cmc": {
+      "name": "node010:cm",
+      "mac": "09:A2:DA:0D:F1:0A",
+      "ip": {
+        "address": "10.1.0.10",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node016",
+    "hostname": "node016",
+    "interfaces": [
+      {
+        "name": "node016:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:98:18",
+        "ip": {
+          "address": "10.0.1.16",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node016:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:98:19"
+      }
+    ],
+    "cmc": {
+      "name": "node016:cm",
+      "mac": "09:A2:DA:0D:F1:0B",
+      "ip": {
+        "address": "10.1.0.16",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node017",
+    "hostname": "node017",
+    "interfaces": [
+      {
+        "name": "node017:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:98:00",
+        "ip": {
+          "address": "10.0.1.17",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node017:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:98:01"
+      }
+    ],
+    "cmc": {
+      "name": "node017:cm",
+      "mac": "09:A2:DA:0D:F1:0C",
+      "ip": {
+        "address": "10.1.0.17",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node018",
+    "hostname": "node018",
+    "interfaces": [
+      {
+        "name": "node018:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:a8:1f",
+        "ip": {
+          "address": "10.0.1.18",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node018:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:a8:20"
+      }
+    ],
+    "cmc": {
+      "name": "node018:cm",
+      "mac": "09:A2:DA:0D:F1:0D",
+      "ip": {
+        "address": "10.1.0.18",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node019",
+    "hostname": "node019",
+    "interfaces": [
+      {
+        "name": "node019:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:98:0C",
+        "ip": {
+          "address": "10.0.1.19",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node019:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:98:0D"
+      }
+    ],
+    "cmc": {
+      "name": "node019:cm",
+      "mac": "09:A2:DA:0D:F1:0E",
+      "ip": {
+        "address": "10.1.0.19",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node020",
+    "hostname": "node020",
+    "interfaces": [
+      {
+        "name": "node020:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:98:14",
+        "ip": {
+          "address": "10.0.1.20",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node020:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:98:15"
+      }
+    ],
+    "cmc": {
+      "name": "node020:cm",
+      "mac": "09:A2:DA:0D:F1:0F",
+      "ip": {
+        "address": "10.1.0.20",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node021",
+    "hostname": "node021",
+    "interfaces": [
+      {
+        "name": "node021:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:9d:b3",
+        "ip": {
+          "address": "10.0.1.21",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node021:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:9d:B4"
+      }
+    ],
+    "cmc": {
+      "name": "node021:cm",
+      "mac": "09:A2:DA:0D:F1:10",
+      "ip": {
+        "address": "10.1.0.21",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node022",
+    "hostname": "node022",
+    "interfaces": [
+      {
+        "name": "node022:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:98:26",
+        "ip": {
+          "address": "10.0.1.22",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node022:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:98:27"
+      }
+    ],
+    "cmc": {
+      "name": "node022:cm",
+      "mac": "09:A2:DA:0D:F1:11",
+      "ip": {
+        "address": "10.1.0.22",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node023",
+    "hostname": "node023",
+    "interfaces": [
+      {
+        "name": "node023:if0",
+        "role": "control",
+        "mac": "00:03:1d:07:8e:f0",
+        "ip": {
+          "address": "10.0.1.23",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node023:if1",
+        "role": "experimental",
+        "mac": "00:03:1d:07:8e:F1"
+      }
+    ],
+    "cmc": {
+      "name": "node023:cm",
+      "mac": "09:A2:DA:0D:F1:12",
+      "ip": {
+        "address": "10.1.0.23",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node024",
+    "hostname": "node024",
+    "interfaces": [
+      {
+        "name": "node024:if0",
+        "role": "control",
+        "mac": "00:03:1D:0B:2B:C0",
+        "ip": {
+          "address": "10.0.1.24",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node024:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0B:2B:C1"
+      }
+    ],
+    "cmc": {
+      "name": "node024:cm",
+      "mac": "09:A2:DA:0D:F1:13",
+      "ip": {
+        "address": "10.1.0.24",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node025",
+    "hostname": "node025",
+    "interfaces": [
+      {
+        "name": "node025:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:98:16",
+        "ip": {
+          "address": "10.0.1.25",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node025:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:98:17"
+      }
+    ],
+    "cmc": {
+      "name": "node025:cm",
+      "mac": "09:A2:DA:0D:F1:14",
+      "ip": {
+        "address": "10.1.0.25",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node026",
+    "hostname": "node026",
+    "interfaces": [
+      {
+        "name": "node026:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:A8:21",
+        "ip": {
+          "address": "10.0.1.26",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node026:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:A8:22"
+      }
+    ],
+    "cmc": {
+      "name": "node026:cm",
+      "mac": "09:A2:DA:0D:F1:15",
+      "ip": {
+        "address": "10.1.0.26",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node027",
+    "hostname": "node027",
+    "interfaces": [
+      {
+        "name": "node027:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:EA",
+        "ip": {
+          "address": "10.0.1.27",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node027:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:EB"
+      }
+    ],
+    "cmc": {
+      "name": "node027:cm",
+      "mac": "09:A2:DA:0D:F1:16",
+      "ip": {
+        "address": "10.1.0.27",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node028",
+    "hostname": "node028",
+    "interfaces": [
+      {
+        "name": "node028:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:9D:B1",
+        "ip": {
+          "address": "10.0.1.28",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node028:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:9D:B2"
+      }
+    ],
+    "cmc": {
+      "name": "node028:cm",
+      "mac": "09:A2:DA:0D:F1:17",
+      "ip": {
+        "address": "10.1.0.28",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node029",
+    "hostname": "node029",
+    "interfaces": [
+      {
+        "name": "node029:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:EE",
+        "ip": {
+          "address": "10.0.1.29",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node029:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:EF"
+      }
+    ],
+    "cmc": {
+      "name": "node029:cm",
+      "mac": "09:A2:DA:0D:F1:18",
+      "ip": {
+        "address": "10.1.0.29",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node030",
+    "hostname": "node030",
+    "interfaces": [
+      {
+        "name": "node030:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:BA",
+        "ip": {
+          "address": "10.0.1.30",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node030:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:BB"
+      }
+    ],
+    "cmc": {
+      "name": "node030:cm",
+      "mac": "09:A2:DA:0D:F1:19",
+      "ip": {
+        "address": "10.1.0.30",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node031",
+    "hostname": "node031",
+    "interfaces": [
+      {
+        "name": "node031:if0",
+        "role": "control",
+        "mac": "00:03:1D:0B:2B:D4",
+        "ip": {
+          "address": "10.0.1.31",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node031:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0B:2B:D5"
+      }
+    ],
+    "cmc": {
+      "name": "node031:cm",
+      "mac": "09:A2:DA:0D:F1:1A",
+      "ip": {
+        "address": "10.1.0.31",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node032",
+    "hostname": "node032",
+    "interfaces": [
+      {
+        "name": "node032:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:EC",
+        "ip": {
+          "address": "10.0.1.32",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node032:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:ED"
+      }
+    ],
+    "cmc": {
+      "name": "node032:cm",
+      "mac": "09:A2:DA:0D:F1:1B",
+      "ip": {
+        "address": "10.1.0.32",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node033",
+    "hostname": "node033",
+    "interfaces": [
+      {
+        "name": "node033:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:F4",
+        "ip": {
+          "address": "10.0.1.33",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node033:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:F5"
+      }
+    ],
+    "cmc": {
+      "name": "node033:cm",
+      "mac": "09:A2:DA:0D:F1:1C",
+      "ip": {
+        "address": "10.1.0.33",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node034",
+    "hostname": "node034",
+    "interfaces": [
+      {
+        "name": "node034:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:D4",
+        "ip": {
+          "address": "10.0.1.34",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node034:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:D5"
+      }
+    ],
+    "cmc": {
+      "name": "node034:cm",
+      "mac": "09:A2:DA:0D:F1:1D",
+      "ip": {
+        "address": "10.1.0.34",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node035",
+    "hostname": "node035",
+    "interfaces": [
+      {
+        "name": "node035:if0",
+        "role": "control",
+        "mac": "00:03:1D:07:8E:D0",
+        "ip": {
+          "address": "10.0.1.35",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node035:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:07:8E:D1"
+      }
+    ],
+    "cmc": {
+      "name": "node035:cm",
+      "mac": "09:A2:DA:0D:F1:1E",
+      "ip": {
+        "address": "10.1.0.35",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node041",
+    "hostname": "node041",
+    "interfaces": [
+      {
+        "name": "node041:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:4B:E4",
+        "ip": {
+          "address": "10.0.1.41",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node041:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:4B:E5"
+      }
+    ],
+    "cmc": {
+      "name": "node041:cm",
+      "mac": "09:A2:DA:0D:F1:1F",
+      "ip": {
+        "address": "10.1.0.41",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node042",
+    "hostname": "node042",
+    "interfaces": [
+      {
+        "name": "node042:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:4B:92",
+        "ip": {
+          "address": "10.0.1.42",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node042:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:4B:93"
+      }
+    ],
+    "cmc": {
+      "name": "node042:cm",
+      "mac": "09:A2:DA:0D:F1:20",
+      "ip": {
+        "address": "10.1.0.42",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node043",
+    "hostname": "node043",
+    "interfaces": [
+      {
+        "name": "node043:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:4B:DA",
+        "ip": {
+          "address": "10.0.1.43",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node043:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:4B:DB"
+      }
+    ],
+    "cmc": {
+      "name": "node043:cm",
+      "mac": "09:A2:DA:0D:F1:21",
+      "ip": {
+        "address": "10.1.0.43",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node044",
+    "hostname": "node044",
+    "interfaces": [
+      {
+        "name": "node044:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:4B:E2",
+        "ip": {
+          "address": "10.0.1.44",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node044:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:4B:E3"
+      }
+    ],
+    "cmc": {
+      "name": "node044:cm",
+      "mac": "09:A2:DA:0D:F1:22",
+      "ip": {
+        "address": "10.1.0.44",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node045",
+    "hostname": "node045",
+    "interfaces": [
+      {
+        "name": "node045:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:40:AC",
+        "ip": {
+          "address": "10.0.1.45",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node045:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:40:AD"
+      }
+    ],
+    "cmc": {
+      "name": "node045:cm",
+      "mac": "09:A2:DA:0D:F1:23",
+      "ip": {
+        "address": "10.1.0.45",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node046",
+    "hostname": "node046",
+    "interfaces": [
+      {
+        "name": "node046:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:40:A6",
+        "ip": {
+          "address": "10.0.1.46",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node046:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:40:A7"
+      }
+    ],
+    "cmc": {
+      "name": "node046:cm",
+      "mac": "09:A2:DA:0D:F1:24",
+      "ip": {
+        "address": "10.1.0.46",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node047",
+    "hostname": "node047",
+    "interfaces": [
+      {
+        "name": "node047:if0",
+        "role": "control",
+        "mac": "00:03:1D:0C:7D:90",
+        "ip": {
+          "address": "10.0.1.47",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node047:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0C:7D:91"
+      }
+    ],
+    "cmc": {
+      "name": "node047:cm",
+      "mac": "09:A2:DA:0D:F1:25",
+      "ip": {
+        "address": "10.1.0.47",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  },
+  {
+    "name": "node048",
+    "hostname": "node048",
+    "interfaces": [
+      {
+        "name": "node048:if0",
+        "role": "control",
+        "mac": "00:03:1D:0D:4B:D0",
+        "ip": {
+          "address": "10.0.1.48",
+          "netmask": "255.255.255.0",
+          "ip_type": "ipv4"
+        }
+      },
+      {
+        "name": "node048:if1",
+        "role": "experimental",
+        "mac": "00:03:1D:0D:4B:D1"
+      }
+    ],
+    "cmc": {
+      "name": "node048:cm",
+      "mac": "09:A2:DA:0D:F1:26",
+      "ip": {
+        "address": "10.1.0.48",
+        "netmask": "255.255.255.0",
+        "ip_type": "ipv4"
+      }
+    }
+  }
+]
