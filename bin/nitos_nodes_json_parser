@@ -34,7 +34,7 @@ json = JSON.parse(File.read(infile))
               ],
               cmc: {
                 name: "",
-                mac: "09:A2:DA:0D:F1:00",
+                mac: "09:A2:DA:0D:F0:00",
                 ip: {
                   address: "",
                   netmask: "255.255.255.0",
@@ -49,6 +49,14 @@ def calc_mac(base_mac, i = 1)
   mac_array = base_mac.split(/:/)
 
   mac_array[-1] = sprintf("%02x", mac_array.last.hex + i).upcase
+  mac_array.join(":")
+end
+
+#adds i to the last element of the mac address
+def calc_cmc_mac(base_mac, i = 1)
+  mac_array = base_mac.split(/:/)
+  mac_array[-2] = "F%d" % [i / 100]
+  mac_array[-1] = "%02d" % [i % 100]
   mac_array.join(":")
 end
 
@@ -74,7 +82,7 @@ def match_node_to_res(node, i)
     end
   end
   n[:cmc][:name] = node['hostname'] + ":cm"
-  n[:cmc][:mac] = calc_mac(n[:cmc][:mac], i)
+  n[:cmc][:mac] = calc_cmc_mac(n[:cmc][:mac], i)
   n[:cmc][:ip][:address] = calc_cmc_ip(node['control_ip'])
   n
 end
@@ -84,8 +92,8 @@ end
 #
 # exit
 res = []
-json.each_with_index do |node, i|
-  i += 1
+json.each_with_index do |node|
+  i = node['id']
   puts "#{i}: '#{node}'"
   tmp = {}
   tmp =  match_node_to_res(node, i)
