@@ -128,7 +128,7 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix))
+          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end

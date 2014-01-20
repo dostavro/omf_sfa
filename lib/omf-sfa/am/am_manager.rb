@@ -472,6 +472,7 @@ module OMF::SFA::AM
     #
     def find_all_resources_for_account(account = _get_nil_account, authorizer)
       debug "find_all_resources_for_account: #{account.inspect}"
+      account = _get_nil_account if account == nil
       res = OMF::SFA::Resource::OResource.all(:account => account)
       res.map do |r|
         begin
@@ -490,6 +491,8 @@ module OMF::SFA::AM
     # @return [Array<OComponent>] The component requested
     #
     def find_all_components_for_account(account, authorizer)
+      debug "find_all_components_for_account: #{account.inspect}"
+      account = _get_nil_account if account == nil
       res = OMF::SFA::Resource::OComponent.all(:account => account)
       res.map do |r|
         begin

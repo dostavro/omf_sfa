@@ -79,6 +79,7 @@ module OmfRc::ResourceProxy::AMController
   def create_resource(type, props)
     puts "Creating resource of type '#{type}' with properties '#{props}'"
     res = eval("OMF::SFA::Resource::#{type}").create(props)
+    @manager.manage_resource(res.cmc) if res.respond_to?(:cmc) && !res.cmc.nil?
     @manager.manage_resource(res)
   end
 
