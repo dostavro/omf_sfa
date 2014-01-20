@@ -63,7 +63,7 @@ Please notice that we are using the root certificate we have just created in --r
     % ruby omf_cert.rb -o am.pem --email am@nitlab.inf.uth.gr --resource-id xmpp://am_controller@testserver --resource-type am_controller --root root.pem --duration 5000000 create_resource
     % cp am.pem ~/.omf/
 
-We also have to create a user certificate that for the various scripts to use.
+We also have to create a user certificate for the various scripts to use.
 
     % ruby omf_cert.rb -o user_cert.pem --email root@nitlab.inf.uth.gr --user root --root root.pem --duration 5000000 create_user
     % cp user_cert.pem ~/.omf/
@@ -86,6 +86,7 @@ For example:
 Repeat this proccess for other certificates too.
 
 Hint: you can use the following command in order to inspect a certificate in a human readable way.
+
     % openssl x509 -in root.pem -text
 
 Populate the database
@@ -123,5 +124,5 @@ Executing am_server
 To start an AM with a some pre-populated resources ('--test-load-am') from this directory, run the following:
 
     % cd $OMF_SFA_HOME
-    % bundle exec ruby -I lib lib/omf-sfa/am/am_server.rb --dm-db sqlite:/tmp/test.sq3 start
+    % bundle exec ruby -I lib lib/omf-sfa/am/am_server.rb start
 
