@@ -86,7 +86,7 @@ task :loadTestDB => [:autoMigrate] do
   r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node120:if0", mac: "00-03-1d-0d-4b-96", node: n1, ip: ip1)
   r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-4b-97", node: n1)
   r << ip2 = OMF::SFA::Resource::Ip.create(address: "10.1.0.120", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node120:cm", mac: "09:A2:DA:0D:F1:01", node: n1, ip: ip2)
+  r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node120:cm", mac: "09:A2:DA:0D:F1:20", node: n1, ip: ip2)
   n1.interfaces << ifr1
   n1.interfaces << ifr2
   n1.cmc = cmc
@@ -97,11 +97,12 @@ task :loadTestDB => [:autoMigrate] do
   r << ifr3 = OMF::SFA::Resource::Interface.create(role: "control", name: "node121:if0", mac: "00-03-1d-0d-40-98", node: n2, ip: ip3)
   r << ifr4 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-40-99", node: n2)
   r << ip4 = OMF::SFA::Resource::Ip.create(address: "10.1.0.121", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << cmc2 = OMF::SFA::Resource::ChasisManagerCard.create(name: "node121:cm", mac: "09:A2:DA:0D:F1:01", node: n2, ip: ip4)
+  r << cmc2 = OMF::SFA::Resource::ChasisManagerCard.create(name: "node121:cm", mac: "09:A2:DA:0D:F1:21", node: n2, ip: ip4)
   n2.interfaces << ifr3
   n2.interfaces << ifr4
   n2.cmc = cmc2
   n2.leases << lease
+  n2.save
 
   @am_manager.manage_resources(r)
   puts "Loading done."
