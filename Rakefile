@@ -104,6 +104,9 @@ task :loadTestDB => [:autoMigrate] do
   n2.leases << lease
   n2.save
 
+  r << c1 = OMF::SFA::Resource::Channel.create(:name => "c1", :frequency => "2.412GHz")
+  r << c2 = OMF::SFA::Resource::Channel.create(:name => "c2", :frequency => "2.417GHz")
+
   @am_manager.manage_resources(r)
   puts "Loading done."
 end
