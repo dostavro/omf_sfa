@@ -22,8 +22,17 @@ module OMF::SFA::AM::Rest
     def on_get(resource_uri, opts)
       authenticator = Thread.current["authenticator"]
       unless resource_uri.empty?
+        resource_type, resource_uri = parse_uri(resource_uri)
+        descr = {type: nil, name: nil}
+        descr[:type] = "OMF::SFA::Resource::#{resource_type}" unless resource_type.nil?
+        descr[:name] = resource_uri unless resource_uri.nil?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
-        resource = @am_manager.find_resource(resource_uri, authenticator)
+        if descr[:name].nil?
+          descr.delete(:name)
+          resource = @am_manager.find_all_resources(descr, authenticator)
+        else
+          resource = @am_manager.find_resource(descr, authenticator)
+        end
       else
         resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
       end
@@ -140,5 +149,44 @@ module OMF::SFA::AM::Rest
 
     protected
 
+    def parse_uri(resource_uri)
+      uri_splitted = resource_uri.split('/')
+      if uri_splitted.size == 1
+        case uri_splitted[0]
+        when "nodes"
+          type = "Node"
+          resource_uri = nil
+        when "channels"
+          type = "Channel"
+          resource_uri = nil
+        when "leases"
+          type = "Lease"
+          resource_uri = nil
+        when "cmc"
+          type = "ChasisManagerCard"
+          resource_uri = nil
+        else
+          type = nil
+          resource_uri = uri_splitted
+        end
+      elsif uri_splitted.size == 2
+        resource_uri = uri_splitted[1]
+        case uri_splitted[0]
+        when "nodes"
+          type = "Node"
+        when "channels"
+          type = "Channel"
+        when "leases"
+          type = "Lease"
+        when "cmc"
+          type = "ChasisManagerCard"
+        else
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_id}'."
+        end
+      else
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "URI type not supported, too many arguements '#{resource_uri}'."
+      end
+      [type, resource_uri]
+    end
   end # ResourceHandler
 end # module
