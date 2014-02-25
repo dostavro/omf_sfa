@@ -550,7 +550,14 @@ module OMF::SFA::AM
     #
     def find_all_components(comp_descr, authorizer)
      res = OMF::SFA::Resource::OComponent.all
-     res
+     res.map do |r|
+        begin
+          authorizer.can_view_resource?(r)
+          r
+        rescue InsufficientPrivilegesException
+          nil
+        end
+      end.compact
     end
 
     def find_or_create_resource(resource_descr, type_to_create, oproperties, authorizer)

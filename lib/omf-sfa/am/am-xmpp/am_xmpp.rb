@@ -27,7 +27,7 @@ module OmfRc::ResourceProxy::AMController
   end
 
   request :nodes do |resource|
-    nodes = @manager.find_all_components({:resource_type => "node"}, @authorizer)
+    nodes = @manager.find_all_components({:type => "OMF::SFA::Resource::Node"}, @authorizer)
     res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 3})
     res
   end
