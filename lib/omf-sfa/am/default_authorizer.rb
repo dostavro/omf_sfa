@@ -22,6 +22,7 @@ module OMF::SFA::AM
       :can_close_account?, # (account)
       # RESOURCE
       :can_create_resource?, # (resource_descr, type)
+      :can_modify_resource?, # (resource_descr, type)
       :can_view_resource?, # (resource)
       :can_release_resource?, # (resource)
       # LEASE
