@@ -18,17 +18,21 @@ module OMF::SFA::AM::Rest
       self
     end
 
-
+    # List a resource
+    # 
+    # @param [String] request URI
+    # @param [Hash] options of the request
+    # @return [String] Description of the requested resource.
     def on_get(resource_uri, opts)
+      debug "on_get: #{resource_uri}"
       authenticator = Thread.current["authenticator"]
       unless resource_uri.empty?
-        resource_type, resource_uri = parse_uri(resource_uri)
-        descr = {type: nil, name: nil}
-        descr[:type] = "OMF::SFA::Resource::#{resource_type}" unless resource_type.nil?
-        descr[:name] = resource_uri unless resource_uri.nil?
+        resource_type, resource_params = parse_uri(resource_uri, opts)
+        descr = {}
+        descr.merge!({type: "OMF::SFA::Resource::#{resource_type}"}) unless resource_type.nil?  
+        descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
-        if descr[:name].nil?
-          descr.delete(:name)
+        if descr[:name].nil? && descr[:uuid].nil?
           resource = @am_manager.find_all_resources(descr, authenticator)
         else
           resource = @am_manager.find_resource(descr, authenticator)
@@ -39,18 +43,36 @@ module OMF::SFA::AM::Rest
       show_resource(resource, opts)
     end
 
+    # Update an existing resource
+    # 
+    # @param [String] request URI
+    # @param [Hash] options of the request
+    # @return [String] Description of the updated resource.
     def on_put(resource_uri, opts)
+      debug "on_put: #{resource_uri}"
       resource = update_resource(resource_uri, true, opts)
       show_resource(resource, opts)
     end
 
+    # Create a new resource
+    # 
+    # @param [String] request URI
+    # @param [Hash] options of the request
+    # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
+      debug "on_post: #{resource_uri}"
       resource = update_resource(resource_uri, false, opts)
       show_resource(resource, opts)
     end
 
+    # Deletes an existing resource
+    # 
+    # @param [String] request URI
+    # @param [Hash] options of the request
+    # @return [String] Description of the created resource.
     def on_delete(resource_uri, opts)
-      delete_resource(resource_uri, opts)
+      debug "on_delete: #{resource_uri}"
+      resource = delete_resource(resource_uri, opts)
       show_resource(nil, opts)
     end
 
@@ -60,12 +82,19 @@ module OMF::SFA::AM::Rest
     #
     def update_resource(resource_uri, clean_state, opts)
       body, format = parse_body(opts)
+      resource_type, resource_params = parse_uri(resource_uri, opts)
+      authenticator = Thread.current["authenticator"]
       case format
       # when :empty
         # # do nothing
       when :xml
-        puts ">>>>> #{body.inspect}"
         resource = @am_manager.update_resources_from_xml(body.root, clean_state, opts)
+      when :json
+        if clean_state
+          resource = update_a_resource(body, resource_type, authenticator)
+        else
+          resource = create_new_resource(body, resource_type, authenticator)
+        end
       else
         raise UnsupportedBodyFormatException.new(format)
       end
@@ -79,7 +108,10 @@ module OMF::SFA::AM::Rest
     # Currently, we simply transfer components to the +default_sliver+
     #
     def delete_resource(resource_uri, opts)
-      @am_manager.delete_resource(resource_uri, opts)
+      body, format = parse_body(opts)
+      resource_type, resource_params = parse_uri(resource_uri, opts)
+      authenticator = Thread.current["authenticator"]
+      release_resource(body, resource_type, authenticator)
     end
 
     # Update the state of +component+ according to inforamtion
@@ -115,7 +147,7 @@ module OMF::SFA::AM::Rest
     end
 
     def show_resources_json(resources, path, opts)
-      res = resources ? resource_to_json(resources, path, opts) : {}
+      res = resources ? resource_to_json(resources, path, opts) : {response: "OK"}
       res[:about] = opts[:req].path
 
       ['application/json', JSON.pretty_generate({:resource_response => res}, :for_rest => true)]
@@ -149,44 +181,87 @@ module OMF::SFA::AM::Rest
 
     protected
 
-    def parse_uri(resource_uri)
-      uri_splitted = resource_uri.split('/')
-      if uri_splitted.size == 1
-        case uri_splitted[0]
-        when "nodes"
-          type = "Node"
-          resource_uri = nil
-        when "channels"
-          type = "Channel"
-          resource_uri = nil
-        when "leases"
-          type = "Lease"
-          resource_uri = nil
-        when "cmc"
-          type = "ChasisManagerCard"
-          resource_uri = nil
-        else
-          type = nil
-          resource_uri = uri_splitted
-        end
-      elsif uri_splitted.size == 2
-        resource_uri = uri_splitted[1]
-        case uri_splitted[0]
-        when "nodes"
-          type = "Node"
-        when "channels"
-          type = "Channel"
-        when "leases"
-          type = "Lease"
-        when "cmc"
-          type = "ChasisManagerCard"
-        else
-          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_id}'."
-        end
+    def parse_uri(resource_uri, opts)
+      params = opts[:req].params
+
+      case resource_uri
+      when "nodes"
+        type = "Node"
+      when "channels"
+        type = "Channel"
+      when "leases"
+        type = "Lease"
+      when "cmc"
+        type = "ChasisManagerCard"
       else
-        raise OMF::SFA::AM::Rest::UnknownResourceException.new "URI type not supported, too many arguements '#{resource_uri}'."
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
       end
-      [type, resource_uri]
+      [type, params]
+    end
+
+    # Create a new resource
+    #
+    # @param [Hash] Describing properties of the requested resource
+    # @param [String] Type to create
+    # @param [Authorizer] Defines context for authorization decisions
+    # @return [OResource] The resource created
+    # @raise [UnknownResourceException] if no resource can be created
+    #
+    def create_new_resource(resource_descr, type_to_create, authorizer)
+      authorizer.can_create_resource?(resource_descr, type_to_create)
+      descr = {}
+      descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
+      descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+      if descr.empty?
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
+      else
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+      end
+      resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
+      @am_manager.manage_resource(resource)
+      resource
+    end
+
+    # Update a resource
+    #
+    # @param [Hash] Describing properties of the requested resource
+    # @param [String] Type to create
+    # @param [Authorizer] Defines context for authorization decisions
+    # @return [OResource] The resource created
+    # @raise [UnknownResourceException] if no resource can be created
+    #
+    def update_a_resource(resource_descr, type_to_create, authorizer)
+      authorizer.can_modify_resource?(resource_descr, type_to_create)
+      descr = {}
+      descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
+      descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+      unless descr.empty?
+        if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+          resource.update(resource_descr)
+          @am_manager.manage_resource(resource)
+        else
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
+        end
+      end
+      resource
+    end
+
+    # Update a resource
+    #
+    # @param [Hash] Describing properties of the requested resource
+    # @param [String] Type to create
+    # @param [Authorizer] Defines context for authorization decisions
+    # @return [OResource] The resource created
+    # @raise [UnknownResourceException] if no resource can be created
+    #
+    def release_resource(resource_descr, type_to_create, authorizer)
+      authorizer.can_release_resource?(resource_descr)
+      if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(resource_descr)
+        resource.destroy
+      else
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
+      end
+      resource
     end
   end # ResourceHandler
 end # module
