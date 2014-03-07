@@ -72,7 +72,7 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_delete(resource_uri, opts)
       debug "on_delete: #{resource_uri}"
-      resource = delete_resource(resource_uri, opts)
+      delete_resource(resource_uri, opts)
       show_resource(nil, opts)
     end
 

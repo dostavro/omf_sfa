@@ -94,13 +94,13 @@ module OMF::SFA::AM::Rest
         if req.request_method == 'OPTIONS'
           return [200 ,{
             'Access-Control-Allow-Origin' => '*' ,
-            'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
             'Access-Control-Allow-Headers' => 'origin, x-csrftoken, content-type, accept'
           }, ""]
         end
         content_type, body = dispatch(req)
         #return [200 ,{'Content-Type' => 'application/json'}, JSON.pretty_generate(body)]
-        return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS' }, body + "\n"]
+        return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body]
       rescue RackException => rex
         return rex.reply
       rescue OMF::SFA::AM::AMManagerException => aex
