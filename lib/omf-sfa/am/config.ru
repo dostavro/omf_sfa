@@ -75,20 +75,7 @@ map "/readme" do
 <html>
   <head>
     <title>AM REST API</title>
-    <link href="/assets/css/default.css" media="screen" rel="stylesheet" type="text/css">
-    <style type="text/css">
-   circle.node {
-     stroke: #fff;
-     stroke-width: 1.5px;
-   }
-
-      line.link {
-        stroke: #999;
-        stroke-opacity: .6;
-        stroke-width: 2px;
-
-      }
-</style>
+    <link href="./markdown.css" media="screen" rel="stylesheet" type="text/css">
   </head>
   <body>
 %s
@@ -115,6 +102,9 @@ map "/" do
       [301, {'Location' => '/readme', "Content-Type" => ""}, ['Next window!']]
     when '/favicon.ico'
       [301, {'Location' => '/assets/image/favicon.ico', "Content-Type" => ""}, ['Next window!']]
+    when "/markdown.css"
+      s = File::read(File.dirname(__FILE__) + '/markdown.css')
+      [200, {"Content-Type" => "text/html"}, [s]]
     else
       OMF::Common::Loggable.logger('rack').warn "Can't handle request '#{req.path_info}'"
       [401, {"Content-Type" => ""}, "Sorry!"]
@@ -122,4 +112,3 @@ map "/" do
   end
   run handler
 end
-
