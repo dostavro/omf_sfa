@@ -1,9 +1,9 @@
 Objective
 =========
 
-This is the reference document for the REST API and resources provided by NITOS testbed. This REST API can be used by developers who need access to NITOS testbed resources with other standalone or web applications, and administrators who want to script interactions with the NITOS servers.
+This is the reference document for the REST API provided by NITOS Broker. This REST API can be used by developers who need access to NITOS Broker inventory with other standalone or web applications, and administrators who want to script interactions with the NITOS servers. At the moment Resource Discovery and Resource Reservation are possible through the REST interface.
 
-Because the REST API is based on open standards, you can use any web development language to access the API. 
+Because the REST API is based on open standards, you can use any programming language to access the API. 
 
 Table of contents
 ================= 
@@ -26,7 +26,7 @@ API
   * GET: List Nodes
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the node
-          * names: filter the results based on the universal unique id of the node
+          * name: filter the results based on the name of the node
           * if no parameters are provided all Nodes are listed
   * POST: Create a resource of type Node
       * `Body`: Description of the Node to be created in json format
@@ -39,7 +39,7 @@ API
   * GET: List Channels
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the channel
-          * names: filter the results based on the universal unique id of the channel
+          * name: filter the results based on the name of the channel
           * if no parameters are provided all Channels are listed
   * POST: Create a resource of type Channel
       * `Body`: Description of the Channel to be created in json format
@@ -52,7 +52,7 @@ API
   * GET: List Leases
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the node
-          * names: filter the results based on the universal unique id of the node
+          * name: filter the results based on the name of the node
           * if no parameters are provided all Leases are listed
   * POST: Create a resource of type Leases
       * `Body`: Description of the Leases to be created in json format
@@ -65,7 +65,7 @@ API
   * GET: List Chasis Manager Cards
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the cmc
-          * names: filter the results based on the universal unique id of the cmc
+          * name: filter the results based on the name of the cmc
           * if no parameters are provided all CMCs are listed
   * POST: Create a resource of type CMC
       * `Body`: Description of the CMC to be created in json format
@@ -73,6 +73,45 @@ API
       * `Body`: Description of the CMC to be updated in json format (uuid or name is mandatory)
   * DELETE: Delete a resource of type CMC
       * `Body`: Description of the CMC to be deleted in json format (uuid or name is mandatory)
+
+* `/resources/openflow`
+  * GET: List of Openflow Switches
+      * `Parameters`
+          * uuid: filter the results based on the universal unique id of the Openflow Switch
+          * name: filter the results based on the name of the Openflow Switch
+          * if no parameters are provided all Openflow Switchs are listed
+  * POST: Create a resource of type Openflow Switch
+      * `Body`: Description of the Openflow Switch to be created in json format
+  * PUT: Update a resource of type Openflow Switch
+      * `Body`: Description of the Openflow Switch to be updated in json format (uuid or name is mandatory)
+  * DELETE: Delete a resource of type Openflow Switch
+      * `Body`: Description of the Openflow Switch to be deleted in json format (uuid or name is mandatory)
+
+* `/resources/lte`
+  * GET: List LTE basestations
+      * `Parameters`
+          * uuid: filter the results based on the universal unique id of the LTE Basestations
+          * name: fiLTE Basestationsr the results based on the name of the LTE Basestations
+          * if no parameters are provided all LTE Basestationss are listed
+  * POST: Create a resource of type LTE Basestations
+      * `Body`: Description of the LTE Basestations to be created in json format
+  * PUT: Update a resource of type LTE Basestations
+      * `Body`: Description of the LTE Basestations to be updated in json format (uuid or name is mandatory)
+  * DELETE: Delete a resource of type LTE Basestations
+      * `Body`: Description of the LTE Basestations to be deleted in json format (uuid or name is mandatory)
+
+* `/resources/wimax`
+  * GET: List Wimax Basestations
+      * `Parameters`
+          * uuid: filter the results based on the universal unique id of the Wimax Basestations
+          * name: filter the results based on the name of the Wimax Basestations
+          * if no parameters are provided all Wimax Basestationss are listed
+  * POST: Create a resource of type Wimax Basestations
+      * `Body`: Description of the Wimax Basestations to be created in json format
+  * PUT: Update a resource of type Wimax Basestations
+      * `Body`: Description of the Wimax Basestations to be updated in json format (uuid or name is mandatory)
+  * DELETE: Delete a resource of type Wimax Basestations
+      * `Body`: Description of the Wimax Basestations to be deleted in json format (uuid or name is mandatory)
 
 * `/status` (optional)
   * GET: Status of AM
@@ -193,6 +232,27 @@ Chasis managers Cards
     PUT   : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X PUT -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e","frequency":"2.417GHz"}' -k https://10.64.44.12:8001/resources/cmc/
     DELETE: $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X DELETE -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e"}' -k https://localhost:8001/resources/cmc/
 
+Switches
+---------------------
+    GET   : $ curl -k https://localhost:8001/resources/switces
+    POST  : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST -d @switches.json -k https://localhost:8001/resources/switches/
+    PUT   : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X PUT -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e","frequency":"2.417GHz"}' -k https://10.64.44.12:8001/resources/switches/
+    DELETE: $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X DELETE -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e"}' -k https://localhost:8001/resources/switches/
+
+LTE Base Stations
+---------------------
+    GET   : $ curl -k https://localhost:8001/resources/lte
+    POST  : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST -d @lte.json -k https://localhost:8001/resources/lte/
+    PUT   : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X PUT -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e","frequency":"2.417GHz"}' -k https://10.64.44.12:8001/resources/lte/
+    DELETE: $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X DELETE -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e"}' -k https://localhost:8001/resources/lte/
+
+Wimax Base Stations
+---------------------
+    GET   : $ curl -k https://localhost:8001/resources/wimax
+    POST  : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST -d @wimax.json -k https://localhost:8001/resources/wimax/
+    PUT   : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X PUT -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e","frequency":"2.417GHz"}' -k https://10.64.44.12:8001/resources/wimax/
+    DELETE: $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X DELETE -d '{"uuid":"040f9b96-7aff-438a-919d-0e1e12a2d93e"}' -k https://localhost:8001/resources/wimax/
+
 Footnotes:
 ==========
 
@@ -207,7 +267,7 @@ Footnotes:
           "role": "control",
           "mac": "00-03-1d-0d-4b-96",
           "ip": {
-            "address": "10.0.0.2",
+            "address": "10.0.1.102",
             "netmask": "255.255.255.0",
             "ip_type": "ipv4"
           }
@@ -222,9 +282,14 @@ Footnotes:
         "name": "node2:cm",
         "mac": "09:A2:DA:0D:F1:01",
         "ip": {
-          "address": "10.0.0.102",
+          "address": "10.1.0.102",
           "netmask": "255.255.255.0",
           "ip_type": "ipv4"
         }
       }
     }
+
+(2) There are some particularities in the parameters of GET commands:
+  
+  1. The existance of at least one of 'uuid' or 'name' parameters is mandatory. 
+  2. 'name' parameter is not unique in our models, thus the first of the results is returned. Please use 'uuid' instead when it is possible.
