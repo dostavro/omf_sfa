@@ -3,6 +3,7 @@ require 'omf-sfa/resource/ocomponent'
 require 'omf-sfa/resource/ip'
 require 'omf-sfa/resource/node'
 require 'omf-sfa/resource/channel'
+require 'omf-sfa/resource/link'
 
 module OMF::SFA::Resource
 
@@ -10,10 +11,12 @@ module OMF::SFA::Resource
 
     #property :hardware_type, String
     oproperty :role, String
-    oproperty :node, :Node
+    oproperty :component, :OComponent
     oproperty :channel, :Channel
     oproperty :mac, String
     oproperty :ip, :Ip
+    oproperty :description, String
+    oproperty :link, :Link
 
     #has 1, :ip
 

@@ -193,6 +193,12 @@ module OMF::SFA::AM::Rest
         type = "Lease"
       when "cmc"
         type = "ChasisManagerCard"
+      when "wimax"
+        type = "WimaxBase"
+      when "lte"
+        type = "LteBase"
+      when "openflow"
+        type = "OpenflowSwitch"
       else
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
       end

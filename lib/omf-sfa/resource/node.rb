@@ -14,6 +14,10 @@ module OMF::SFA::Resource
     oproperty :disk, String
     oproperty :hostname, String
     oproperty :cmc, :ChasisManagerCard
+    oproperty :cpu, :Cpu
+    oproperty :ram, String
+    oproperty :ram_type, String
+    oproperty :hd_capacity, String
     #belongs_to :sliver
 
     sfa_class 'node'
