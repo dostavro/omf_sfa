@@ -1,9 +1,14 @@
 Objective
 =========
 
-This is the reference document for the REST API provided by NITOS Broker. This REST API can be used by developers who need access to NITOS Broker inventory with other standalone or web applications, and administrators who want to script interactions with the NITOS servers. At the moment Resource Discovery and Resource Reservation are possible through the REST interface.
+This is the reference document for the REST API provided by NITOS Broker. This REST API can be used by developers who need access to NITOS Broker inventory with other standalone or web applications, and administrators who want to script interactions with the Testbed's Servers. At the moment Resource Discovery and Resource Reservation are possible through the REST interface.
 
-Because the REST API is based on open standards, you can use any programming language to access the API. 
+Because the REST API is based on open standards, you can use any programming language to access the API. Briefly, a REST call can be described by:
+
+1. URL: hostname and path (e.g. https://localhost:8001/resources)  
+2. Body: the information needed to complete the requested operation
+3. Methods: GET methods is used to list resources, POST method is used to create a new resource, PUT is used to update a resource and DELETE is used to delete a resource.
+4. Parameters: used to filter the requested resources (e.g. https://localhost:8001/resources/nodes/?name=node001)
 
 Table of contents
 ================= 
@@ -16,24 +21,55 @@ Table of contents
 API
 ===
 
-* `/resources`
+Resources
+---------
+* Description: 
+
+Everything (either physical or not) in the inventory of NITOS broker is described as a Resource (e.g. Nodes, accounts, 
+channels, etc). Using the path `/resources` you can get a description of all the resources in the inventory. Every 
+resource is described by a universal unique id (uuid) and a name.
+
+* path: `/resources`
+* methods:
   * GET: List all resources
   * POST: Not allowed
   * PUT: Not allowed
   * DELETE: Not allowed
+- This method is created for testing purposes and although it can be used in applications, it is not advised and usage of the methods described below is.
 
-* `/resources/nodes`
+Nodes
+---------
+* Description
+
+A Node is a physical machine that can be used in an experiment. Information about Nodes are critical to 
+experimenters because Nodes are the in center of every experiment. Node characteristics that are needed to be 
+described are hardware specifications (CPU, RAM, hd capacity, etc), interfaces (Ethernet interfaces, wireless 
+interfaces, etc) and other node specifying information (Hostname etc). All those information are being exposed 
+thought the methods bellow.
+
+* path: `/resources/nodes`
+* methods:
   * GET: List Nodes
-      * `Parameters`
+      * Parameters
           * uuid: filter the results based on the universal unique id of the node
           * name: filter the results based on the name of the node
           * if no parameters are provided all Nodes are listed
   * POST: Create a resource of type Node
-      * `Body`: Description of the Node to be created in json format
+      * Body: Description of the Node to be created in json format
   * PUT: Update a resource of type Node
-      * `Body`: Description of the Node to be updated in json format (uuid or name is mandatory)
+      * Body: Description of the Node to be updated in json format (uuid or name is mandatory)
   * DELETE: Delete a resource of type Node
-      * `Body`: Description of the Node to be deleted in json format (uuid or name is mandatory)
+      * Body: Description of the Node to be deleted in json format (uuid or name is mandatory)
+
+Channels
+---------
+
+* Description
+
+Channels can be all the frequency channels described in wireless protocols like 802.11. Channels are important 
+to experimenters because of interference with other experimenters. During an experiment (that involves wireless
+experimentation) every experimenter should have at least one reserved channel and should be conducting his 
+experiments only on that channel. Channel information are being exposed thought the methods bellow.
 
 * `/resources/channels`
   * GET: List Channels
@@ -48,6 +84,14 @@ API
   * DELETE: Delete a resource of type Channel
       * `Body`: Description of the Channel to be deleted in json format (uuid or name is mandatory)
 
+Leases
+---------
+* Description
+
+Leasing a resource is equivalent to reserving a resource. A Lease is associated with a time slot (valid_from, 
+valid_until), an account and a resource. During that time slot the owner of the account gets full control of 
+the resource and can use it in his experiments. Lease information are being exposed thought the methods bellow.
+
 * `/resources/leases`
   * GET: List Leases
       * `Parameters`
@@ -61,8 +105,22 @@ API
   * DELETE: Delete a resource of type Leases
       * `Body`: Description of the Leases to be deleted in json format (uuid or name is mandatory)
 
+Chassis Manager Cards
+---------------------
+* Description
+
+Chassis Manager Cards are combined of a general purpose microcontroller, an Ethernet microcontroller and a 
+relay's circuit. The microcontroller can support a tiny WebServer, so it can communicate through network 
+controller and http protocol with any other device in the same network. Exploiting this ability we can send
+http requests to CM card to give power to relays so they can bridge the jumpers of any motherboard to 
+start/stop or reset their operation. Additionally CMC returns to us a http response and inform us about
+the operation status of the node.
+
+Information regarding CMCs can be very important to experimenters because they can use the CMC to control  
+nodes in their experiments. Information regarding CMCs are exposed through the methods described bellow.
+
 * `/resources/cmc`
-  * GET: List Chasis Manager Cards
+  * GET: List Chassis Manager Cards
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the cmc
           * name: filter the results based on the name of the cmc
@@ -74,12 +132,22 @@ API
   * DELETE: Delete a resource of type CMC
       * `Body`: Description of the CMC to be deleted in json format (uuid or name is mandatory)
 
+Openflow Switches
+-----------------
+* Description
+
+OpenFlow is an emerging new technology, the most widely used Software Defined Networking (SDN) enabler. OpenFlow
+enables networks to evolve, by giving a remote controller the power to modify the behavior of network devices, 
+through a well-defined "forwarding instruction set". Together with Flowvisor multiple researchers can run experiments 
+safely and independently on the same production OpenFlow network. Information regarding Openflow switches are being 
+advertised by this API through the methods below.
+
 * `/resources/openflow`
   * GET: List of Openflow Switches
       * `Parameters`
           * uuid: filter the results based on the universal unique id of the Openflow Switch
           * name: filter the results based on the name of the Openflow Switch
-          * if no parameters are provided all Openflow Switchs are listed
+          * if no parameters are provided all Openflow Switches are listed
   * POST: Create a resource of type Openflow Switch
       * `Body`: Description of the Openflow Switch to be created in json format
   * PUT: Update a resource of type Openflow Switch
@@ -87,31 +155,39 @@ API
   * DELETE: Delete a resource of type Openflow Switch
       * `Body`: Description of the Openflow Switch to be deleted in json format (uuid or name is mandatory)
 
+LTE Base stations
+------------------
+* Description
+
 * `/resources/lte`
-  * GET: List LTE basestations
+  * GET: List LTE Base Stations
       * `Parameters`
-          * uuid: filter the results based on the universal unique id of the LTE Basestations
-          * name: fiLTE Basestationsr the results based on the name of the LTE Basestations
-          * if no parameters are provided all LTE Basestationss are listed
-  * POST: Create a resource of type LTE Basestations
-      * `Body`: Description of the LTE Basestations to be created in json format
-  * PUT: Update a resource of type LTE Basestations
-      * `Body`: Description of the LTE Basestations to be updated in json format (uuid or name is mandatory)
-  * DELETE: Delete a resource of type LTE Basestations
-      * `Body`: Description of the LTE Basestations to be deleted in json format (uuid or name is mandatory)
+          * uuid: filter the results based on the universal unique id of the LTE Base stations
+          * name: filter  the results based on the name of the LTE Base Stations
+          * if no parameters are provided all LTE Base Stations are listed
+  * POST: Create a resource of type LTE Base stations
+      * `Body`: Description of the LTE Base stations to be created in json format
+  * PUT: Update a resource of type LTE Base stations
+      * `Body`: Description of the LTE Base stations to be updated in json format (uuid or name is mandatory)
+  * DELETE: Delete a resource of type LTE Base stations
+      * `Body`: Description of the LTE Base stations to be deleted in json format (uuid or name is mandatory)
+
+Wimax Base Stations
+-------------------
+* Description
 
 * `/resources/wimax`
-  * GET: List Wimax Basestations
+  * GET: List Wimax Base stations
       * `Parameters`
-          * uuid: filter the results based on the universal unique id of the Wimax Basestations
-          * name: filter the results based on the name of the Wimax Basestations
-          * if no parameters are provided all Wimax Basestationss are listed
-  * POST: Create a resource of type Wimax Basestations
-      * `Body`: Description of the Wimax Basestations to be created in json format
-  * PUT: Update a resource of type Wimax Basestations
-      * `Body`: Description of the Wimax Basestations to be updated in json format (uuid or name is mandatory)
-  * DELETE: Delete a resource of type Wimax Basestations
-      * `Body`: Description of the Wimax Basestations to be deleted in json format (uuid or name is mandatory)
+          * uuid: filter the results based on the universal unique id of the Wimax Base stations
+          * name: filter the results based on the name of the Wimax Base stations
+          * if no parameters are provided all Wimax Base Stations are listed
+  * POST: Create a resource of type Wimax Base stations
+      * `Body`: Description of the Wimax Base stations to be created in json format
+  * PUT: Update a resource of type Wimax Base stations
+      * `Body`: Description of the Wimax Base stations to be updated in json format (uuid or name is mandatory)
+  * DELETE: Delete a resource of type Wimax Base stations
+      * `Body`: Description of the Wimax Base stations to be deleted in json format (uuid or name is mandatory)
 
 * `/status` (optional)
   * GET: Status of AM
@@ -120,7 +196,7 @@ API
   * DELETE: Not allowed
 
 * `/version`
-  * GET: Information about capabilites of AM implementation
+  * GET: Information about capabilities of AM implementation
   * POST: Not allowed
   * PUT: Not allowed
   * DELETE: Not allowed
@@ -225,7 +301,7 @@ Leases
     PUT   : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X PUT -d '{"uuid":"e026ad2d-07bf-48e2-a39e-aae29a7d86cd","frequency":"2.417GHz"}' -k https://10.64.44.12:8001/resources/leases/
     DELETE: $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X DELETE -d '{"uuid":"e026ad2d-07bf-48e2-a39e-aae29a7d86cd"}' -k https://localhost:8001/resources/leases/
 
-Chasis managers Cards
+Chassis managers Cards
 ---------------------
     GET   : $ curl -k https://localhost:8001/resources/cmc
     POST  : $ curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST -d @cmc.json -k https://localhost:8001/resources/cmc/
@@ -291,5 +367,5 @@ Footnotes:
 
 (2) There are some particularities in the parameters of GET commands:
   
-  1. The existance of at least one of 'uuid' or 'name' parameters is mandatory. 
+  1. The existence of at least one of 'uuid' or 'name' parameters is mandatory. 
   2. 'name' parameter is not unique in our models, thus the first of the results is returned. Please use 'uuid' instead when it is possible.

@@ -223,8 +223,47 @@ module OMF::SFA::AM::Rest
       else
         raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
       end
-      resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
-      @am_manager.manage_resource(resource)
+
+      resource_descr.each do |key, value|
+        puts "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+        if value.kind_of? Array
+          value.each_with_index do |v, i|
+            if v.kind_of? Hash
+              puts "Array: #{v.inspect}"
+              model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+              resource_descr[key][i] = (k = eval("#{model}").first(v)) ? k : v
+            end
+          end
+        elsif value.kind_of? Hash
+            puts "Hash: #{value.inspect}"
+            model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+            resource_descr[key] = (k = eval("#{model}").first(value)) ? k : value
+        end
+      end
+
+      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
+        
+        res_descr = {name: resource_descr[:name]}
+        if comps = resource_descr[:components]
+          resource_descr.tap { |hs| hs.delete(:components) }
+        end
+        @scheduler = @am_manager.get_scheduler
+        #TODO when authorization is done remove the next line in order to change what authorizer does with his account
+        authorizer.account = resource_descr[:account]
+        resource = @scheduler.create_resource(res_descr, type_to_create, resource_descr, authorizer)
+
+        comps.each_with_index do |comp, i|
+          puts "____ #{comp.inspect}"
+          if comp[:type].nil?
+            comp[:type] = comp.model.to_s.split("::").last
+          end
+          c = @scheduler.create_resource({uuid: comp.uuid}, comp[:type], {}, authorizer)
+          @scheduler.lease_component(resource, c)
+        end
+      else
+        resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
+        @am_manager.manage_resource(resource)
+      end
       resource
     end
 
@@ -262,10 +301,18 @@ module OMF::SFA::AM::Rest
     #
     def release_resource(resource_descr, type_to_create, authorizer)
       authorizer.can_release_resource?(resource_descr)
-      if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(resource_descr)
-        resource.destroy
+      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
+        if resource = OMF::SFA::Resource::Lease.first(resource_descr)
+          @am_manager.release_lease(resource, authorizer)
+        else
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown Lease with descr'#{resource_descr}'."
+        end
       else
-        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
+        if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(resource_descr)
+          resource.destroy
+        else
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
+        end
       end
       resource
     end
