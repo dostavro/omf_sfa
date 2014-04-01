@@ -56,15 +56,37 @@ module OmfRc::ResourceProxy::AMController
 
 
   def handle_create_message(message, obj, response)
-    #puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
+    puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
     @manager = obj.creation_opts[:manager]
+    @authorizer = obj.creation_opts[:authorizer]
+    @scheduler = @manager.get_scheduler
 
     opts = message.properties
+    puts "opts #{opts.inspect}"
     new_props = opts.reject { |k| [:type, :uid, :hrn, :property, :instrument].include?(k.to_sym) }
-    puts "Message rtype #{message.rtype}"
-    puts "Message new properties #{new_props.to_hash}"
-
     type = message.rtype.camelize
+
+    new_props.each do |key, value|
+      puts "checking prop: '#{key}': '#{value}': '#{type}'"
+      if value.kind_of? Array
+        value.each_with_index do |v, i|
+          if v.kind_of? Hash
+            puts "Array: #{v.inspect}"
+            model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+            new_props[key][i] = (k = eval("#{model}").first(v)) ? k : v
+          end
+        end
+      elsif value.kind_of? Hash
+          puts "Hash: #{value.inspect}"
+          model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+          new_props[key] = (k = eval("#{model}").first(value)) ? k : value
+      end
+    end
+
+    puts "Message rtype #{message.rtype}"
+    puts "Message new properties #{new_props.class} #{new_props.inspect}"
+
+    
     new_res = create_resource(type, new_props)
 
     puts "NEW RES #{new_res.inspect}"
@@ -77,10 +99,34 @@ module OmfRc::ResourceProxy::AMController
   private
 
   def create_resource(type, props)
-    puts "Creating resource of type '#{type}' with properties '#{props}'"
-    res = eval("OMF::SFA::Resource::#{type}").create(props)
-    @manager.manage_resource(res.cmc) if res.respond_to?(:cmc) && !res.cmc.nil?
-    @manager.manage_resource(res)
+    puts "Creating resource of type '#{type}' with properties '#{props.inspect}' @ '#{@scheduler.inspect}'"
+    if type == "Lease" #Lease is a unigue case, needs special treatment
+      #res = eval("OMF::SFA::Resource::#{type}").create(props)
+      
+      res_descr = {name: props[:name]}
+      if comps = props[:components]
+        #props.reject!{ |k| k == :components}
+        props.tap { |hs| hs.delete(:components) }
+      end
+      
+      #TODO when authorization is done remove the next line in order to change what authorizer does with his account
+      @authorizer.account = props[:account]
+
+      l = @scheduler.create_resource(res_descr, type, props, @authorizer)
+
+      comps.each_with_index do |comp, i|
+        if comp[:type].nil?
+          comp[:type] = comp.model.to_s.split("::").last
+        end
+        c = @scheduler.create_resource(comp, comp[:type], {}, @authorizer)
+        @scheduler.lease_component(l, c)
+      end
+      l
+    else
+      res = eval("OMF::SFA::Resource::#{type}").create(props)
+      @manager.manage_resource(res.cmc) if res.respond_to?(:cmc) && !res.cmc.nil?
+      @manager.manage_resource(res)
+    end
   end
 
 
