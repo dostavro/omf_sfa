@@ -83,8 +83,8 @@ task :loadTestDB => [:autoMigrate] do
 #   r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node1:cm", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
   r << n1 = OMF::SFA::Resource::Node.create(:name => "node120", :urn => OMF::SFA::Resource::GURN.create("node120", :type => 'node'), :hostname => "node120")
   r << ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.1.120", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node120:if0", mac: "00-03-1d-0d-4b-96", node: n1, ip: ip1)
-  r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-4b-97", node: n1)
+  r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node120:if0", mac: "00-03-1d-0d-4b-96", component: n1, ip: ip1)
+  r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-4b-97", component: n1)
   r << ip2 = OMF::SFA::Resource::Ip.create(address: "10.1.0.120", netmask: "255.255.255.0", ip_type: "ipv4")
   r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node120:cm", mac: "09:A2:DA:0D:F1:20", node: n1, ip: ip2)
   n1.interfaces << ifr1
@@ -94,8 +94,8 @@ task :loadTestDB => [:autoMigrate] do
 
   r << n2 = OMF::SFA::Resource::Node.create(:name => "node121", :urn => OMF::SFA::Resource::GURN.create("node121", :type => 'node'), :hostname => "node121")
   r << ip3 = OMF::SFA::Resource::Ip.create(address: "10.0.1.121", netmask: "255.255.255.0", ip_type: "ipv4")
-  r << ifr3 = OMF::SFA::Resource::Interface.create(role: "control", name: "node121:if0", mac: "00-03-1d-0d-40-98", node: n2, ip: ip3)
-  r << ifr4 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-40-99", node: n2)
+  r << ifr3 = OMF::SFA::Resource::Interface.create(role: "control", name: "node121:if0", mac: "00-03-1d-0d-40-98", component: n2, ip: ip3)
+  r << ifr4 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-40-99", component: n2)
   r << ip4 = OMF::SFA::Resource::Ip.create(address: "10.1.0.121", netmask: "255.255.255.0", ip_type: "ipv4")
   r << cmc2 = OMF::SFA::Resource::ChasisManagerCard.create(name: "node121:cm", mac: "09:A2:DA:0D:F1:21", node: n2, ip: ip4)
   n2.interfaces << ifr3
