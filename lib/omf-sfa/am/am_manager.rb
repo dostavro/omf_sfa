@@ -937,6 +937,10 @@ module OMF::SFA::AM
       @scheduler.get_nil_account()
     end
 
+    def get_scheduler()
+      @scheduler
+    end
+
   end # class
 
 end # OMF::SFA::AM
