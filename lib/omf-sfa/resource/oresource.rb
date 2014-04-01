@@ -477,6 +477,7 @@ module OMF::SFA::Resource
       name = self.name
       if  name && ! name.start_with?('_')
         h[:name] = self.name
+        h[:account] = self.account.to_hash_brief(opts) unless self.account.nil?
       end
       h[:type] = self.resource_type
       h
