@@ -18,8 +18,17 @@ module OMF::SFA::Resource
       node.sliver
     end
 
-    sfa_class 'wimax_base', :can_be_referred => true, :expose_id => false
+    sfa_class 'LteBase'#, :can_be_referred => true, :expose_id => false
     #
+    sfa :base_model
+    sfa :vendor
+    sfa :band
+    sfa :mode
+    sfa :ip_ap
+    sfa :ip_epc
+    sfa :apn
+    sfa :ip_pdn_gw
+
     def independent_component?
       false
     end
