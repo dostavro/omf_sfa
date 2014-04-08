@@ -66,22 +66,22 @@ module OmfRc::ResourceProxy::AMController
     new_props = opts.reject { |k| [:type, :uid, :hrn, :property, :instrument].include?(k.to_sym) }
     type = message.rtype.camelize
 
-    new_props.each do |key, value|
-      puts "checking prop: '#{key}': '#{value}': '#{type}'"
-      if value.kind_of? Array
-        value.each_with_index do |v, i|
-          if v.kind_of? Hash
-            puts "Array: #{v.inspect}"
-            model = eval("OMF::SFA::Resource::#{type}.#{key}").model
-            new_props[key][i] = (k = eval("#{model}").first(v)) ? k : v
-          end
-        end
-      elsif value.kind_of? Hash
-          puts "Hash: #{value.inspect}"
-          model = eval("OMF::SFA::Resource::#{type}.#{key}").model
-          new_props[key] = (k = eval("#{model}").first(value)) ? k : value
-      end
-    end
+    # new_props.each do |key, value|
+    #   puts "checking prop: '#{key}': '#{value}': '#{type}'"
+    #   if value.kind_of? Array
+    #     value.each_with_index do |v, i|
+    #       if v.kind_of? Hash
+    #         puts "Array: #{v.inspect}"
+    #         model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+    #         new_props[key][i] = (k = eval("#{model}").first(v)) ? k : v
+    #       end
+    #     end
+    #   elsif value.kind_of? Hash
+    #       puts "Hash: #{value.inspect}"
+    #       model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+    #       new_props[key] = (k = eval("#{model}").first(value)) ? k : value
+    #   end
+    # end
 
     puts "Message rtype #{message.rtype}"
     puts "Message new properties #{new_props.class} #{new_props.inspect}"
