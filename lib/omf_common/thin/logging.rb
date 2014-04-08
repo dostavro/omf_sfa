@@ -46,10 +46,9 @@ module Thin
 
     # Log a message at ERROR level (and maybe a backtrace)
     def log_error(msg, e=nil)
-      log_msg = msg + ": #{e}\n\t" + e.backtrace.join("\n\t") + "\n" if e
+      #log_msg = msg + ": #{e}\n\t" + e.backtrace.join("\n\t") + "\n" if e
       #Logging.log_msg(log_msg, Logger::ERROR)
-      puts log_msg
-      (@logger ||= OMF::Common::LObject.new(self.class)).error(e)
+      (@logger ||= OMF::Common::LObject.new(self.class)).error(msg, e)
     end
     module_function :log_error
     public :log_error
