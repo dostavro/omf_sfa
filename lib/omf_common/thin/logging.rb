@@ -48,7 +48,7 @@ module Thin
     def log_error(msg, e=nil)
       #log_msg = msg + ": #{e}\n\t" + e.backtrace.join("\n\t") + "\n" if e
       #Logging.log_msg(log_msg, Logger::ERROR)
-      (@logger ||= OMF::Common::LObject.new(self.class)).error(msg, e, e.backtrace.join("\n\t"))
+      (@logger ||= OMF::Common::LObject.new(self.class)).error(msg, "\n", e, "\n", e.backtrace.join("\n\t"))
     end
     module_function :log_error
     public :log_error
