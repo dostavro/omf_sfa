@@ -38,6 +38,7 @@ use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
 
 map RPC_URL do
   require 'omf-sfa/am/am-rpc/am_rpc_service'
+  require 'builder' # otherwise rack-rpc-0.0.6/lib/rack/rpc/endpoint/xmlrpc.rb:85 raises an uninitialized error message
   service = OMF::SFA::AM::RPC::AMService.new({:manager => am_mgr, :liaison => am_liaison})
 
   app = lambda do |env|
