@@ -1,3 +1,5 @@
+# This server's AM API absolute URL "http://your.server.com:8001/RPC2"
+url: http://nitlab.inf.uth.gr:8001/RPC2
 # This is the place if you want to provide additional information
 # inside the SFA method 'GetVersion'. Below is an example of how
 # to do this.

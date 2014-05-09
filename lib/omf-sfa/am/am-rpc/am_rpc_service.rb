@@ -37,7 +37,7 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = {
         :geni_api => 2,
         :geni_api_versions => {
-          2 => 'URL'
+          2 => config[:url]
         },
         :geni_request_rspec_versions => [{
           :type => "geni",
