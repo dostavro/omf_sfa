@@ -5,7 +5,7 @@ module OMF::SFA::Resource
 
   class Channel < OComponent
 
-    oproperty :interface, :Interface, :functional => false
+    oproperty :interfaces, :Interface, :functional => false
     oproperty :frequency, String
 
     # we have already added that in lease

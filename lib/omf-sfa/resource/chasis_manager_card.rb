@@ -2,34 +2,23 @@
 require 'omf-sfa/resource/ocomponent'
 require 'omf-sfa/resource/ip'
 require 'omf-sfa/resource/node'
-require 'omf-sfa/resource/channel'
-require 'omf-sfa/resource/link'
 
 module OMF::SFA::Resource
 
-  class Interface < OComponent
+  class ChasisManagerCard < OComponent
 
-    #property :hardware_type, String
-    oproperty :role, String
-    oproperty :component, :OComponent
-    oproperty :channel, :Channel
+    oproperty :node, :Node
     oproperty :mac, String
     oproperty :ip, :Ip
-    oproperty :description, String
-    oproperty :link, :Link
-
-    #has 1, :ip
 
     def sliver
       node.sliver
     end
 
-    sfa_class 'interface', :can_be_referred => true, :expose_id => false
+    sfa_class 'chasis_manager_card', :can_be_referred => true, :expose_id => false
 
     #sfa :hardware_type, String, :attr_value => :name, :has_many => true
     #sfa :public_ipv4, :ip4, :attribute => true
-    sfa :component_manager_id, :disabled => true
-    sfa :role, :attribute => true
     sfa :ip, :inline => true
 
     # @see IComponent
@@ -81,6 +70,8 @@ module OMF::SFA::Resource
     #end
 
 
-  end # Interface
 
-end # OMF::SFA::Resource
+  end
+
+end # OMF::SFA
+

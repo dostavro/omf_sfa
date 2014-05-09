@@ -1,6 +1,7 @@
 
 
 require 'omf-sfa/resource/channel'
+require 'omf-sfa/resource/interface'
 #require 'omf-sfa/resource/link_property'
 
 module OMF::SFA::Resource
@@ -17,6 +18,7 @@ module OMF::SFA::Resource
   class Link < Channel
 
     oproperty :link_type, String
+    oproperty :interfaces, :Interface, :functional => false
     #has 2, :interfaces
 
     sfa_class 'link'

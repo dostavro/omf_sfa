@@ -445,6 +445,46 @@ module OMF::SFA::AM
       resource
     end
 
+    # Find all the resources that fit the description. If it doesn't exist throws +UnknownResourceException+
+    # If it's not visible to requester throws +InsufficientPrivilegesException+
+    #
+    # @param [Hash, String, OResource] describing properties of the requested resource, or the
+    #   resource's UUID
+    # @param [Boolean] If true, throw exception if not already assigned to requester
+    # @param [Authorizer] Defines context for authorization decisions
+    # @return [OResource] The resource requested
+    # @raise [UnknownResourceException] if no matching resource can be found
+    # @raise [FormatException] if the resource description is not String, UUID or OResource class/subclass
+    # @raise [InsufficientPrivilegesException] if the resource is not visible to the requester
+    #
+    # @note This will assign the resource automatically to the requesting account
+    #
+    def find_all_resources(resource_descr, authorizer)
+      debug "find_resources: descr: '#{resource_descr.inspect}'"
+      if resource_descr.kind_of? OMF::SFA::Resource::OResource
+        resource = resource_descr
+      elsif resource_descr.kind_of? Hash
+        resource = OMF::SFA::Resource::OResource.all(resource_descr)
+      elsif resource_descr.kind_of? String
+        # assume to be UUID
+        begin
+          uuid = UUIDTools::UUID.parse(resource_descr)
+          descr = {:uuid => uuid}
+        rescue ArgumentError
+          # doesn't seem to be a UUID, try it as a name - be aware of non-uniqueness
+          descr = {:name => resource_descr}
+        end
+        resource = OMF::SFA::Resource::OResource.all(descr)
+      else
+        raise FormatException.new "Unknown resource description type '#{resource_descr.class}' (#{resource_descr})"
+      end
+      unless resource
+        raise UnknownResourceException.new "Resource '#{resource_descr.inspect}' is not available or doesn't exist"
+      end
+      authorizer.can_view_resource?(resource)
+      resource
+    end
+
     # Find a resource which has been assigned to the authorizer's account.
     # If it doesn't exist, or is not visible to requester
     # throws +UnknownResourceException+.
@@ -472,6 +512,7 @@ module OMF::SFA::AM
     #
     def find_all_resources_for_account(account = _get_nil_account, authorizer)
       debug "find_all_resources_for_account: #{account.inspect}"
+      account = _get_nil_account if account == nil
       res = OMF::SFA::Resource::OResource.all(:account => account)
       res.map do |r|
         begin
@@ -490,6 +531,8 @@ module OMF::SFA::AM
     # @return [Array<OComponent>] The component requested
     #
     def find_all_components_for_account(account, authorizer)
+      debug "find_all_components_for_account: #{account.inspect}"
+      account = _get_nil_account if account == nil
       res = OMF::SFA::Resource::OComponent.all(:account => account)
       res.map do |r|
         begin
@@ -505,10 +548,17 @@ module OMF::SFA::AM
     #
     # @return [Array<OComponent>] The components requested
     #
-    #def find_all_components
-    #  res = OMF::SFA::Resource::OComponent.all
-    #  res
-    #end
+    def find_all_components(comp_descr, authorizer)
+     res = OMF::SFA::Resource::OComponent.all
+     res.map do |r|
+        begin
+          authorizer.can_view_resource?(r)
+          r
+        rescue InsufficientPrivilegesException
+          nil
+        end
+      end.compact
+    end
 
     def find_or_create_resource(resource_descr, type_to_create, oproperties, authorizer)
       debug "find_or_create_resource: resource '#{resource_descr.inspect}' type: '#{type_to_create}'"
@@ -885,6 +935,10 @@ module OMF::SFA::AM
 
     def _get_nil_account()
       @scheduler.get_nil_account()
+    end
+
+    def get_scheduler()
+      @scheduler
     end
 
   end # class

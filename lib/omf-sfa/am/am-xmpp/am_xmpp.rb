@@ -3,6 +3,7 @@ require 'omf_common'
 #require 'omf-sfa/am/am-xmpp/am_authorizer'
 require 'omf-sfa/am/default_authorizer'
 require 'omf-sfa/resource'
+require 'pp'
 
 module OmfRc::ResourceProxy::AMController
   include OmfRc::ResourceProxyDSL
@@ -12,25 +13,39 @@ module OmfRc::ResourceProxy::AMController
   hook :before_ready do |resource|
     #logger.debug "creation opts #{resource.creation_opts}"
     @manager = resource.creation_opts[:manager]
+    @authorizer = resource.creation_opts[:authorizer]
   end
 
   request :resources do |resource|
-    resources = @manager.find_all_resources_for_account(@manager._get_nil_account, authorizer)
+    resources = @manager.find_all_resources_for_account(@manager._get_nil_account, @authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(resources)
   end
 
   request :components do |resource|
-    components = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
+    components = @manager.find_all_components_for_account(@manager._get_nil_account, @authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(components)
   end
 
+  request :nodes do |resource|
+    nodes = @manager.find_all_components({:type => "OMF::SFA::Resource::Node"}, @authorizer)
+    res = OMF::SFA::Resource::OResource.resources_to_hash(nodes, {max_levels: 3})
+    res
+  end
+
   request :leases do |resource|
-    leases = @manager.find_all_leases(authorizer)
-    OMF::SFA::Resource::OResource.resources_to_hash(leases)
+    leases = @manager.find_all_leases(@authorizer)
+
+    #this does not work because resources_to_hash and to_hash methods only works for
+    #oproperties and account is not an oprop in lease so we need to add it
+    res = OMF::SFA::Resource::OResource.resources_to_hash(leases)
+    leases.each_with_index do |l, i=0|
+      res[:resources][i][:resource][:account] = l.account.to_hash
+    end
+    res
   end
 
   request :slices do |resource|
-    accounts = @manager.find_all_accounts(authorizer)
+    accounts = @manager.find_all_accounts(@authorizer)
     OMF::SFA::Resource::OResource.resources_to_hash(accounts)
   end
 
@@ -41,15 +56,37 @@ module OmfRc::ResourceProxy::AMController
 
 
   def handle_create_message(message, obj, response)
-    #puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
+    puts "Create #{message.inspect}## #{obj.inspect}## #{response.inspect}"
     @manager = obj.creation_opts[:manager]
+    @authorizer = obj.creation_opts[:authorizer]
+    @scheduler = @manager.get_scheduler
 
     opts = message.properties
+    puts "opts #{opts.inspect}"
     new_props = opts.reject { |k| [:type, :uid, :hrn, :property, :instrument].include?(k.to_sym) }
-    puts "Message rtype #{message.rtype}"
-    puts "Message new properties #{new_props.to_hash}"
-
     type = message.rtype.camelize
+
+    # new_props.each do |key, value|
+    #   puts "checking prop: '#{key}': '#{value}': '#{type}'"
+    #   if value.kind_of? Array
+    #     value.each_with_index do |v, i|
+    #       if v.kind_of? Hash
+    #         puts "Array: #{v.inspect}"
+    #         model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+    #         new_props[key][i] = (k = eval("#{model}").first(v)) ? k : v
+    #       end
+    #     end
+    #   elsif value.kind_of? Hash
+    #       puts "Hash: #{value.inspect}"
+    #       model = eval("OMF::SFA::Resource::#{type}.#{key}").model
+    #       new_props[key] = (k = eval("#{model}").first(value)) ? k : value
+    #   end
+    # end
+
+    puts "Message rtype #{message.rtype}"
+    puts "Message new properties #{new_props.class} #{new_props.inspect}"
+
+    
     new_res = create_resource(type, new_props)
 
     puts "NEW RES #{new_res.inspect}"
@@ -62,9 +99,34 @@ module OmfRc::ResourceProxy::AMController
   private
 
   def create_resource(type, props)
-    puts "Creating resource of type '#{type}' with properties '#{props}'"
-    res = eval("OMF::SFA::Resource::#{type}").create(props)
-    @manager.manage_resource(res)
+    puts "Creating resource of type '#{type}' with properties '#{props.inspect}' @ '#{@scheduler.inspect}'"
+    if type == "Lease" #Lease is a unigue case, needs special treatment
+      #res = eval("OMF::SFA::Resource::#{type}").create(props)
+      
+      res_descr = {name: props[:name]}
+      if comps = props[:components]
+        #props.reject!{ |k| k == :components}
+        props.tap { |hs| hs.delete(:components) }
+      end
+      
+      #TODO when authorization is done remove the next line in order to change what authorizer does with his account
+      @authorizer.account = props[:account]
+
+      l = @scheduler.create_resource(res_descr, type, props, @authorizer)
+
+      comps.each_with_index do |comp, i|
+        if comp[:type].nil?
+          comp[:type] = comp.model.to_s.split("::").last
+        end
+        c = @scheduler.create_resource(comp, comp[:type], {}, @authorizer)
+        @scheduler.lease_component(l, c)
+      end
+      l
+    else
+      res = eval("OMF::SFA::Resource::#{type}").create(props)
+      @manager.manage_resource(res.cmc) if res.respond_to?(:cmc) && !res.cmc.nil?
+      @manager.manage_resource(res)
+    end
   end
 
 
@@ -96,7 +158,7 @@ module OMF::SFA::AM::XMPP
           trusted_roots = File.expand_path(auth[:root_cert_dir])
           OmfCommon::Auth::CertificateStore.instance.register_default_certs(trusted_roots)
 
-          OmfRc::ResourceFactory.create(:am_controller, {uid: 'am_controller', certificate: @cert}, {manager: @manager})
+          OmfRc::ResourceFactory.create(:am_controller, {uid: 'am_controller', certificate: @cert}, {manager: @manager, authorizer: @authorizer})
           puts "AM Resource Controller ready."
         end
       end

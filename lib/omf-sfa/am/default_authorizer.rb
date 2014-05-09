@@ -13,7 +13,8 @@ module OMF::SFA::AM
   # hash.
   #
   class DefaultAuthorizer < LObject
-
+    
+    attr_accessor :account#TODO remove this when we enable authentication on both rest and xmpp
     [
       # ACCOUNT
       :can_create_account?, # ()
@@ -22,6 +23,7 @@ module OMF::SFA::AM
       :can_close_account?, # (account)
       # RESOURCE
       :can_create_resource?, # (resource_descr, type)
+      :can_modify_resource?, # (resource_descr, type)
       :can_view_resource?, # (resource)
       :can_release_resource?, # (resource)
       # LEASE
@@ -39,6 +41,7 @@ module OMF::SFA::AM
 
     def initialize(permissions = {})
       @permissions = permissions
+      @account = nil#TODO remove this when we enable authentication on both rest and xmpp
     end
   end
 end
