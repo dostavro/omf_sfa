@@ -56,6 +56,7 @@ module OMF::SFA::AM::RPC
         :omf_am => "0.1"
       }
       @return_struct[:value].merge!(config[:getversion]) unless config[:getversion].nil?
+      @return_struct[:output] = {}
       return @return_struct
     end
 
@@ -122,6 +123,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
+      @return_struct[:output] = {}
       return @return_struct
 
       #{
@@ -173,6 +175,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
+      @return_struct[:output] = {}
       return @return_struct
 
       #{ :code => {
@@ -242,6 +245,7 @@ module OMF::SFA::AM::RPC
 
 
       @return_struct[:code][:geni_code] = 0
+      @return_struct[:output] = {}
       return @return_struct
 
       #{ :code => {
@@ -279,6 +283,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
+      @return_struct[:output] = {}
       return @return_struct
 
       #{ :code => {
@@ -317,6 +322,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
+      @return_struct[:output] = {}
       return @return_struct
 
       #{ :code => {
@@ -338,6 +344,7 @@ module OMF::SFA::AM::RPC
 
       if slice_urn.nil? || credentials.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
+        @return_struct[:value] = {}
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials'"
         return @return_struct
       end
@@ -346,6 +353,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
+      @return_struct[:output] = {}
       return @return_struct
 
       #{ :code => {
