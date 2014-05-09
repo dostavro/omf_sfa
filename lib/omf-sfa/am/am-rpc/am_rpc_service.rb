@@ -220,9 +220,10 @@ module OMF::SFA::AM::RPC
       status = {}
       status['omf_expires_at'] = authorizer.account.valid_until.utc.strftime('%Y%m%d%H%M%SZ')
 
-      resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
-      # only list independent resources
-      resources = resources.select {|r| r.independent_component?}
+      resources = @manager.find_all_resources_for_account(authorizer.account, authorizer)
+      # resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
+      # # only list independent resources
+      # resources = resources.select {|r| r.independent_component?}
 
       unless resources.empty?
         status['geni_urn'] = slice_urn
