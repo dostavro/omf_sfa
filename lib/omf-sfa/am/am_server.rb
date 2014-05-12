@@ -13,6 +13,7 @@ require 'omf-sfa/am/am_scheduler'
 require 'omf-sfa/am/am_liaison'
 require 'omf-sfa/am/am-xmpp/am_xmpp'
 
+@@config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:omf_sfa_am]
 
 module OMF::SFA::AM
 
@@ -21,7 +22,6 @@ module OMF::SFA::AM
     include OMF::Common::Loggable
     extend OMF::Common::Loggable
 
-    @@config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:omf_sfa_am]
     @@rpc = @@config[:endpoints].select { |v| v[:type] == 'xmlrpc' }.first
     @@xmpp = @@config[:endpoints].select { |v| v[:type] == 'xmpp' }.first
     @@db = @@config[:database]
@@ -201,6 +201,7 @@ db = OMF::SFA::AM::AMServer.db_config
 opts = {
   :app_name => 'am_server',
   :port => 8001,
+  :environment => @@config[:operationMode],
   :ssl =>
   {
     :cert_file => File.expand_path(rpc[:ssl][:cert_chain_file]),
