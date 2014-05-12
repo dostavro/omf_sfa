@@ -1,11 +1,15 @@
-
-
 require 'xmlrpc/parser'
+require 'xmlrpc/server'
 require 'rack/rpc'
 
 require 'omf_common/lobject'
 
 require 'omf-sfa/am'
+
+# Silence the warning of changing an already initialized constant
+v, $VERBOSE = $VERBOSE, nil
+XMLRPC::Config.const_set("ENABLE_NIL_PARSER", true)
+$VERBOSE = v
 
 module OMF::SFA::AM
   module RPC; end
