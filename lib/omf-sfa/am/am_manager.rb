@@ -812,6 +812,10 @@ module OMF::SFA::AM
       end
       resource.save
       resource
+
+    rescue UnknownResourceException
+      debug "Ignoring Unknown Resource: #{resource_el}"
+      nil
     end
 
     # Release an array of resources.
