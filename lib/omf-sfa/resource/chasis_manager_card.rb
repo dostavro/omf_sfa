@@ -15,11 +15,9 @@ module OMF::SFA::Resource
       node.sliver
     end
 
-    sfa_class 'chasis_manager_card', :can_be_referred => true, :expose_id => false
+    #sfa_class 'chasis_manager_card', :can_be_referred => true, :expose_id => false
 
-    #sfa :hardware_type, String, :attr_value => :name, :has_many => true
-    #sfa :public_ipv4, :ip4, :attribute => true
-    sfa :ip, :inline => true
+    #sfa :ip, :inline => true
 
     # @see IComponent
     #
