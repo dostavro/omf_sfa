@@ -112,17 +112,17 @@ module OMF::SFA::Resource
       false
     end
 
-    def destroy
-      v = self.value
-      if v.kind_of? OMF::SFA::Resource::OResource
-        v.destroy
-      elsif v.kind_of? Array
-        v.each do |a|
-          a.destroy if a.kind_of? OMF::SFA::Resource::OResource
-        end
-      end    
-      super
-    end
+    #def destroy
+    #  v = self.value
+    #  if v.kind_of? OMF::SFA::Resource::OResource
+    #    v.destroy
+    #  elsif v.kind_of? Array
+    #    v.each do |a|
+    #      a.destroy if a.kind_of? OMF::SFA::Resource::OResource
+    #    end
+    #  end
+    #  super
+    #end
 
     #before :save do
     #  #puts "SAVING BEFORE @value_dirty:'#{@value_dirty}', @old_value_:'#{@old_value_}', @value_:'#{@value_}'"
