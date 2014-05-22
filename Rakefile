@@ -32,7 +32,7 @@ desc "Init database using datamapper"
 task :initDB do
   @am_manager = nil
 
-  db_desc = db['dbType'] == 'sqlite' ? "#{db['dbType']}://#{db['dbName']}" : "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
+  db_desc = db['dbType'] == 'sqlite' ? "#{db['dbType']}://#{db['dbName']}" : "#{db['dbType']}://#{db['username']}:#{db['password']}@#{db['dbHostname']}/#{db['dbName']}"
   options = {
     dm_log: '/tmp/am_server-dm.log',
     dm_db: "#{db_desc}"

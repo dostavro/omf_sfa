@@ -198,6 +198,7 @@ end # module
 rpc = OMF::SFA::AM::AMServer.rpc_config
 xmpp = OMF::SFA::AM::AMServer.xmpp_config
 db = OMF::SFA::AM::AMServer.db_config
+db_desc = (db[:dbType] == :sqlite) ? "#{db[:dbType]}://#{db[:dbName]}" : "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
 opts = {
   :app_name => 'am_server',
   :port => 8001,
@@ -212,7 +213,7 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
-  :dm_db => "#{db[:dbType]}://#{db[:dbName]}",#for mysql "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
+  :dm_db => "#{db_desc}",
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
 }

@@ -31,7 +31,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "dm-types", "~> 1.2.1"
   s.add_runtime_dependency "dm-validations", "~> 1.2.0"
   s.add_runtime_dependency "dm-migrations", "~> 1.2.0"
-  s.add_runtime_dependency "dm-sqlite-adapter", "~> 1.2.0"
+  # s.add_runtime_dependency "dm-sqlite-adapter", "~> 1.2.0"
+  s.add_runtime_dependency "dm-postgres-adapter"
   s.add_runtime_dependency "uuid", "~> 2.3.5"
   s.add_runtime_dependency "json", "~> 1.7.7"
 #
