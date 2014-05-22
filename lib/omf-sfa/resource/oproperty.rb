@@ -40,7 +40,7 @@ module OMF::SFA::Resource
     property :id,   Serial
 
     property :name, String
-    property :value, String # actually serialized Object
+    property :value, Text # actually serialized Object
 
     belongs_to :o_resource
 
