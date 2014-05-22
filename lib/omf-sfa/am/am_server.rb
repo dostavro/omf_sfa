@@ -40,7 +40,7 @@ module OMF::SFA::AM
     end
 
     def init_logger
-      OMF::Common::Loggable.init_log 'am_server', :searchPath => File.join(File.dirname(__FILE__), 'am_server')
+      OMF::Common::Loggable.init_log 'am_server', :searchPath => File.join(File.dirname(__FILE__), 'am_server'), :environment => @@config[:operationMode]
     end
 
     def check_dependencies
@@ -185,7 +185,7 @@ module OMF::SFA::AM
       }
 
 
-      #Thin::Logging.debug = true
+      # Thin::Logging.debug = false
       require 'omf_common/thin/runner'
       OMF::Common::Thin::Runner.new(ARGV, opts).run!
     end
