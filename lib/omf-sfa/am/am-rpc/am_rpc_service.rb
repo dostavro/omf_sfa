@@ -240,7 +240,10 @@ module OMF::SFA::AM::RPC
         end
         @return_struct[:value] = status
       else
+        @return_struct[:code][:geni_code] = 12 # SEARCH FAILED
+        @return_struct[:output] = "Empty Slice."
         @return_struct[:value] = ''
+        return @return_struct
       end
 
 
