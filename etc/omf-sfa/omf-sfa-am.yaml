@@ -6,17 +6,17 @@ omf_sfa_am:
   #operation mode for OmfCommon.init (development, production, etc)
   operationMode: development
   #database info for sqlite
-  # database:
-  #   #database type (sqlite, mysql, postgres)
-  #   dbType: sqlite
-  #   #username for database (not used for sqlite db)
-  #   username: am_user
-  #   #password for database (not used for sqlite db)
-  #   password: pw
-  #   #localhost for database (not used for sqlite db)
-  #   dbHostname: localhost
-  #   #database name, (for sqlite this is a filename)
-  #   dbName: /tmp/test.sq3
+  #database:
+  #  #database type (sqlite, mysql, postgres)
+  #  dbType: sqlite
+  #  #username for database (not used for sqlite db)
+  #  username: am_user
+  #  #password for database (not used for sqlite db)
+  #  password: pw
+  #  #localhost for database (not used for sqlite db)
+  #  dbHostname: localhost
+  #  #database name, (for sqlite this is a filename)
+  #  dbName: /tmp/test.sq3
 
   #database info for postgresql
   database:
