@@ -40,7 +40,7 @@ module OMF::SFA::AM
     end
 
     def init_logger
-      OMF::Common::Loggable.init_log 'am_server', :searchPath => File.join(File.dirname(__FILE__), 'am_server')
+      OMF::Common::Loggable.init_log 'am_server', :searchPath => File.join(File.dirname(__FILE__), 'am_server'), :environment => @@config[:operationMode]
     end
 
     def check_dependencies
@@ -185,7 +185,7 @@ module OMF::SFA::AM
       }
 
 
-      #Thin::Logging.debug = true
+      # Thin::Logging.debug = false
       require 'omf_common/thin/runner'
       OMF::Common::Thin::Runner.new(ARGV, opts).run!
     end
@@ -198,6 +198,7 @@ end # module
 rpc = OMF::SFA::AM::AMServer.rpc_config
 xmpp = OMF::SFA::AM::AMServer.xmpp_config
 db = OMF::SFA::AM::AMServer.db_config
+db_desc = (db[:dbType] == :sqlite) ? "#{db[:dbType]}://#{db[:dbName]}" : "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
 opts = {
   :app_name => 'am_server',
   :port => 8001,
@@ -212,7 +213,7 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
-  :dm_db => "#{db[:dbType]}://#{db[:dbName]}",#for mysql "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
+  :dm_db => "#{db_desc}",
   :dm_log => '/tmp/am_server-dm.log',
   :rackup => File.dirname(__FILE__) + '/config.ru'
 }

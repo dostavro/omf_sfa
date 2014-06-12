@@ -5,10 +5,23 @@ omf_sfa_am:
   domain: omf:testserver
   #operation mode for OmfCommon.init (development, production, etc)
   operationMode: development
-  #database info
+  #database info for sqlite
+  # database:
+  #   #database type (sqlite, mysql, postgres)
+  #   dbType: sqlite
+  #   #username for database (not used for sqlite db)
+  #   username: am_user
+  #   #password for database (not used for sqlite db)
+  #   password: pw
+  #   #localhost for database (not used for sqlite db)
+  #   dbHostname: localhost
+  #   #database name, (for sqlite this is a filename)
+  #   dbName: /tmp/test.sq3
+
+  #database info for postgresql
   database:
     #database type (sqlite, mysql, postgres)
-    dbType: sqlite
+    dbType: postgres
     #username for database (not used for sqlite db)
     username: am_user
     #password for database (not used for sqlite db)
@@ -16,7 +29,7 @@ omf_sfa_am:
     #localhost for database (not used for sqlite db)
     dbHostname: localhost
     #database name, (for sqlite this is a filename)
-    dbName: /tmp/test.sq3
+    dbName: am_test_db
 
   endpoints:
     -

@@ -95,7 +95,7 @@ module OMF::Common
         end
       else
         # set default behavior
-        ::Log4r::Logger.global.level = ::Log4r::ALL
+        ::Log4r::Logger.global.level = opts[:environment] == "production" ? ::Log4r::INFO : ::Log4r::ALL
         formatter = ::Log4r::PatternFormatter.new(:pattern => "%l %c: %m")
         ::Log4r::StdoutOutputter.new('console', :formatter => formatter)
         @@logger.add 'console'

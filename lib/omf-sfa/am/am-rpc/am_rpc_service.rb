@@ -56,7 +56,7 @@ module OMF::SFA::AM::RPC
         :omf_am => "0.1"
       }
       @return_struct[:value].merge!(config[:getversion]) unless config[:getversion].nil?
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
     end
 
@@ -71,7 +71,7 @@ module OMF::SFA::AM::RPC
       if rspec_version.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "'geni_rspec_version' argument is missing."
-        @return_struct[:value] = {}
+        @return_struct[:value] = ''
         return @return_struct
         #ans = {
         #  :code => {
@@ -85,7 +85,7 @@ module OMF::SFA::AM::RPC
                                                              rspec_version["version"].eql?("3"))
         @return_struct[:code][:geni_code] = 4 # Bad Version
         @return_struct[:output] = "'Version' or 'Type' of RSpecs are not the same with what 'GetVersion' returns."
-        @return_struct[:value] = {}
+        @return_struct[:value] = ''
         return @return_struct
         #ans = {
         #  :code => {
@@ -123,7 +123,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{
@@ -135,7 +135,7 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = ''
       return @return_struct
 
       #{
@@ -152,7 +152,7 @@ module OMF::SFA::AM::RPC
       if slice_urn.nil? || credentials.nil? || rspec_s.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials', 'rspec'"
-        @return_struct[:value] = {}
+        @return_struct[:value] = ''
         return @return_struct
       end
 
@@ -175,7 +175,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{ :code => {
@@ -186,19 +186,19 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = ''
       return @return_struct
     rescue OMF::SFA::AM::UnknownResourceException => e
       debug('CreateSliver Exception', e.to_s)
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = ''
       return @return_struct
     rescue OMF::SFA::AM::FormatException => e
       debug('CreateSliver Exception', e.to_s)
       @return_struct[:code][:geni_code] = 4 # Bad Version
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = ''
       return @return_struct
     end
 
@@ -240,12 +240,15 @@ module OMF::SFA::AM::RPC
         end
         @return_struct[:value] = status
       else
-        @return_struct[:value] = {}
+        @return_struct[:code][:geni_code] = 12 # SEARCH FAILED
+        @return_struct[:output] = "Empty Slice."
+        @return_struct[:value] = ''
+        return @return_struct
       end
 
 
       @return_struct[:code][:geni_code] = 0
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{ :code => {
@@ -283,7 +286,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{ :code => {
@@ -310,7 +313,7 @@ module OMF::SFA::AM::RPC
       if slice_urn.nil? || credentials.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials'"
-        @return_struct[:value] = {}
+        @return_struct[:value] = ''
         return @return_struct
       end
 
@@ -322,7 +325,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{ :code => {
@@ -333,7 +336,7 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::UnavailableResourceException => e
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
-      @return_struct[:value] = {}
+      @return_struct[:value] = ''
       return @return_struct
     end
 
@@ -344,7 +347,7 @@ module OMF::SFA::AM::RPC
 
       if slice_urn.nil? || credentials.nil?
         @return_struct[:code][:geni_code] = 1 # Bad Arguments
-        @return_struct[:value] = {}
+        @return_struct[:value] = ''
         @return_struct[:output] = "Some of the following arguments are missing: 'slice_urn', 'credentials'"
         return @return_struct
       end
@@ -353,7 +356,7 @@ module OMF::SFA::AM::RPC
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = true
-      @return_struct[:output] = {}
+      @return_struct[:output] = ''
       return @return_struct
 
       #{ :code => {
@@ -373,8 +376,8 @@ module OMF::SFA::AM::RPC
         :code => {
           :geni_code => ""
         },
-        :value => {},
-        :output => {}
+        :value => '',
+        :output => ''
       }
     end
 
