@@ -17,7 +17,7 @@ module OMF::SFA::Resource
     end
 
     def self.default_component_manager_id()
-      @@default_component_manager_id ||= OMF::SFA::Resource::GURN.create("authority+am").to_s
+      @@default_component_manager_id ||= OMF::SFA::Resource::GURN.create("authority+cm").to_s
     end
   end
 end
