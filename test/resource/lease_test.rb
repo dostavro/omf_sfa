@@ -80,4 +80,13 @@ describe 'Lease' do
     l.valid_from.must_be_kind_of(Time)
     l.valid_until.must_be_kind_of(Time)
   end
+
+  it "can lease with valid_until/valid_from as String" do 
+    v_f = "2013-04-01 12:00:00 +0300"
+    v_u = "2013-04-01 13:00:00 +0300"
+
+    l = OMF::SFA::Resource::Lease.create({:name => 'l1', :valid_from => v_f, :valid_until => v_u})
+    l.valid_from.must_be_kind_of(Time)
+    l.valid_until.must_be_kind_of(Time)
+  end
 end
