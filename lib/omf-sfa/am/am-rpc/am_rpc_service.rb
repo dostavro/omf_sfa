@@ -242,7 +242,12 @@ module OMF::SFA::AM::RPC
       else
         @return_struct[:code][:geni_code] = 12 # SEARCH FAILED
         @return_struct[:output] = "Empty Slice."
-        @return_struct[:value] = ''
+        
+        status['geni_urn'] = slice_urn
+        status['geni_status'] = 'unallocated'
+        status['geni_resources'] = []
+
+        @return_struct[:value] = status
         return @return_struct
       end
 

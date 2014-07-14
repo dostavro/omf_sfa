@@ -64,6 +64,15 @@ module OMF::SFA::Resource
       h
     end
 
+    before :save do
+      if self.valid_from.is_a? String
+        self.valid_from = Time.parse(self.valid_from)
+      end
+      if self.valid_until.is_a? String
+        self.valid_until = Time.parse(self.valid_until)
+      end
+    end
+
     #def to_sfa_ref_xml(res_el, obj2id, opts)
     #  if obj2id.key?(self)
     #    el = res_el.add_child(Nokogiri::XML::Element.new("ol:lease_ref", res_el.document))
