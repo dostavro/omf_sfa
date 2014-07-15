@@ -275,13 +275,13 @@ describe AMManager do
 
       @auth.expect(:account, a1)
 
-      manager.find_all_leases_for_account(a1, @auth).must_be_empty
+      manager.find_all_leases(a1, @auth).must_be_empty
 
       @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       l1 = manager.find_or_create_lease({:name => 'l1', :account => a1}, lease_oproperties, @auth)
 
       @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      manager.find_all_leases_for_account(a1, @auth).must_equal [l1]
+      manager.find_all_leases(a1, @auth).must_equal [l1]
 
       @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
       @auth.expect(:account, a1)
@@ -289,12 +289,12 @@ describe AMManager do
 
       @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
       @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      manager.find_all_leases_for_account(a1, @auth).must_equal [l1, l2]
+      manager.find_all_leases(a1, @auth).must_equal [l1, l2]
 
       def @auth.can_view_lease?(lease)
         raise InsufficientPrivilegesException
       end
-      manager.find_all_leases_for_account(a1, @auth).must_be_empty
+      manager.find_all_leases(a1, @auth).must_be_empty
 
       @auth.verify
     end
@@ -332,6 +332,35 @@ describe AMManager do
 
       l1.reload
       l1.cancelled?.must_equal true
+
+      @auth.verify
+    end
+
+    it 'can find all leases' do
+      OMF::SFA::Resource::Lease.create({:name => "lease_name"})
+
+      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
+      r = manager.find_all_leases(@auth)
+
+      r.first.must_be_instance_of(OMF::SFA::Resource::Lease)
+      r.first.name.must_equal("lease_name")
+
+      @auth.verify
+    end
+
+    it 'can find leases based on their status' do
+      l1 = OMF::SFA::Resource::Lease.create({:name => "lease1", :status => "past"})
+      l2 = OMF::SFA::Resource::Lease.create({:name => "lease2", :status => "pending"})
+      l3 = OMF::SFA::Resource::Lease.create({:name => "lease3", :status => "accepted"})
+      l4 = OMF::SFA::Resource::Lease.create({:name => "lease4", :status => "cancelled"})
+      l5 = OMF::SFA::Resource::Lease.create({:name => "lease5", :status => "active"})
+
+      3.times { @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease]) }
+      r = manager.find_all_leases(nil, ["pending", "accepted", "active"], @auth)
+
+      r.must_include(l2)
+      r.must_include(l3)
+      r.must_include(l5)
 
       @auth.verify
     end

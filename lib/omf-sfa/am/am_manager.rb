@@ -282,21 +282,40 @@ module OMF::SFA::AM
     # @param [Authorizer] Defines context for authorization decisions
     # @return [Array<Lease>] The account's leases (maybe empty)
     #
-    def find_all_leases_for_account(account, authorizer)
-      debug "find_all_leases_for_account: account:'#{account.inspect}' authorizer:'#{authorizer.inspect}'"
-      leases = OMF::SFA::Resource::Lease.all(:account => account)
-      leases.map do |l|
-        begin
-          authorizer.can_view_lease?(l)
-          l
-        rescue InsufficientPrivilegesException
-          nil
-        end
-      end.compact
-    end
+    # def find_all_leases_for_account(account, authorizer)
+    #   debug "find_all_leases_for_account: account:'#{account.inspect}' authorizer:'#{authorizer.inspect}'"
+    #   leases = OMF::SFA::Resource::Lease.all(:account => account)
+    #   leases.map do |l|
+    #     begin
+    #       authorizer.can_view_lease?(l)
+    #       l
+    #     rescue InsufficientPrivilegesException
+    #       nil
+    #     end
+    #   end.compact
+    # end
 
-    def find_all_leases(authorizer)
-      leases = OMF::SFA::Resource::Lease.all
+    # def find_all_leases(authorizer)
+    #   leases = OMF::SFA::Resource::Lease.all
+    #   leases.map do |l|
+    #     begin
+    #       authorizer.can_view_lease?(l)
+    #       l
+    #     rescue InsufficientPrivilegesException
+    #       nil
+    #     end
+    #   end.compact
+    # end
+
+    def find_all_leases(account = nil, status = [], authorizer)
+      if account.nil?
+        leases = OMF::SFA::Resource::Lease.all
+      else
+        leases = OMF::SFA::Resource::Lease.all(:account => account)
+      end
+      unless status.empty?
+        leases = leases.select { |l| status.include?(l.status) }
+      end
       leases.map do |l|
         begin
           authorizer.can_view_lease?(l)
@@ -725,7 +744,7 @@ module OMF::SFA::AM
           #end.compact
 
           leases.each_value {|l| l.all_resources(all_leases)}
-          unused = find_all_leases_for_account(authorizer.account, authorizer).to_set - all_leases
+          unused = find_all_leases(authorizer.account, authorizer).to_set - all_leases
           unused.each do |u|
             release_lease(u, authorizer)
           end
