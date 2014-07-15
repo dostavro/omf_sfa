@@ -73,5 +73,17 @@ module OMF::SFA::Resource
       v
     end
 
+    before :save do
+      if self.created_at.is_a? String
+        self.created_at = Time.parse(self.created_at)
+      end
+      if self.valid_until.is_a? String
+        self.valid_until = Time.parse(self.valid_until)
+      end
+      if self.closed_at.is_a? String
+        self.closed_at = Time.parse(self.closed_at)
+      end
+    end
+
   end # Account
 end # OMF::SFA::Resource
