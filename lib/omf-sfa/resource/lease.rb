@@ -71,6 +71,10 @@ module OMF::SFA::Resource
       if self.valid_until.is_a? String
         self.valid_until = Time.parse(self.valid_until)
       end
+
+      #Make all timestamps UTC
+      self.valid_from = self.valid_from.utc unless self.valid_from.nil?
+      self.valid_until = self.valid_until.utc unless self.valid_until.nil?
     end
 
     #def to_sfa_ref_xml(res_el, obj2id, opts)
