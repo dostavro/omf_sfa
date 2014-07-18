@@ -129,6 +129,27 @@ describe AMScheduler do
       o = scheduler.lease_component(l1, res)
     end
 
+    it 'can lease a component with time given as string' do
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:account, account)
+
+      res = scheduler.create_resource({:name => 'r1', :account => account}, 'node', {}, authorizer)
+      res.must_be_instance_of(OMF::SFA::Resource::Node)
+      res.account.must_equal(account)
+      res.provides.must_be_empty
+      res.provided_by.must_equal(r)
+
+      time = "2014-06-24 18:00:00 +0300"
+      time2 = "2014-06-24 19:00:00 +0300"
+      authorizer.expect(:account, account)
+      l1 = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => time2}, authorizer)
+      o = scheduler.lease_component(l1, res)
+
+      l1.valid_until.must_be_instance_of(Time)
+    end
+
     it 'cannot lease components on overlapping time' do
       r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
 

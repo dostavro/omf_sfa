@@ -1,7 +1,7 @@
 
 require 'omf_common/lobject'
 require 'omf-sfa/resource'
-require 'omf-sfa/resource/comp_group'
+# require 'omf-sfa/resource/comp_group'
 require 'omf-sfa/am/am_manager'
 require 'omf-sfa/am/am_liaison'
 require 'active_support/inflector'

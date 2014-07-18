@@ -1,4 +1,4 @@
-
+require 'omf-sfa/resource'
 require 'omf-sfa/am/am-rest/rest_handler'
 
 module OMF::SFA::AM::Rest
@@ -200,6 +200,7 @@ module OMF::SFA::AM::Rest
       when "openflow"
         type = "OpenflowSwitch"
       else
+        #TODO find the type automatically through eval and raise exception if not possible
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
       end
       [type, params]
@@ -225,19 +226,19 @@ module OMF::SFA::AM::Rest
       end
 
       resource_descr.each do |key, value|
-        puts "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+        # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
         if value.kind_of? Array
           value.each_with_index do |v, i|
             if v.kind_of? Hash
-              puts "Array: #{v.inspect}"
+              # debug "Array: #{v.inspect}"
               model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
               resource_descr[key][i] = (k = eval("#{model}").first(v)) ? k : v
             end
           end
         elsif value.kind_of? Hash
-            puts "Hash: #{value.inspect}"
-            model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-            resource_descr[key] = (k = eval("#{model}").first(value)) ? k : value
+          # debug "Hash: #{value.inspect}"
+          model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+          resource_descr[key] = (k = eval("#{model}").first(value)) ? k : value
         end
       end
 
@@ -253,7 +254,6 @@ module OMF::SFA::AM::Rest
         resource = @scheduler.create_resource(res_descr, type_to_create, resource_descr, authorizer)
 
         comps.each_with_index do |comp, i|
-          puts "____ #{comp.inspect}"
           if comp[:type].nil?
             comp[:type] = comp.model.to_s.split("::").last
           end

@@ -30,6 +30,7 @@ module OMF::SFA::Resource
         model = opts[:model]
         if model && model.respond_to?(:sfa_class)
           type =  model.sfa_class
+          type = type.split(":").last if type.include?(':')
         elsif model && model.respond_to?(:resource_type)
           type =  model.resource_type
         end
