@@ -7,7 +7,7 @@ module OMF::SFA::Resource
     oproperty :address, String
     oproperty :netmask, String
     oproperty :ip_type, String
-    oproperty :interface, :Interface
+    # oproperty :interface, :Interface
 
     #belongs_to :interface, :required => false
 
