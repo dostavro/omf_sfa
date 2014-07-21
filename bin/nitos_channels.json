@@ -1,127 +1,158 @@
 [
   {
     "name":"1",
-    "frequency":"2.412GHz"
+    "frequency":"2.412GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+1"
   },
   {
     "name":"2",
-    "frequency":"2.417GHz"
+    "frequency":"2.417GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+2"
   },
   {
     "name":"3",
-    "frequency":"2.422GHz"
+    "frequency":"2.422GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+3"
   },
   {
     "name":"4",
-    "frequency":"2.427GHz"
+    "frequency":"2.427GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+4"
   },
   {
     "name":"5",
-    "frequency":"2.432GHz"
+    "frequency":"2.432GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+5"
   },
   {
     "name":"6",
-    "frequency":"2.437GHz"
+    "frequency":"2.437GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+6"
   },
   {
     "name":"7",
-    "frequency":"2.442GHz"
+    "frequency":"2.442GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+7"
   },
   {
     "name":"8",
-    "frequency":"2.447GHz"
+    "frequency":"2.447GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+8"
   },
   {
     "name":"9",
-    "frequency":"2.452GHz"
+    "frequency":"2.452GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+9"
   },
   {
     "name":"10",
-    "frequency":"2.457GHz"
+    "frequency":"2.457GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+10"
   },
   {
     "name":"11",
-    "frequency":"2.462GHz"
+    "frequency":"2.462GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+11"
   },
   {
     "name":"12",
-    "frequency":"2.467GHz"
+    "frequency":"2.467GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+12"
   },
   {
     "name":"13",
-    "frequency":"2.472GHz"
+    "frequency":"2.472GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+13"
   },
   {
     "name":"40",
-    "frequency":"5.200GHz"
+    "frequency":"5.200GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+40"
   },
   {
     "name":"44",
-    "frequency":"5.220GHz"
+    "frequency":"5.220GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+44"
   },
   {
     "name":"48",
-    "frequency":"5.240GHz"
+    "frequency":"5.240GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+48"
   },
   {
     "name":"52",
-    "frequency":"5.260GHz"
+    "frequency":"5.260GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+52"
   },
   {
     "name":"56",
-    "frequency":"5.280GHz"
+    "frequency":"5.280GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+56"
   },
   {
     "name":"60",
-    "frequency":"5.300GHz"
+    "frequency":"5.300GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+60"
   },
   {
     "name":"64",
-    "frequency":"5.220GHz"
+    "frequency":"5.220GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+64"
   },
   {
     "name":"100",
-    "frequency":"5.500GHz"
+    "frequency":"5.500GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+100"
   },
   {
     "name":"104",
-    "frequency":"5.520GHz"
+    "frequency":"5.520GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+104"
   },
   {
     "name":"108",
-    "frequency":"5.540GHz"
+    "frequency":"5.540GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+108"
   },
   {
     "name":"112",
-    "frequency":"5.560GHz"
+    "frequency":"5.560GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+112"
   },
   {
     "name":"116",
-    "frequency":"5.580GHz"
+    "frequency":"5.580GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+116"
   }
   ,
   {
     "name":"120",
-    "frequency":"5.600GHz"
+    "frequency":"5.600GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+120"
   },
   {
     "name":"124",
-    "frequency":"5.620GHz"
+    "frequency":"5.620GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+124"
   },
   {
     "name":"128",
-    "frequency":"5.640GHz"
+    "frequency":"5.640GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+128"
   },
   {
     "name":"132",
-    "frequency":"5.660GHz"
+    "frequency":"5.660GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+132"
   },
   {
     "name":"136",
-    "frequency":"5.680GHz"
+    "frequency":"5.680GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+136"
   },
   {
     "name":"140",
-    "frequency":"5.700GHz"
+    "frequency":"5.700GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+140"
   }
 ]
