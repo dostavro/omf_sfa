@@ -833,7 +833,7 @@ module OMF::SFA::AM
       resource
 
     rescue UnknownResourceException
-      debug "Ignoring Unknown Resource: #{resource_el}"
+      error "Ignoring Unknown Resource: #{resource_el}"
       nil
     end
 

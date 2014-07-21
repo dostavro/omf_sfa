@@ -94,8 +94,8 @@ module OMF::SFA::Resource
             lease[:name] = l.name
           end
           lease[:type] = l.resource_type
-          lease[:valid_from] = l.valid_from
-          lease[:valid_until] = l.valid_until
+          lease[:valid_from] = l.valid_from.to_s
+          lease[:valid_until] = l.valid_until.to_s
           lease[:status] = l.status
           {:lease => lease}
         end
