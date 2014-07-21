@@ -377,7 +377,7 @@ module OMF::SFA::AM
         raise UnavailablePropertiesException.new "Cannot create lease without ':valid_from' and 'valid_until' properties"
       end
 
-      lease_properties = {:valid_from => Time.parse(lease_el[:valid_from]), :valid_until => Time.parse(lease_el[:valid_until])}
+      lease_properties = {:valid_from => Time.parse(lease_el[:valid_from]).utc, :valid_until => Time.parse(lease_el[:valid_until]).utc}
 
       begin
         raise UnavailableResourceException unless UUID.validate(lease_el[:id])
