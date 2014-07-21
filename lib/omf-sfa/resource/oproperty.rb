@@ -64,6 +64,9 @@ module OMF::SFA::Resource
       if val.kind_of? Array
         val.tap {|v| v.extend(ArrayProxy).instance_variable_set(:@oproperty, self) }
       end
+      if val.kind_of? Time
+        val = val.utc
+      end
       val
     end
 
