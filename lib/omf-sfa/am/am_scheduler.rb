@@ -82,7 +82,7 @@ module OMF::SFA::AM
         base.leases.each do |l|
           if (l.id == resource.leases.first.id)
             time = Time.now
-            if (l.valid_until <= time)
+            if (l.valid_until.utc <= time.utc)
               l.status = "past"
             else
               l.status = "cancelled"
@@ -109,11 +109,11 @@ module OMF::SFA::AM
 
       base = component.provided_by
       base.leases.each do |l|
-        if (lease.valid_from >= l.valid_until || lease.valid_until <= l.valid_from)
+        if (lease.valid_from.utc >= l.valid_until.utc || lease.valid_until.utc <= l.valid_from.utc)
           #all ok, do nothing
-        elsif (lease.valid_from <= l.valid_from && lease.valid_until > l.valid_from)#overlapping time
+        elsif (lease.valid_from.utc <= l.valid_from.utc && lease.valid_until.utc > l.valid_from.utc)#overlapping time
           raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
-        elsif (lease.valid_from >= l.valid_from && lease.valid_from <= l.valid_until)#overlapping time
+        elsif (lease.valid_from.utc >= l.valid_from.utc && lease.valid_from.utc <= l.valid_until.utc)#overlapping time
           raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
         end
       end
