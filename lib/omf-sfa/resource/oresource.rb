@@ -498,6 +498,7 @@ module OMF::SFA::Resource
         if op = @@oprops[klass]
           op.each do |k, v|
             k = k.to_sym
+            next if k == :provides
             unless (value = send(k)).nil?
               #puts "OPROPS_TO_HAHS(#{k}): #{value}::#{value.class}--#{oproperty_get(k)}"
               if value.is_a? OResource
