@@ -33,8 +33,10 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
+          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           resource = @am_manager.find_all_resources(descr, authenticator)
         else
+          descr[:account] = @am_manager.get_scheduler.get_nil_account resource_uri == 'leases'
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
@@ -169,7 +171,7 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
+          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 4))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
