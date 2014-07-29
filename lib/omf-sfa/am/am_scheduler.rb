@@ -7,6 +7,7 @@ require 'omf-sfa/am/am_liaison'
 require 'active_support/inflector'
 
 
+
 module OMF::SFA::AM
 
   extend OMF::SFA::AM
@@ -14,6 +15,8 @@ module OMF::SFA::AM
   # This class implements a default resource scheduler
   #
   class AMScheduler < OMF::Common::LObject
+
+    @@mapping_hook = nil
 
     # Create a resource of specific type given its description in a hash. If the type
     # or the resource is physical then we create a clone of itself and assign it to
@@ -126,6 +129,15 @@ module OMF::SFA::AM
       return true
     end
 
+    # Resolve an unbound query.
+    #
+    # @param [Hash] a hash containing the query.
+    # @return [Hash] a 
+    #
+    def resolve_query(msg)
+      @@mapping_hook.resolve(msg)
+    end
+
     # It returns the default account, normally used for admin account.
     #
     # @return [Account] returns the default account object
@@ -134,8 +146,19 @@ module OMF::SFA::AM
       @nil_account
     end
 
-    def initialize()
+    def initialize(opts = {})
       @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
+      if mopts = opts[:mapping_submodule]
+        require mopts.delete(:require) if mopts[:require]
+        unless mconstructor = mopts.delete(:constructor)
+          raise "Missing PDP provider declaration."
+        end
+        @@mapping_hook = eval(mconstructor).new(opts)
+      else
+        debug "Loading default Mapping Submodule."
+        require 'omf-sfa/am/mapping_submodule'
+        @@mapping_hook = MappingSubmodule.new(opts)
+      end
       #@am_liaison = OMF::SFA::AM::AMLiaison.new
     end
 

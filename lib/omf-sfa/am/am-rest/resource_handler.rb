@@ -40,7 +40,17 @@ module OMF::SFA::AM::Rest
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
-        resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
+        begin
+          body, format = parse_body(opts)
+          if format == :json
+            resource = @am_manager.get_scheduler.resolve_query(body)
+            return resource
+          else
+            raise UnsupportedBodyFormatException.new(:xml)
+          end
+        rescue EmptyBodyException
+          resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
+        end
       end
       show_resource(resource, opts)
     end

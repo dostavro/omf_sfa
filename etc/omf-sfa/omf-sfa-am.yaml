@@ -49,3 +49,7 @@ omf_sfa_am:
         :entity_cert: ~/.omf/am.pem
         :entity_key: ~/.omf/am_key.pem
         :root_cert_dir: ~/.omf/trusted_roots
+
+  mapping_submodule:
+      require: /root/omf/omf_sfa/lib/omf-sfa/am/mapping_submodule
+      constructor: MappingSubmodule

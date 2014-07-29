@@ -38,7 +38,14 @@ describe AMScheduler do
   end
 
   #let (:scheduler) { scheduler = AMScheduler.new() }
-  scheduler = AMScheduler.new()
+  opts = {
+    :mapping_submodule =>
+    {
+      :require => @config[:mapping_submodule][:require],
+      :constructor => @config[:mapping_submodule][:constructor]
+    }
+  }
+  scheduler = AMScheduler.new(opts)
 
   describe 'instance' do
     it 'can initialize itself' do
@@ -219,6 +226,33 @@ describe AMScheduler do
 
       res = scheduler.release_resource(r1, authorizer)
       res.must_equal(true)
+    end
+  end
+
+  describe 'unbound_requests' do
+
+    default_account = scheduler.get_nil_account()
+
+    it 'can resolve unbound queries xxx' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain2")
+      q = {
+        resources:[
+          {
+            type:"node",
+            domain: "domain1",
+            valid_from:"now",
+            valid_until:"now+2hours"
+          },
+          {
+            type:"node",
+            domain:"domain2"
+          }
+        ]
+      }
+      ans = scheduler.resolve_query(q)
+
+      puts ">>>> #{ans}"
     end
   end
 end
