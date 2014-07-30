@@ -24,9 +24,11 @@ module OMF::SFA::AM
       @cert.extensions.each do |e|
         if e.oid == 'subjectAltName'
           #URI:urn:publicid:IDN+topdomain:subdomain+user+pi, URI:urn:uuid:759ae077-2fda-4d02-8921-ab0235a09920
+          #TODO: parse also email: "email:root@nitlab.inf.uth.gr, URI:uuid:37a96f60-c53d-50d9-bbbf-3c552b89bdc5, URI:urn:publicid:IDN+nitlab.inf.uth.gr+user+37a96f60-c53d-50d9-bbbf-3c552b89bdc5"
           e.value.split(',').each do |u|
             u.slice!('URI:')
-            @user_urn = u.strip if u.start_with?('urn:publicid:IDN')
+            u.strip!
+            @user_urn = u if u.start_with?('urn:publicid:IDN')
             @user_uuid = u.match(/^urn:uuid:(.*)/)[1] if u.start_with?('urn:uuid')
           end
           #e.value.split('URI:urn:').each do |u|

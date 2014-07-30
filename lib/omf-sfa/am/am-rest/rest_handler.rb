@@ -83,7 +83,7 @@ module OMF::SFA::AM::Rest
   class RestHandler < OMF::Common::LObject
 
     def initialize(am_manager, opts = {})
-      #puts "INIT>>> #{am_manager}::#{self}"
+      # puts "INIT>>> #{am_manager}::#{self}"
       @am_manager = am_manager
       @opts = opts
     end

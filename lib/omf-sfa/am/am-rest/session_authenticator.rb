@@ -1,5 +1,6 @@
 
 require 'omf_common/lobject'
+require 'omf-sfa/am/am-rest/am_authorizer'
 require 'rack'
 
 
@@ -82,7 +83,8 @@ module OMF::SFA::AM::Rest
             end
           end
         else
-          init_fake_root
+          req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], @opts[:am_manager])
+          # init_fake_root
         end
         self.class[:valid_until] = Time.now + @@expire_after
       end
