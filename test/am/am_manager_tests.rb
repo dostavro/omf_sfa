@@ -509,6 +509,64 @@ describe AMManager do
       @auth.verify
     end
 
+    it 'will find all available resources of a given type' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1')
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2')
+      t1 = Time.now
+      t2 = t1 + 3600
+      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      res = manager.find_all_available_resources({type: 'Node'}, {},  t1, t2, @auth)
+
+      res.must_equal [n1,n2]
+
+      @auth.verify
+    end
+
+    it 'will find all available resources using oproperties for query' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', domain: "domainA")
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', domain: "domainB")
+      t1 = Time.now
+      t2 = t1 + 3600
+      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
+        true
+      end
+
+      res = manager.find_all_available_resources({type: 'Node'}, {domain: 'domainA'}, t1, t2, @auth)
+
+      res.must_equal [n1]
+
+      @auth.verify
+    end
+
+    it 'throws an exception when there are no resources available when asked for all available resources' do
+      lambda do
+        res = manager.find_all_available_resources({type: 'Node'}, Time.now, Time.now + 100, @auth)
+      end.must_raise(UnavailableResourceException)
+    end
+
+    it 'throws an exception when there are no resources available for the given description and timeslot' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: @account)
+      t1 = Time.now
+      t2 = t1 + 3600
+      l1 = OMF::SFA::Resource::Lease.create(name: 'l1', account: @account, valid_from: t1, valid_until: t2)
+      n1.leases << l1
+      n1.save
+      l1.components << n1
+      l1.save
+      1.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      # mock resource_available method of scheduler to always return false
+      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
+        false
+      end
+      lambda do
+        res = manager.find_all_available_resources({type: 'Node'}, {}, t1 + 10, t2 - 10, @auth)
+      end.must_raise(UnavailableResourceException)
+
+      @auth.verify
+    end
+
     it 'will create a resource if not already available for the account' do
       2.times {@auth.expect(:account, @account)}
       @auth.expect(:can_create_resource?, true, [Hash, String])

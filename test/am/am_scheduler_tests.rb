@@ -227,32 +227,134 @@ describe AMScheduler do
       res = scheduler.release_resource(r1, authorizer)
       res.must_equal(true)
     end
+
+    it 'can check if a resource is available or not' do
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => default_account})
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:account, account)
+
+      res = scheduler.create_resource({:name => 'r1', :account => account}, 'node', {}, authorizer)
+      time = Time.now
+      authorizer.expect(:account, account)
+      l1 = scheduler.create_resource({:name => 'l1'}, 'Lease', {:valid_from => time, :valid_until => (time + 100)}, authorizer)
+      o = scheduler.lease_component(l1, res)
+
+      ans = scheduler.resource_available?(r, time + 110, time + 120)
+      ans.must_equal(true)
+      ans = scheduler.resource_available?(r, time - 110, time - 90)
+      ans.must_equal(true)
+      ans = scheduler.resource_available?(r, time + 10, time + 90)
+      ans.must_equal(false)
+    end
   end
 
-  describe 'unbound_requests' do
+  describe 'unbound requests' do
 
     default_account = scheduler.get_nil_account()
 
-    it 'can resolve unbound queries xxx' do
+    it 'can resolve uuid of unbound queries' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain2")
+      t1 = Time.now
+
       q = {
         resources:[
           {
-            type:"node",
+            type: "Node",
             domain: "domain1",
-            valid_from:"now",
-            valid_until:"now+2hours"
-          },
-          {
-            type:"node",
-            domain:"domain2"
-          }
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          }        
         ]
       }
-      ans = scheduler.resolve_query(q)
+      authorizer = MiniTest::Mock.new
+      1.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
 
-      puts ">>>> #{ans}"
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources].first[:domain].must_equal('domain1')
+      ans[:resources].first[:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources].first[:valid_until].must_equal((t1 + 7200).utc.to_s)
+    end
+
+    it 'can resolve domain of unbound queries' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1")
+      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2")
+      t1 = Time.now
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          }        
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      # ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources].first[:domain].must_equal('domain1')
+      ans[:resources].first[:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources].first[:valid_until].must_equal((t1 + 7200).utc.to_s)
+    end
+
+    it 'can resolve valid_from and valid_until of unbound queries' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain1"
+          }        
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      1.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources].first[:domain].must_equal('domain1')
+      ans[:resources].first[:valid_from].wont_be_nil
+      ans[:resources].first[:valid_until].wont_be_nil
+    end
+
+    it 'can resolve valid_from and valid_until from duration of unbound queries xxx' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain1",
+            duration: 100
+          }        
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      1.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources].first[:domain].must_equal('domain1')
+      ans[:resources].first[:valid_from].wont_be_nil
+      ans[:resources].first[:valid_until].wont_be_nil
     end
   end
 end

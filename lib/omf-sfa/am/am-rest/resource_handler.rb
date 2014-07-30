@@ -43,11 +43,13 @@ module OMF::SFA::AM::Rest
         begin
           body, format = parse_body(opts)
           if format == :json
-            resource = @am_manager.get_scheduler.resolve_query(body)
+            resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
             return resource
           else
             raise UnsupportedBodyFormatException.new(:xml)
           end
+        rescue UnknownTypeException
+          raise BadRequestException, "Missing parameter 'type' from requested resource/resources."
         rescue EmptyBodyException
           resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
         end

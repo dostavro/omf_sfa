@@ -129,13 +129,33 @@ module OMF::SFA::AM
       return true
     end
 
+    # Check if a resource is available in a specific timeslot or not.
+    #
+    # @param [OMF::SFA::OResource] the resource
+    # @param [Time] the starting point of the timeslot
+    # @param [Time] the ending point of the timeslot
+    # @return [Boolean] true if it is available, false if it is not
+    #
+    def resource_available?(resource, valid_from, valid_until)
+      resource.leases.each do |l|
+        if (valid_from.utc >= l.valid_until.utc || valid_until.utc < l.valid_from.utc)
+          next
+        else
+          return false
+        end
+      end
+      true
+    end
+
     # Resolve an unbound query.
     #
     # @param [Hash] a hash containing the query.
     # @return [Hash] a 
     #
-    def resolve_query(msg)
-      @@mapping_hook.resolve(msg)
+    def resolve_query(msg, am_manager, authorizer)
+      debug "resolve_query: msg: #{msg}"
+
+      @@mapping_hook.resolve(msg, am_manager, authorizer)
     end
 
     # It returns the default account, normally used for admin account.
@@ -149,8 +169,8 @@ module OMF::SFA::AM
     def initialize(opts = {})
       @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
       if mopts = opts[:mapping_submodule]
-        require mopts.delete(:require) if mopts[:require]
-        unless mconstructor = mopts.delete(:constructor)
+        require mopts[:require] if mopts[:require]
+        unless mconstructor = mopts[:constructor]
           raise "Missing PDP provider declaration."
         end
         @@mapping_hook = eval(mconstructor).new(opts)

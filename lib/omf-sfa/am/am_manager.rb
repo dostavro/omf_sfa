@@ -1,4 +1,4 @@
-
+  
 require 'omf_common/lobject'
 require 'omf-sfa/resource'
 # require 'omf-sfa/resource/comp_group'
@@ -502,6 +502,37 @@ module OMF::SFA::AM
       end
       authorizer.can_view_resource?(resource)
       resource
+    end
+
+    # Find all resources matching the resource description that are not leased for the given timeslot.
+    # If it doesn't exist, or is not visible to requester
+    # throws +UnknownResourceException+.
+    #
+    # @param [Hash] description of resources
+    # @param [Hash] oproperties of resources
+    # @param [String, Time] beggining of the timeslot 
+    # @param [String, Time] ending of the timeslot
+    # @return [Array] All availlable resources
+    # @raise [UnknownResourceException] if no matching resource can be found
+    #
+    def find_all_available_resources(resource_descr = {}, oproperties = {}, valid_from, valid_until, authorizer)
+      debug "find_all_available_resources: descr: '#{resource_descr.inspect}', oprop: #{oproperties}, from: '#{valid_from}', until: '#{valid_until}'"
+      resource_descr[:account] = _get_nil_account if resource_descr[:account].nil?
+      resources = OMF::SFA::Resource::OResource.all(resource_descr)
+
+      oproperties.each do |k, v|
+        resources.each do |res|
+          resources.delete(res) unless res[k.to_sym] == v
+        end
+      end
+
+      resources.each do |res|
+        authorizer.can_view_resource?(res)
+        ress.delete(res) unless @scheduler.resource_available?(res, valid_from, valid_until)
+      end
+
+      raise UnavailableResourceException if resources.empty?
+      resources
     end
 
     # Find a resource which has been assigned to the authorizer's account.
