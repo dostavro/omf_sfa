@@ -1,5 +1,6 @@
 require 'omf-sfa/resource'
 require 'omf-sfa/am/am-rest/rest_handler'
+require 'omf-sfa/am/am_manager'
 
 module OMF::SFA::AM::Rest
 
@@ -40,17 +41,23 @@ module OMF::SFA::AM::Rest
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
-        begin
-          body, format = parse_body(opts)
+        body, format = parse_body(opts)
+        debug "body: #{body.inspect}, format: #{format.inspect}"
+        unless body.empty?
           if format == :json
-            resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
-            return resource
+            begin
+              resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
+              debug "response: #{resource}, #{resource.class}"
+              return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
+            rescue OMF::SFA::AM::UnavailableResourceException
+              raise UnknownResourceException, "There are no available resources matching the request."
+            rescue MappingSubmodule::UnknownTypeException
+              raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
+            end
           else
-            raise UnsupportedBodyFormatException.new(:xml)
+            raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
           end
-        rescue UnknownTypeException
-          raise BadRequestException, "Missing parameter 'type' from requested resource/resources."
-        rescue EmptyBodyException
+        else
           resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
         end
       end
