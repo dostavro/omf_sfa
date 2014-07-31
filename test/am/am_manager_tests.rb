@@ -543,6 +543,23 @@ describe AMManager do
       @auth.verify
     end
 
+    it 'will find all available resources using 2 oproperties for query xxx' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', domain: "domainA", exclusive: true)
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', domain: "domainB", exclusive: false)
+      t1 = Time.now
+      t2 = t1 + 3600
+      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
+        true
+      end
+
+      res = manager.find_all_available_resources({type: 'Node'}, {domain: 'domainA', exclusive: true}, t1, t2, @auth)
+
+      res.must_equal [n1]
+
+      @auth.verify
+    end
+
     it 'throws an exception when there are no resources available when asked for all available resources' do
       lambda do
         res = manager.find_all_available_resources({type: 'Node'}, {}, Time.now, Time.now + 100, @auth)

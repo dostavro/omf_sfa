@@ -520,18 +520,7 @@ module OMF::SFA::AM
       resource_descr[:account] = _get_nil_account if resource_descr[:account].nil?
       all_resources = OMF::SFA::Resource::OResource.all(resource_descr)
       
-      resources = []
-      unless oproperties.empty?
-        oproperties.each do |k, v|
-          all_resources.each do |res|
-            if res.send(k.to_sym) == v
-              resources << res
-            end
-          end
-        end
-      else
-        resources = all_resources
-      end
+      resources = filter_resources_with_oproperties(all_resources, oproperties)
 
       resources.each do |res|
         authorizer.can_view_resource?(res)
@@ -540,6 +529,32 @@ module OMF::SFA::AM
 
       raise UnavailableResourceException if resources.empty?
       resources
+    end
+
+    # Filters a set of resources using a set of oproperties.
+    #
+    # @param [Array] a set of resources
+    # @param [Hash] a set of oproperties
+    # @return [Array] a set of resources
+    #
+    def filter_resources_with_oproperties(resources, oproperties)
+      debug "filter_resources_with_oproperties: descr: '#{resources.inspect}', oprop: '#{oproperties.inspect}'"
+      response = []
+      unless oproperties.empty?
+        resources.each do |res|
+          failed = false
+          oproperties.each do |k, v|
+            if res.send(k.to_sym) != v
+              failed = true
+              break
+            end
+          end
+          response << res unless failed
+        end
+      else
+        response = resources
+      end
+      response
     end
 
     # Find a resource which has been assigned to the authorizer's account.
