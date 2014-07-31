@@ -518,12 +518,19 @@ module OMF::SFA::AM
     def find_all_available_resources(resource_descr = {}, oproperties = {}, valid_from, valid_until, authorizer)
       debug "find_all_available_resources: descr: '#{resource_descr.inspect}', oprop: #{oproperties}, from: '#{valid_from}', until: '#{valid_until}'"
       resource_descr[:account] = _get_nil_account if resource_descr[:account].nil?
-      resources = OMF::SFA::Resource::OResource.all(resource_descr)
-
-      oproperties.each do |k, v|
-        resources.each do |res|
-          resources.delete(res) unless res[k.to_sym] == v
+      all_resources = OMF::SFA::Resource::OResource.all(resource_descr)
+      
+      resources = []
+      unless oproperties.empty?
+        oproperties.each do |k, v|
+          all_resources.each do |res|
+            if res.send(k.to_sym) == v
+              resources << res
+            end
+          end
         end
+      else
+        resources = all_resources
       end
 
       resources.each do |res|
