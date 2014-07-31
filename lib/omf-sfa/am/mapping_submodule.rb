@@ -19,11 +19,6 @@ class MappingSubmodule
 
     msg[:resources].each do |res|
       raise UnknownTypeException unless res[:type]
-      if res[:domain].nil? && msg[:resources].first[:domain] #if domain is nil and at least one domain is given.
-        resolve_domain(res, msg[:resources])
-      elsif res[:domain].nil?
-        resolve_domain(res)
-      end
       unless res[:valid_from]
         resolve_valid_from(res) 
       else
@@ -33,6 +28,11 @@ class MappingSubmodule
         resolve_valid_until(res)
       else
         res[:valid_until] = Time.parse(res[:valid_until]).utc.to_s
+      end
+      if res[:domain].nil? && msg[:resources].first[:domain] #if domain is nil and at least one domain is given.
+        resolve_domain(res, msg[:resources])
+      elsif res[:domain].nil?
+        resolve_domain(res)
       end
 
       resolve_resource(res, msg[:resources], am_manager, authorizer)
@@ -89,7 +89,7 @@ class MappingSubmodule
           av_resources.delete(ares) if res[:uuid] && ares.uuid.to_s == res[:uuid]
         end
       end
-      raise UnavailableResourceException if av_resources.empty?
+      raise OMF::SFA::AM::UnavailableResourceException if av_resources.empty?
 
       res = av_resources.sample
       resource[:uuid] = res.uuid.to_s
