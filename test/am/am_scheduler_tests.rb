@@ -264,7 +264,7 @@ describe AMScheduler do
             domain: "domain1",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }        
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -298,7 +298,7 @@ describe AMScheduler do
             domain: "domain1",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }      
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -336,7 +336,7 @@ describe AMScheduler do
             domain: "domain1",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }      
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -358,7 +358,7 @@ describe AMScheduler do
       ans[:resources][1][:valid_until].must_equal((t1 + 7200).utc.to_s)
     end
 
-    it 'it wont give the same resource twice' do
+    it 'wont give the same resource twice' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1")
       t1 = Time.now
@@ -376,7 +376,7 @@ describe AMScheduler do
             domain: "domain1",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }      
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -401,7 +401,7 @@ describe AMScheduler do
             type: "Node",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }        
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -434,7 +434,7 @@ describe AMScheduler do
             type: "Node",
             valid_from:"#{t1}",
             valid_until:"#{t1 + 7200}"
-          }  
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -461,7 +461,7 @@ describe AMScheduler do
           {
             type: "Node",
             domain: "domain1"
-          }        
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -486,7 +486,7 @@ describe AMScheduler do
             type: "Node",
             domain: "domain1",
             duration: 100
-          }        
+          }
         ]
       }
       authorizer = MiniTest::Mock.new
@@ -500,6 +500,59 @@ describe AMScheduler do
       ans[:resources].first[:domain].must_equal('domain1')
       ans[:resources].first[:valid_from].wont_be_nil
       ans[:resources].first[:valid_until].wont_be_nil
+    end
+
+    it 'throws exception when there are no available resources' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain1",
+            duration: 100
+          },
+          {
+            type: "Node",
+            domain: "domain1",
+            duration: 100
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      lambda do
+        ans = scheduler.resolve_query(q, manager, authorizer)        
+      end.must_raise(UnavailableResourceException)
+    end
+
+    it 'throws exception when there are no available resources on the same domain' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain2")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            duration: 100
+          },
+          {
+            type: "Node",
+            duration: 100
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      lambda do
+        ans = scheduler.resolve_query(q, manager, authorizer)        
+      end.must_raise(UnavailableResourceException)
     end
   end
 end

@@ -89,6 +89,7 @@ class MappingSubmodule
           av_resources.delete(ares) if res[:uuid] && ares.uuid.to_s == res[:uuid]
         end
       end
+      raise UnavailableResourceException if av_resources.empty?
 
       res = av_resources.sample
       resource[:uuid] = res.uuid.to_s
