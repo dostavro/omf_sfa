@@ -35,7 +35,7 @@ class MappingSubmodule
         res[:valid_until] = Time.parse(res[:valid_until]).utc.to_s
       end
 
-      resolve_uuid(res, msg[:resources], am_manager, authorizer)
+      resolve_resource(res, msg[:resources], am_manager, authorizer)
     end
     puts "Map resolve response: #{msg}"
     msg
@@ -81,8 +81,8 @@ class MappingSubmodule
       end
     end
 
-    def resolve_uuid(resource, resources, am_manager, authorizer)
-      puts "resolve_uuid: resource: #{resource}, resources: #{resources}"
+    def resolve_resource(resource, resources, am_manager, authorizer)
+      puts "resolve_resource: resource: #{resource}, resources: #{resources}"
       av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {domain: resource[:domain]}, resource[:valid_from], resource[:valid_until], authorizer)
       resources.each do |res| #remove already given resources
         av_resources.each do |ares|
@@ -93,6 +93,6 @@ class MappingSubmodule
       res = av_resources.sample
       resource[:uuid] = res.uuid.to_s
       resource[:urn] = res.urn
-      resource[:uuid]
+      resource[:urn]
     end
 end
