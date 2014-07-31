@@ -16,9 +16,14 @@ class MappingSubmodule
 
   def resolve(msg, am_manager, authorizer)
     puts "MappingSubmodule: msg: #{msg}"
+
     msg[:resources].each do |res|
       raise UnknownTypeException unless res[:type]
-      resolve_domain(res) unless res[:domain]
+      if res[:domain].nil? && msg[:resources].first[:domain] #if domain is nil and at least one domain is given.
+        resolve_domain(res, msg[:resources])
+      elsif res[:domain].nil?
+        resolve_domain(res)
+      end
       unless res[:valid_from]
         resolve_valid_from(res) 
       else
@@ -29,21 +34,26 @@ class MappingSubmodule
       else
         res[:valid_until] = Time.parse(res[:valid_until]).utc.to_s
       end
-      # valid_from = res[:valid_from]
-      # valid_until = res[:valid_until]
 
-      puts "Map: find_all_available_resources: res: #{res.inspect} from: #{res[:valid_from]} until: #{res[:valid_until]}"
-      resources = am_manager.find_all_available_resources({type: res[:type]}, {domain: res[:domain]}, res[:valid_from], res[:valid_until], authorizer)
-      resolve_uuid(res, resources)
+      resolve_uuid(res, msg[:resources], am_manager, authorizer)
     end
-    puts "Response: #{msg}"
+    puts "Map resolve response: #{msg}"
     msg
   end
 
   private
-    #TODO add some clever mechanic to take the type of node into account
-    #des poios exei ta perissotera free kai epelekse auton
-    def resolve_domain(resource)
+    #TODO add some clever mechanic to take the type of node into account in order to specify the type of testbed (wireless, vm, etc)
+    def resolve_domain(resource, resources = nil)
+      puts "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
+      unless resources.nil?
+        resources.each do |res|
+          if res[:domain] && resource[:type] == res[:type] # we might need to change res[:type] to res[:resource_type] in the future
+            resource[:domain] = res[:domain]
+            return resource[:domain]
+          end
+        end
+      end
+
       domains = {}
       resources = OMF::SFA::Resource::OResource.all({type: resource[:type]})
       resources.each do |res|
@@ -71,10 +81,17 @@ class MappingSubmodule
       end
     end
 
-    def resolve_uuid(resource, resources)
+    def resolve_uuid(resource, resources, am_manager, authorizer)
       puts "resolve_uuid: resource: #{resource}, resources: #{resources}"
-      resource[:uuid] = resources.sample.uuid.to_s
+      av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {domain: resource[:domain]}, resource[:valid_from], resource[:valid_until], authorizer)
+      resources.each do |res| #remove already given resources
+        av_resources.each do |ares|
+          av_resources.delete(ares) if res[:uuid] && ares.uuid.to_s == res[:uuid]
+        end
+      end
+
+      resource[:uuid] = av_resources.sample.uuid.to_s
       puts "uuid: #{resource[:uuid]}"
-      resource
+      resource[:uuid]
     end
 end
