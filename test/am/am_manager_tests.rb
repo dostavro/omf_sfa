@@ -515,6 +515,10 @@ describe AMManager do
       t1 = Time.now
       t2 = t1 + 3600
       2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
+        true
+      end
+
       res = manager.find_all_available_resources({type: 'Node'}, {},  t1, t2, @auth)
 
       res.must_equal [n1,n2]
@@ -541,7 +545,7 @@ describe AMManager do
 
     it 'throws an exception when there are no resources available when asked for all available resources' do
       lambda do
-        res = manager.find_all_available_resources({type: 'Node'}, Time.now, Time.now + 100, @auth)
+        res = manager.find_all_available_resources({type: 'Node'}, {}, Time.now, Time.now + 100, @auth)
       end.must_raise(UnavailableResourceException)
     end
 
@@ -554,7 +558,6 @@ describe AMManager do
       n1.save
       l1.components << n1
       l1.save
-      1.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       # mock resource_available method of scheduler to always return false
       scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 

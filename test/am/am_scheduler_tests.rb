@@ -529,6 +529,28 @@ describe AMScheduler do
       end.must_raise(UnavailableResourceException)
     end
 
+    it 'throws exception when there are no available resources matching the description' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain2",
+            duration: 100
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      lambda do
+        ans = scheduler.resolve_query(q, manager, authorizer)        
+      end.must_raise(UnavailableResourceException)
+    end
+
     it 'throws exception when there are no available resources on the same domain' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain2")
