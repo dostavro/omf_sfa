@@ -90,8 +90,9 @@ class MappingSubmodule
         end
       end
 
-      resource[:uuid] = av_resources.sample.uuid.to_s
-      puts "uuid: #{resource[:uuid]}"
+      res = av_resources.sample
+      resource[:uuid] = res.uuid.to_s
+      resource[:urn] = res.urn
       resource[:uuid]
     end
 end

@@ -318,7 +318,47 @@ describe AMScheduler do
       ans[:resources][1][:valid_until].must_equal((t1 + 7200).utc.to_s)
     end
 
-    it 'it wont give the same resource twice xxx' do
+    it 'can resolve urn in unbound queries for more than one resources' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", urn: "domain1:n1")
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", urn: "domain1:n2")
+      t1 = Time.now
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain1",
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          },
+          {
+            type: "Node",
+            domain: "domain1",
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          }      
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      4.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      ans[:resources][0][:uuid].wont_be_empty
+      ans[:resources][0][:urn].wont_be_empty
+      ans[:resources][0][:domain].must_equal('domain1')
+      ans[:resources][0][:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources][0][:valid_until].must_equal((t1 + 7200).utc.to_s)
+      ans[:resources][1][:uuid].wont_be_empty
+      ans[:resources][1][:urn].wont_be_empty
+      ans[:resources][1][:domain].must_equal('domain1')
+      ans[:resources][1][:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources][1][:valid_until].must_equal((t1 + 7200).utc.to_s)
+    end
+
+    it 'it wont give the same resource twice' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1")
       t1 = Time.now
