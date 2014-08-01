@@ -168,7 +168,7 @@ module OMF::SFA::AM
 
     def initialize(opts = {})
       @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
-      if mopts = opts[:mapping_submodule]
+      if mopts = opts[:mapping_submodule] && opts[:mapping_submodule][:require] && opts[:mapping_submodule][:constructor]
         require mopts[:require] if mopts[:require]
         unless mconstructor = mopts[:constructor]
           raise "Missing PDP provider declaration."
