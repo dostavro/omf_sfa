@@ -10,39 +10,77 @@ class MappingSubmodule
   
   class UnknownTypeException < Exception; end
 
+  # Initialize the mapping submodule
+  #
+  # @param [Hash] Options that come to the initialization of am_scheduler are also passed here.
+  #  
   def initialize(opts = {})
     puts "MappingSubmodule INIT: opts #{opts}"
   end
 
-  def resolve(msg, am_manager, authorizer)
-    puts "MappingSubmodule: msg: #{msg}"
+  # Resolves an unbound query
+  #
+  # @param [Hash] the query
+  # @param [OMF::SFA::AM::AMManager] the am_manager
+  # @param [Authorizer] the authorizer 
+  # @return [Hash] the resolved query
+  # @raise [MappingSubmodule::UnknownTypeException] if no type is defined in the query
+  #  
+  def resolve(query, am_manager, authorizer)
+    puts "MappingSubmodule: query: #{query}"
 
-    msg[:resources].each do |res|
+    query[:resources].each do |res|
       raise UnknownTypeException unless res[:type]
-      unless res[:valid_from]
-        resolve_valid_from(res) 
-      else
-        res[:valid_from] = Time.parse(res[:valid_from]).utc.to_s
-      end
-      unless res[:valid_until]
-        resolve_valid_until(res)
-      else
-        res[:valid_until] = Time.parse(res[:valid_until]).utc.to_s
-      end
-      if res[:domain].nil? && msg[:resources].first[:domain] #if domain is nil and at least one domain is given.
-        resolve_domain(res, msg[:resources])
+      resolve_valid_from(res) 
+      resolve_valid_until(res)
+      if res[:domain].nil? && query[:resources].first[:domain] #if domain is nil and at least one domain is given.
+        resolve_domain(res, query[:resources])
       elsif res[:domain].nil?
         resolve_domain(res)
       end
 
-      resolve_resource(res, msg[:resources], am_manager, authorizer)
+      resolve_resource(res, query[:resources], am_manager, authorizer)
     end
-    puts "Map resolve response: #{msg}"
-    msg
+    puts "Map resolve response: #{query}"
+    query
   end
 
   private
-    #TODO add some clever mechanic to take the type of node into account in order to specify the type of testbed (wireless, vm, etc)
+    # Resolves the valid from for a specific resource in the query and adds it to the resource
+    # that is passed as an arguement
+    #
+    # @param [Hash] the resource
+    # @return [String] the resolved valid from
+    # 
+    def resolve_valid_from(resource)
+      puts "resolve_valid_from: resource: #{resource}"
+      return resource[:valid_from] = Time.parse(resource[:valid_from]).utc.to_s if resource[:valid_from]
+      resource[:valid_from] = Time.now.utc.to_s 
+    end
+
+    # Resolves the valid until for a specific resource in the query and adds it to the resource
+    # that is passed as an arguement
+    #
+    # @param [Hash] the resource
+    # @return [String] the resolved valid until
+    #
+    def resolve_valid_until(resource)
+      puts "resolve_valid_until: resource: #{resource}"
+      return resource[:valid_until] = Time.parse(resource[:valid_until]).utc.to_s if resource[:valid_until]
+      if duration = resource.delete(:duration)
+        resource[:valid_until] = (Time.parse(resource[:valid_from]) + duration).utc.to_s
+      else
+        resource[:valid_until] = (Time.parse(resource[:valid_from]) + DEFAULT_DURATION).utc.to_s
+      end
+    end
+
+    # Resolves the domain for a specific resource in the query and adds it to the resource
+    # that is passed as an arguement
+    #
+    # @param [Hash] the resource
+    # @param [Hash] the resources of the query
+    # @return [String] the resolved domain
+    #
     def resolve_domain(resource, resources = nil)
       puts "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
       unless resources.nil?
@@ -69,18 +107,16 @@ class MappingSubmodule
       resource[:domain] = domains.max_by{|k,v| v}.first
     end
 
-    def resolve_valid_from(resource)
-      resource[:valid_from] = Time.now.utc.to_s 
-    end
-
-    def resolve_valid_until(resource)
-      if duration = resource.delete(:duration)
-        resource[:valid_until] = (Time.parse(resource[:valid_from]) + duration).utc.to_s
-      else
-        resource[:valid_until] = (Time.parse(resource[:valid_from]) + DEFAULT_DURATION).utc.to_s
-      end
-    end
-
+    # Resolves to an existing resource for a specific resource in the query and adds the urn and the uuid 
+    # to the resource that is passed as an arguement
+    #
+    # @param [Hash] the resource
+    # @param [Hash] all the resources of the query
+    # @param [OMF::SFA::AM::AMManager] the am_manager
+    # @param [Authorizer] the authorizer 
+    # @return [String] the resolved urn
+    # @raise [OMF::SFA::AM::UnknownResourceException] if no available resources match the query
+    #
     def resolve_resource(resource, resources, am_manager, authorizer)
       puts "resolve_resource: resource: #{resource}, resources: #{resources}"
       av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {domain: resource[:domain]}, resource[:valid_from], resource[:valid_until], authorizer)
