@@ -52,7 +52,7 @@ describe ResourceHandler do
   #       nil
   #     end
   #     def self.create_resource(resource_descr, type_to_create, oproperties, auth)
-  #       puts "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}' oproperties:'#{oproperties}' authorizer:'#{auth.inspect}'"
+  #       debug "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}' oproperties:'#{oproperties}' authorizer:'#{auth.inspect}'"
   #       resource_descr[:resource_type] = type_to_create
   #       resource_descr[:account] = auth.account
   #       type = type_to_create.camelize
@@ -88,7 +88,7 @@ describe ResourceHandler do
 
   describe 'resources' do
     it 'can list resources' do 
-      r = OMF::SFA::Resource::Node.create({:name => 'r1'})
+      r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => scheduler.get_nil_account})
 
       opts = {}
       opts[:req] = MiniTest::Mock.new
@@ -279,9 +279,9 @@ describe ResourceHandler do
       l.name.must_equal("l1")
       l.components.first.name.must_equal("r1")
       l.valid_from.must_be_instance_of(Time)
-      l.valid_from.to_s.must_equal(time1)
+      l.valid_from.must_equal(Time.parse(time1))
       l.valid_until.must_be_instance_of(Time)
-      l.valid_until.to_s.must_equal(time2)
+      l.valid_until.must_equal(Time.parse(time2))
 
       opts[:req].verify
       authorizer.verify
