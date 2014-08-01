@@ -543,7 +543,7 @@ describe AMManager do
       @auth.verify
     end
 
-    it 'will find all available resources using 2 oproperties for query xxx' do
+    it 'will find all available resources using 2 oproperties for query' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', domain: "domainA", exclusive: true)
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', domain: "domainB", exclusive: false)
       t1 = Time.now

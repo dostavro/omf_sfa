@@ -522,9 +522,9 @@ module OMF::SFA::AM
       
       resources = filter_resources_with_oproperties(all_resources, oproperties)
 
-      resources.each do |res|
+      resources = resources.select do |res|
         authorizer.can_view_resource?(res)
-        ress.delete(res) unless @scheduler.resource_available?(res, valid_from, valid_until)
+        @scheduler.resource_available?(res, valid_from, valid_until)
       end
 
       raise UnavailableResourceException if resources.empty?
@@ -552,7 +552,7 @@ module OMF::SFA::AM
           response << res unless failed
         end
       else
-        response = resources
+        return resources
       end
       response
     end
