@@ -83,7 +83,7 @@ module OMF::SFA::AM::Rest
   class RestHandler < OMF::Common::LObject
 
     def initialize(am_manager, opts = {})
-      #puts "INIT>>> #{am_manager}::#{self}"
+      #debug "INIT>>> #{am_manager}::#{self}"
       @am_manager = am_manager
       @opts = opts
     end
@@ -317,7 +317,7 @@ module OMF::SFA::AM::Rest
         when 'application/x-www-form-urlencoded'
           raise UnsupportedBodyFormatException.new(:xml) unless allowed_formats.include?(:form)
           fb = req.POST
-          puts "FORM: #{fb.inspect}"
+          debug "FORM: #{fb.inspect}"
           return [fb, :form]
         end
       rescue Exception => ex
@@ -335,7 +335,7 @@ module OMF::SFA::AM::Rest
       populate_opts(req, opts)
       opts[:req] = req
       opts[:format] = req['format'] || 'json'
-      #puts "OPTS>>>> #{opts.inspect}"
+
       method = req.request_method
       target = opts[:target] #|| self
       resource_uri = opts[:resource_uri]
