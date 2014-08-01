@@ -37,7 +37,7 @@ module OMF::SFA::AM::Rest
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           resource = @am_manager.find_all_resources(descr, authenticator)
         else
-          descr[:account] = @am_manager.get_scheduler.get_nil_account resource_uri == 'leases'
+          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
