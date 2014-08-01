@@ -241,6 +241,44 @@ describe ResourceHandler do
       authorizer.verify
     end
 
+    it 'will only list leases that the status is pending, accepted or active' do 
+      r = OMF::SFA::Resource::Node.create({:name => 'r1'})
+      a = OMF::SFA::Resource::Account.create(:name => 'root')
+      time1 = Time.now
+      time2 = Time.now + 36000
+      l1 = OMF::SFA::Resource::Lease.create(:account => a, :name => 'l1', :valid_from => time1, :valid_until => time2, :status => 'accepted')
+      r.leases << l1
+      r.save
+
+      l2 = OMF::SFA::Resource::Lease.create(:account => a, :name => 'l2', :valid_from => time1, :valid_until => time2, :status => 'cancelled')
+      r.leases << l2
+      r.save
+  
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      4.times {opts[:req].expect(:path, "/resources/leases")}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_view_lease?, true, [Object])
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_get('leases', opts)
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      leases = JSON.parse(json)["resource_response"]["resources"]
+      leases.must_be_instance_of(Array)
+      lease = leases.first
+      lease["name"].must_equal("l1")
+
+      leases.size.must_equal(1)
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
     it 'can create a new lease' do 
       r = OMF::SFA::Resource::Node.create({:name => 'r1'})
       manager.manage_resource(r)

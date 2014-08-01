@@ -35,7 +35,7 @@ module OMF::SFA::AM::Rest
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          resource = @am_manager.find_all_resources(descr, authenticator)
+          resource = resource_uri == 'leases' ? @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator) : @am_manager.find_all_resources(descr, authenticator)
         else
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           resource = @am_manager.find_resource(descr, authenticator)
