@@ -104,8 +104,10 @@ module OMF::SFA::AM::Rest
       rescue RackException => rex
         return rex.reply
       rescue OMF::SFA::AM::AMManagerException => aex
+        debug aex.backtrace.join("\n")
         return RackException.new(400, aex.to_s).reply
       rescue ArgumentError => aex
+        debug aex.backtrace.join("\n")
         return RackException.new(400, aex.to_s).reply
       rescue Exception => ex
         body = {
