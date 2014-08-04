@@ -224,7 +224,7 @@ describe ResourceHandler do
       4.times {opts[:req].expect(:path, "/resources/leases")}
 
       authorizer = MiniTest::Mock.new
-      authorizer.expect(:can_view_resource?, true, [Object])
+      authorizer.expect(:can_view_lease?, true, [Object])
       Thread.current["authenticator"] = authorizer
 
       type, json = rest.on_get('leases', opts)
