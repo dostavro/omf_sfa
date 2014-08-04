@@ -61,6 +61,7 @@ module OMF::SFA::AM::Rest
           resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
         end
       end
+      raise UnknownResourceException, "No resources matching the description." if resource.empty?
       show_resource(resource, opts)
     end
 
@@ -220,6 +221,10 @@ module OMF::SFA::AM::Rest
         type = "LteBase"
       when "openflow"
         type = "OpenflowSwitch"
+      when "accounts"
+        type = "Account"
+      when "users"
+        type = "User"
       else
         #TODO find the type automatically through eval and raise exception if not possible
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
