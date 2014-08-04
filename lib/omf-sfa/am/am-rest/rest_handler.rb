@@ -25,7 +25,7 @@ module OMF::SFA::AM::Rest
         :code => err_code,
         :reason => reason
       }}
-      @reply = [err_code, {"Content-Type" => 'text/json'}, body.to_json]
+      @reply = [err_code, { 'Content-Type' => 'text/json', 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body.to_json]
     end
 
   end
@@ -104,6 +104,8 @@ module OMF::SFA::AM::Rest
       rescue RackException => rex
         return rex.reply
       rescue OMF::SFA::AM::AMManagerException => aex
+        return RackException.new(400, aex.to_s).reply
+      rescue ArgumentError => aex
         return RackException.new(400, aex.to_s).reply
       rescue Exception => ex
         body = {
