@@ -390,9 +390,9 @@ describe AMScheduler do
     end
 
     it 'can resolve domain in unbound queries' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1")
-      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2")
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", exclusive: true)
+      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2", exclusive: true)
       t1 = Time.now
 
       q = {
@@ -418,9 +418,9 @@ describe AMScheduler do
     end
 
     it 'can resolve domain in unbound queries based on already given domains' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1")
-      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2")
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", exclusive: true)
+      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2", exclusive: true)
       t1 = Time.now
 
       q = {
@@ -502,6 +502,63 @@ describe AMScheduler do
       ans[:resources].first[:valid_until].wont_be_nil
     end
 
+    it 'can resolve exclusive in unbound queries' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            domain: "domain1",
+            duration: 100
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      1.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources].first[:domain].must_equal('domain1')
+      ans[:resources].first[:exclusive].wont_be_nil
+    end
+
+    it 'can resolve exclusive in unbound queries based on already given exclusive' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
+      n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", exclusive: true)
+      n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2", exclusive: false)
+      t1 = Time.now
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            exclusive:true,
+            duration:100
+          },
+          {
+            type: "Node",
+            duration:100
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      4.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      # ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources][0][:domain].must_equal('domain1')
+      ans[:resources][0][:exclusive].must_equal(true)
+      ans[:resources][1][:domain].must_equal('domain1')
+      ans[:resources][1][:exclusive].must_equal(true)
+    end
+
     it 'throws exception when there are no available resources' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1")
 
@@ -574,6 +631,28 @@ describe AMScheduler do
 
       lambda do
         ans = scheduler.resolve_query(q, manager, authorizer)        
+      end.must_raise(UnavailableResourceException)
+    end
+
+    it 'throws exception when there are no available resources with the asked exclusiveness' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: false)
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            exclusive: true
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      4.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      lambda do
+        ans = scheduler.resolve_query(q, manager, authorizer)   
+        puts "answer: #{ans}"     
       end.must_raise(UnavailableResourceException)
     end
   end

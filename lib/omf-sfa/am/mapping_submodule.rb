@@ -33,6 +33,13 @@ class MappingSubmodule
       raise UnknownTypeException unless res[:type]
       resolve_valid_from(res) 
       resolve_valid_until(res)
+
+      if res[:exclusive].nil? && query[:resources].first[:exclusive] #if exclusive is nil and at least one exclusive is given.
+        resolve_exclusive(res, query[:resources])
+      elsif res[:exclusive].nil?
+        resolve_exclusive(res)
+      end
+
       if res[:domain].nil? && query[:resources].first[:domain] #if domain is nil and at least one domain is given.
         resolve_domain(res, query[:resources])
       elsif res[:domain].nil?
@@ -74,18 +81,40 @@ class MappingSubmodule
       end
     end
 
+    # Resolves the exclusive property for a specific resource in the query and adds it to the resource
+    # that is passed as an arguement
+    #
+    # @param [Hash] the resource
+    # @param [Hash] the resources of the query
+    # @return [String] the resolved valid until
+    #
+    def resolve_exclusive(resource, resources = nil)
+      puts "resolve_exclusive: resource: #{resource}, resources: #{resources.inspect}"
+      unless resources.nil?
+        resources.each do |res|
+          if res[:exclusive] && resource[:type] == res[:type] # we might need to change res[:type] to res[:resource_type] in the future
+            resource[:exclusive] = res[:exclusive]
+            return resource[:exclusive]
+          end
+        end
+      end
+
+      resource[:exclusive] = true
+    end
+
     # Resolves the domain for a specific resource in the query and adds it to the resource
     # that is passed as an arguement
     #
     # @param [Hash] the resource
     # @param [Hash] the resources of the query
     # @return [String] the resolved domain
+    # @raise [OMF::SFA::AM::UnknownResourceException] if no available resources match the query
     #
     def resolve_domain(resource, resources = nil)
       puts "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
       unless resources.nil?
         resources.each do |res|
-          if res[:domain] && resource[:type] == res[:type] # we might need to change res[:type] to res[:resource_type] in the future
+          if res[:domain] && resource[:type] == res[:type] && resource[:exclusive] == res[:exclusive] # we might need to change/add res[:type] to res[:resource_type] in the future
             resource[:domain] = res[:domain]
             return resource[:domain]
           end
@@ -94,6 +123,9 @@ class MappingSubmodule
 
       domains = {}
       resources = OMF::SFA::Resource::OResource.all({type: resource[:type]})
+
+      resources = resources.select { |res| res[:exclusive] == resource[:exclusive] } if resource[:exclusive]
+
       resources.each do |res|
         if res.domain
           if domains.has_key?(res.domain)
@@ -103,6 +135,8 @@ class MappingSubmodule
           end
         end
       end
+
+      raise OMF::SFA::AM::UnavailableResourceException if domains.empty?
 
       resource[:domain] = domains.max_by{|k,v| v}.first
     end
@@ -119,7 +153,13 @@ class MappingSubmodule
     #
     def resolve_resource(resource, resources, am_manager, authorizer)
       puts "resolve_resource: resource: #{resource}, resources: #{resources}"
-      av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {domain: resource[:domain]}, resource[:valid_from], resource[:valid_until], authorizer)
+      descr = {}
+      descr[:type] = resource[:type]
+      oprops_descr = {}
+      oprops_descr[:domain] = resource[:domain]
+      oprops_descr[:exclusive] = resource[:exclusive]
+      av_resources = am_manager.find_all_available_resources(descr, oprops_descr, resource[:valid_from], resource[:valid_until], authorizer)
+      
       resources.each do |res| #remove already given resources
         av_resources.each do |ares|
           av_resources.delete(ares) if res[:uuid] && ares.uuid.to_s == res[:uuid]
