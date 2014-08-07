@@ -66,6 +66,10 @@ module OMF::SFA::Resource
 
     belongs_to :account, :model => 'Account', :child_key  => [ :account_id ], :required => false
 
+    def self.get_oprops
+      @@oprops[self]
+    end
+
     # Override of the Class method 'first' of DataMapper such that we can search with oproperties
     def self.first(*args)
       class_props = @@oprops[self]
@@ -366,7 +370,6 @@ module OMF::SFA::Resource
       end
       res
     end
-
 
     before :save do
       unless self.resource_type
