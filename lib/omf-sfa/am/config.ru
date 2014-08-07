@@ -31,7 +31,7 @@ am_mgr.liaison = am_liaison
 am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opts[:xmpp]})
 
 
-use Rack::Session::Cookie, :secret => eval("('a'..'z').to_a.shuffle[0,8].join")
+use Rack::Session::Pool
 
 require 'omf-sfa/am/am-rest/session_authenticator'
 use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
