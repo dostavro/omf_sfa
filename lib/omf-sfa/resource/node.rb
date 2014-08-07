@@ -8,7 +8,6 @@ module OMF::SFA::Resource
   class Node < OComponent
 
     oproperty :hardware_type, String, :required => false
-    #oproperty :available, String, :default => true
     oproperty :sliver_type, :SliverType, :required => false
     oproperty :interfaces, :Interface, :functional => false
     oproperty :exclusive, String, :default => true
@@ -19,6 +18,8 @@ module OMF::SFA::Resource
     oproperty :ram, String
     oproperty :ram_type, String
     oproperty :hd_capacity, String
+    oproperty :available_cpu, Integer, :required => false # percentage of available cpu
+    oproperty :available_ram, Integer, :required => false # percentage of available ram
     #belongs_to :sliver
 
     sfa_class 'node'
