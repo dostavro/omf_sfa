@@ -74,14 +74,14 @@ task :loadTestDB => [:autoMigrate] do
   require 'omf-sfa/resource/account'
   r = []
   r << account = OMF::SFA::Resource::Account.create(:name => 'root')
-  lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000)
+  lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000, :status => 'accepted')
 #   r << n = OMF::SFA::Resource::Node.create(:name => "node1", :urn => OMF::SFA::Resource::GURN.create("node1", :type => 'node'), :hostname => "node1")
 #   r << ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.1.1", netmask: "255.255.255.0", ip_type: "ipv4")
 #   r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node1:if0", mac: "00-03-1d-0d-4b-96", node: n, ip: ip1)
 #   r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node1:if1", mac: "00-03-1d-0d-4b-97", node: n)
 #   r << ip2 = OMF::SFA::Resource::Ip.create(address: "10.0.0.101", netmask: "255.255.255.0", ip_type: "ipv4")
 #   r << cmc = OMF::SFA::Resource::ChasisManagerCard.create(name: "node1:cm", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
-  r << n1 = OMF::SFA::Resource::Node.create(:name => "node120", :urn => OMF::SFA::Resource::GURN.create("node120", :type => 'node'), :hostname => "node120", :hardware_type => 'PC_Icarus')
+  r << n1 = OMF::SFA::Resource::Node.create(:name => "node120", :urn => OMF::SFA::Resource::GURN.create("node120", :type => 'node'), :hostname => "node120", :hardware_type => 'PC_Grid')
   r << ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.1.120", netmask: "255.255.255.0", ip_type: "ipv4")
   r << ifr1 = OMF::SFA::Resource::Interface.create(role: "control", name: "node120:if0", mac: "00-03-1d-0d-4b-96", component: n1, ip: ip1)
   r << ifr2 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-4b-97", component: n1)
@@ -92,7 +92,7 @@ task :loadTestDB => [:autoMigrate] do
   n1.cmc = cmc
   n1.leases << lease
 
-  r << n2 = OMF::SFA::Resource::Node.create(:name => "node121", :urn => OMF::SFA::Resource::GURN.create("node121", :type => 'node'), :hostname => "node121", :hardware_type => 'PC_Grid')
+  r << n2 = OMF::SFA::Resource::Node.create(:name => "node121", :urn => OMF::SFA::Resource::GURN.create("node121", :type => 'node'), :hostname => "node121", :hardware_type => 'PC_Icarus')
   r << ip3 = OMF::SFA::Resource::Ip.create(address: "10.0.1.121", netmask: "255.255.255.0", ip_type: "ipv4")
   r << ifr3 = OMF::SFA::Resource::Interface.create(role: "control", name: "node121:if0", mac: "00-03-1d-0d-40-98", component: n2, ip: ip3)
   r << ifr4 = OMF::SFA::Resource::Interface.create(role: "experimental", name: "node120:if1", mac: "00-03-1d-0d-40-99", component: n2)
