@@ -137,6 +137,7 @@ module OMF::SFA::AM
     # @return [Boolean] true if it is available, false if it is not
     #
     def resource_available?(resource, valid_from, valid_until)
+      return resource.available unless resource.exclusive
       resource.leases.each do |l|
         if (valid_from.utc >= l.valid_until.utc || valid_until.utc < l.valid_from.utc)
           next
@@ -152,10 +153,10 @@ module OMF::SFA::AM
     # @param [Hash] a hash containing the query.
     # @return [Hash] a 
     #
-    def resolve_query(msg, am_manager, authorizer)
-      debug "resolve_query: msg: #{msg}"
+    def resolve_query(query, am_manager, authorizer)
+      debug "resolve_query: #{query}"
 
-      @@mapping_hook.resolve(msg, am_manager, authorizer)
+      @@mapping_hook.resolve(query, am_manager, authorizer)
     end
 
     # It returns the default account, normally used for admin account.

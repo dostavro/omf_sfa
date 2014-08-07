@@ -35,15 +35,15 @@ class MappingSubmodule
       resolve_valid_until(res)
 
       if res[:exclusive].nil? && query[:resources].first[:exclusive] #if exclusive is nil and at least one exclusive is given.
-        resolve_exclusive(res, query[:resources])
+        resolve_exclusive(res, query[:resources], am_manager, authorizer)
       elsif res[:exclusive].nil?
-        resolve_exclusive(res)
+        resolve_exclusive(res, am_manager, authorizer)
       end
 
       if res[:domain].nil? && query[:resources].first[:domain] #if domain is nil and at least one domain is given.
-        resolve_domain(res, query[:resources])
+        resolve_domain(res, query[:resources], am_manager, authorizer)
       elsif res[:domain].nil?
-        resolve_domain(res)
+        resolve_domain(res, am_manager, authorizer)
       end
 
       resolve_resource(res, query[:resources], am_manager, authorizer)
@@ -88,8 +88,9 @@ class MappingSubmodule
     # @param [Hash] the resources of the query
     # @return [String] the resolved valid until
     #
-    def resolve_exclusive(resource, resources = nil)
+    def resolve_exclusive(resource, resources = nil, am_manager, authorizer)
       puts "resolve_exclusive: resource: #{resource}, resources: #{resources.inspect}"
+      return resource[:exclusive] = true unless resource[:type] == 'Node'
       unless resources.nil?
         resources.each do |res|
           if res[:exclusive] && resource[:type] == res[:type] # we might need to change res[:type] to res[:resource_type] in the future
@@ -98,8 +99,26 @@ class MappingSubmodule
           end
         end
       end
+      all_resources = OMF::SFA::Resource::OResource.all({type: resource[:type]})
+      all_excl_res = all_resources.select {|res| !res.exclusive.nil? && res.exclusive}
 
-      resource[:exclusive] = true
+      av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {}, resource[:valid_from], resource[:valid_until], authorizer)
+      
+      av_excl_res = av_resources.select {|res| res.exclusive}
+      excl_percent = all_excl_res.size == 0 ? 0 : av_excl_res.size / all_excl_res.size
+
+      av_non_excl_res = av_resources.select {|res| !res.exclusive.nil? && !res.exclusive}
+      cpu_sum = 0
+      ram_sum = 0
+      av_non_excl_res.each do |res|
+        cpu_sum += res.available_cpu
+        ram_sum += res.available_ram
+      end
+      cpu_percent = av_non_excl_res.size == 0 ? 0 : cpu_sum / av_non_excl_res.size
+      ram_percent = av_non_excl_res.size == 0 ? 0 : ram_sum / av_non_excl_res.size
+      non_excl_percent = (cpu_percent + ram_percent) / 2
+
+      resource[:exclusive] = excl_percent > non_excl_percent ? true : false
     end
 
     # Resolves the domain for a specific resource in the query and adds it to the resource
@@ -110,7 +129,7 @@ class MappingSubmodule
     # @return [String] the resolved domain
     # @raise [OMF::SFA::AM::UnknownResourceException] if no available resources match the query
     #
-    def resolve_domain(resource, resources = nil)
+    def resolve_domain(resource, resources = nil, am_manager, authorizer)
       puts "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
       unless resources.nil?
         resources.each do |res|
@@ -122,9 +141,9 @@ class MappingSubmodule
       end
 
       domains = {}
-      resources = OMF::SFA::Resource::OResource.all({type: resource[:type]})
+      resources = am_manager.find_all_available_resources({type: resource[:type]}, {exclusive: resource[:exclusive]}, resource[:valid_from], resource[:valid_until], authorizer)
 
-      resources = resources.select { |res| res[:exclusive] == resource[:exclusive] } if resource[:exclusive]
+      # resources = resources.select { |res| res[:exclusive] == resource[:exclusive] } if resource[:exclusive]
 
       resources.each do |res|
         if res.domain
