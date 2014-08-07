@@ -176,7 +176,7 @@ module OMF::SFA::AM::Rest
     end
 
     def resource_to_json(resource, path, opts, already_described = {})
-      debug "resource_to_json: resource: #{resource}, path: #{path}"
+      debug "resource_to_json: resource: #{resource.inspect}, path: #{path}"
       if resource.kind_of? Enumerable
         res = []
         resource.each do |r|
@@ -241,6 +241,7 @@ module OMF::SFA::AM::Rest
     # @raise [UnknownResourceException] if no resource can be created
     #
     def create_new_resource(resource_descr, type_to_create, authorizer)
+      debug "create_new_resource: resource_descr: #{resource_descr}, type_to_create: #{type_to_create}"
       authorizer.can_create_resource?(resource_descr, type_to_create)
       descr = {}
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
@@ -251,25 +252,33 @@ module OMF::SFA::AM::Rest
         raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
       end
 
-      resource_descr.each do |key, value|
-        # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
-        if value.kind_of? Array
-          value.each_with_index do |v, i|
-            if v.kind_of? Hash
-              # debug "Array: #{v.inspect}"
-              model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-              resource_descr[key][i] = (k = eval("#{model}").first(v)) ? k : v
+      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
+        resource_descr.each do |key, value|
+          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          if value.kind_of? Array # this will be components
+            value.each_with_index do |v, i|
+              if v.kind_of? Hash
+                # debug "Array: #{v.inspect}"
+                model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+                if k = eval("#{model}").first(v)
+                  resource_descr[key][i] = k 
+                else
+                  resource_descr[key].delete_at(i)
+                  i -= 1 # just ignore the resource
+                end
+              end
+            end
+          elsif value.kind_of? Hash #this will be account
+            # debug "Hash: #{value.inspect}"
+            model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+            if k = eval("#{model}").first(value)
+              resource_descr[key] = k 
+            else
+              resource_descr.delete!(key)
             end
           end
-        elsif value.kind_of? Hash
-          # debug "Hash: #{value.inspect}"
-          model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-          resource_descr[key] = (k = eval("#{model}").first(value)) ? k : value
         end
-      end
 
-      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
-        
         res_descr = {name: resource_descr[:name]}
         if comps = resource_descr[:components]
           resource_descr.tap { |hs| hs.delete(:components) }
@@ -287,6 +296,35 @@ module OMF::SFA::AM::Rest
           @scheduler.lease_component(resource, c)
         end
       else
+        resource_descr.each do |key, value|
+          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          if value.kind_of? Array
+            value.each_with_index do |v, i|
+              if v.kind_of? Hash
+                # debug "Array: #{v.inspect}"
+                begin
+                  k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+                  raise NameError if k.nil?
+                  resource_descr[key][i] = k
+                rescue NameError => nex
+                  model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+                  resource_descr[key][i] = (k = eval("OMF::SFA::Resource::#{model}").first(v)) ? k : v
+                end
+              end
+            end
+          elsif value.kind_of? Hash
+            # debug "Hash: #{key.inspect}: #{value.inspect}"
+            begin
+              k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+              raise NameError if k.nil?
+              resource_descr[key] = k
+            rescue NameError => nex
+              model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+              resource_descr[key] = (k = eval("OMF::SFA::Resource::#{model}").first(value)) ? k : value
+            end
+          end
+        end
+
         resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
         @am_manager.manage_resource(resource)
       end
