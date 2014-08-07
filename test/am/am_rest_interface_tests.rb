@@ -145,6 +145,137 @@ describe ResourceHandler do
       authorizer.verify
     end
 
+    it 'can create a new resource which contains a complex Hash resource xxx' do 
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      2.times {opts[:req].expect(:path, "/resources/nodes")}
+      opts[:req].expect(:body, "{\"name\":\"n1\",\"cpu\":{\"name\":\"cpu1\"}}")
+      2.times {opts[:req].expect(:content_type, 'application/json')}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_create_resource?, true, [Object, Object])
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_post('nodes', opts)
+      
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      channel = JSON.parse(json)["resource_response"]["resource"]
+      channel.must_be_instance_of(Hash)
+      channel["name"].must_equal("n1")
+
+      # check if it is in the db
+      c = OMF::SFA::Resource::Node.first
+      c.must_be_instance_of(OMF::SFA::Resource::Node)
+      c.name.must_equal('n1')
+      c.cpu.name.must_equal('cpu1')
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
+    it 'can create a new resource which contains a complex Hash resource that already exists' do 
+      c = OMF::SFA::Resource::Cpu.create({:name => 'a1'})
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+
+      2.times {opts[:req].expect(:path, "/resources/nodes")}
+      opts[:req].expect(:body, "{\"name\":\"n1\",\"cpu\":{\"name\":\"#{c.name}\"}}")
+      2.times {opts[:req].expect(:content_type, 'application/json')}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_create_resource?, true, [Object, Object])
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_post('nodes', opts)
+      
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      channel = JSON.parse(json)["resource_response"]["resource"]
+      channel.must_be_instance_of(Hash)
+      channel["name"].must_equal("n1")
+
+      # check if it is in the db
+      c = OMF::SFA::Resource::Node.first
+      c.must_be_instance_of(OMF::SFA::Resource::Node)
+      c.name.must_equal('n1')
+      c.cpu.name.must_equal('a1')
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
+    it 'can create a new resource which contains a complex Array resource' do 
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      2.times {opts[:req].expect(:path, "/resources/nodes")}
+      opts[:req].expect(:body, "{\"name\":\"n1\",\"interfaces\":[{\"name\":\"n1:if0\"}]}")
+      2.times {opts[:req].expect(:content_type, 'application/json')}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_create_resource?, true, [Object, Object])
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_post('nodes', opts)
+      
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      channel = JSON.parse(json)["resource_response"]["resource"]
+      channel.must_be_instance_of(Hash)
+      channel["name"].must_equal("n1")
+
+      # check if it is in the db
+      c = OMF::SFA::Resource::Node.first
+      c.must_be_instance_of(OMF::SFA::Resource::Node)
+      c.name.must_equal('n1')
+      c.interfaces.first.name.must_equal('n1:if0')
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
+    it 'can create a new resource which contains a complex Array resource that refers to already existing resources' do 
+      i = OMF::SFA::Resource::Interface.create({:name => 'i1'})
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      2.times {opts[:req].expect(:path, "/resources/nodes")}
+      opts[:req].expect(:body, "{\"name\":\"n1\",\"interfaces\":[{\"name\":\"#{i.name}\"}]}")
+      2.times {opts[:req].expect(:content_type, 'application/json')}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_create_resource?, true, [Object, Object])
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_post('nodes', opts)
+      
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      channel = JSON.parse(json)["resource_response"]["resource"]
+      channel.must_be_instance_of(Hash)
+      channel["name"].must_equal("n1")
+
+      # check if it is in the db
+      n = OMF::SFA::Resource::Node.first
+      n.must_be_instance_of(OMF::SFA::Resource::Node)
+      n.name.must_equal('n1')
+      n.interfaces.first.name.must_equal(i.name)
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
     it 'can update a resource' do 
       c = OMF::SFA::Resource::Channel.create({:name => '1', :frequency => '2.412GHz'})
       opts = {}
@@ -325,6 +456,55 @@ describe ResourceHandler do
       authorizer.verify
     end
 
+    it 'wont lease a component that does not exist while creating a new lease xxx' do 
+      r = OMF::SFA::Resource::Node.create({:name => 'r1'})
+      manager.manage_resource(r)
+      a = OMF::SFA::Resource::Account.create(:name => 'account1')
+      time1 = "2014-06-24 18:00:00 +0300"
+      time2 = "2014-06-24 19:00:00 +0300"
+
+      l_json = "{ \"name\": \"l1\", \"valid_from\": \"#{time1}\", \"valid_until\": \"#{time2}\", \"account\":{\"name\": \"account1\"}, \"components\":[{\"name\": \"r1\"},{\"name\":\"r2\"}]}"
+
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      2.times {opts[:req].expect(:path, "/resources/leases")}
+      opts[:req].expect(:body, l_json)
+      2.times {opts[:req].expect(:content_type, 'application/json')}
+
+      authorizer = MiniTest::Mock.new
+      authorizer.expect(:can_create_resource?, true, [Object, Object])
+      authorizer.expect(:account=, nil, [a])
+      2.times {authorizer.expect(:account, a)}
+      Thread.current["authenticator"] = authorizer
+
+      type, json = rest.on_post('leases', opts)
+      
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      lease = JSON.parse(json)["resource_response"]["resource"]
+      lease.must_be_instance_of(Hash)
+      lease["name"].must_equal("l1")
+      lease["account"]["name"].must_equal("account1")
+      
+      # check if it is in the db
+      l = OMF::SFA::Resource::Lease.first
+      l.name.must_equal("l1")
+      l.components.first.name.must_equal("r1")
+      l.valid_from.must_be_instance_of(Time)
+      l.valid_from.must_equal(Time.parse(time1))
+      l.valid_until.must_be_instance_of(Time)
+      l.valid_until.must_equal(Time.parse(time2))
+
+      l = OMF::SFA::Resource::Lease.all
+      l.size.must_equal(1)
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
     it 'can update a lease' do 
       r = OMF::SFA::Resource::Node.create({:name => 'r1'})
       manager.manage_resource(r)
@@ -407,5 +587,5 @@ describe ResourceHandler do
       opts[:req].verify
       authorizer.verify
     end
-  end 
+  end
 end
