@@ -30,10 +30,14 @@ am_liaison = OMF::SFA::AM::AMLiaison.new
 am_mgr.liaison = am_liaison
 am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opts[:xmpp]})
 
+
+use Rack::Session::Pool
+
 require 'omf-sfa/am/am-rest/session_authenticator'
 use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
           :login_url => (REQUIRE_LOGIN ? '/login' : nil),
-          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets']
+          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
+          :am_manager => am_mgr
 
 
 map RPC_URL do

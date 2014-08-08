@@ -80,7 +80,7 @@ module OMF::SFA::AM::Rest
     end
 
     def show_accounts(opts)
-      authenticator = Thread.current["authenticator"]
+      authenticator = opts[:req].session[:authorizer]
       prefix = about = opts[:req].path
       accounts = @am_manager.find_all_accounts(authenticator).collect do |a|
         {
@@ -127,7 +127,7 @@ module OMF::SFA::AM::Rest
           fopts = {:name => account_id}
         end
       end
-      authenticator = Thread.current["authenticator"]
+      authenticator = opts[:req].session[:authorizer]
       account = @am_manager.find_account(fopts, authenticator)
     end
   end

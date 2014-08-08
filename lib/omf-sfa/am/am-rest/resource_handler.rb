@@ -26,7 +26,7 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the requested resource.
     def on_get(resource_uri, opts)
       debug "on_get: #{resource_uri}"
-      authenticator = Thread.current["authenticator"]
+      authenticator = opts[:req].session[:authorizer]
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
         descr = {}
@@ -105,7 +105,7 @@ module OMF::SFA::AM::Rest
     def update_resource(resource_uri, clean_state, opts)
       body, format = parse_body(opts)
       resource_type, resource_params = parse_uri(resource_uri, opts)
-      authenticator = Thread.current["authenticator"]
+      authenticator = opts[:req].session[:authorizer]
       case format
       # when :empty
         # # do nothing
@@ -132,7 +132,7 @@ module OMF::SFA::AM::Rest
     def delete_resource(resource_uri, opts)
       body, format = parse_body(opts)
       resource_type, resource_params = parse_uri(resource_uri, opts)
-      authenticator = Thread.current["authenticator"]
+      authenticator = opts[:req].session[:authorizer]
       release_resource(body, resource_type, authenticator)
     end
 
@@ -205,6 +205,7 @@ module OMF::SFA::AM::Rest
 
     def parse_uri(resource_uri, opts)
       params = opts[:req].params
+      params.delete("account")
 
       case resource_uri
       when "nodes"

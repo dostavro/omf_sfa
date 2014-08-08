@@ -16,9 +16,11 @@ module Thin
       if OpenSSL::SSL::SSLContext::DEFAULT_CERT_STORE.verify(cert) || @intermediate_certs.verify(cert)
         #debug("Verified:\n#{cert}")
         @intermediate_certs.add_cert(cert)
+        @authenticated = true
         return true
       else
         warn("Non valid user cert:\n#{cert}")
+        @authenticated = false
         return false
       end
     rescue OpenSSL::X509::StoreError => e
@@ -30,12 +32,13 @@ module Thin
       end
     end
 
-    #def ssl_handshake_completed
-    #  puts self.class
-    #  puts @app.class
-    #  puts "=================="
-    #  puts @backend.class
-    #end
+    def ssl_handshake_completed
+      request.env['rack.authenticated'] = true if @authenticated
+      # puts self.class
+      # puts @app.class
+      # puts "=================="
+      # puts @backend.class
+    end
   end
 end
 
