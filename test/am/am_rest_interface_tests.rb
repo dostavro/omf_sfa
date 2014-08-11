@@ -90,14 +90,14 @@ describe ResourceHandler do
     it 'can list resources' do 
       r = OMF::SFA::Resource::Node.create({:name => 'r1', :account => scheduler.get_nil_account})
 
-      opts = {}
-      opts[:req] = MiniTest::Mock.new
-      opts[:req].expect(:params, {})
-      4.times {opts[:req].expect(:path, "/resources/nodes")}
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_view_resource?, true, [Object])
-      Thread.current["authenticator"] = authorizer
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {})
+      2.times {opts[:req].expect(:session, {authorizer: authorizer})}
+      4.times {opts[:req].expect(:path, "/resources/nodes")}
 
       type, json = rest.on_get('nodes', opts)
       type.must_be_instance_of(String)
@@ -113,6 +113,40 @@ describe ResourceHandler do
       authorizer.verify
     end
 
+    it 'can list accounts based on user param' do
+      u = OMF::SFA::Resource::User.create({:name => 'u1', :account => scheduler.get_nil_account})
+      a = OMF::SFA::Resource::Account.create({:name => 'a1', :account => scheduler.get_nil_account})
+      p = OMF::SFA::Resource::Project.create({:name => 'p1',:account => a})
+      p.add_user u
+      a.save
+      p.save
+      u.save
+
+      opts = {}
+      opts[:req] = MiniTest::Mock.new
+      opts[:req].expect(:params, {user: "u1"})
+      4.times {opts[:req].expect(:path, "/resources/accounts")}
+
+      authorizer = MiniTest::Mock.new
+      # 5.times {authorizer.expect(:can_view_resource?, true, [Object])}
+      1.times {authorizer.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])}
+      2.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+      type, json = rest.on_get('accounts', opts)
+      type.must_be_instance_of(String)
+      type.must_equal("application/json")
+      json.must_be_instance_of(String)
+
+      accounts = JSON.parse(json)["resource_response"]["resources"]
+      accounts.must_be_instance_of(Array)
+      account = accounts.first
+      account["name"].must_equal("a1")
+
+      opts[:req].verify
+      authorizer.verify
+    end
+
+
     it 'can create a new resource' do 
       opts = {}
       opts[:req] = MiniTest::Mock.new
@@ -123,7 +157,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_create_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('channels', opts)
       
@@ -145,7 +179,7 @@ describe ResourceHandler do
       authorizer.verify
     end
 
-    it 'can create a new resource which contains a complex Hash resource xxx' do 
+    it 'can create a new resource which contains a complex Hash resource' do 
       opts = {}
       opts[:req] = MiniTest::Mock.new
       opts[:req].expect(:params, {})
@@ -155,7 +189,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_create_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('nodes', opts)
       
@@ -189,7 +223,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_create_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('nodes', opts)
       
@@ -221,7 +255,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_create_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('nodes', opts)
       
@@ -254,7 +288,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_create_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      Thread.current["authenticator"] = 1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('nodes', opts)
       
@@ -287,7 +321,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_modify_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_put('channels', opts)
       
@@ -320,7 +354,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_release_resource?, true, [Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_delete('nodes', opts)
       
@@ -356,7 +390,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_view_lease?, true, [Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_get('leases', opts)
       type.must_be_instance_of(String)
@@ -392,7 +426,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_view_lease?, true, [Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_get('leases', opts)
       type.must_be_instance_of(String)
@@ -430,7 +464,7 @@ describe ResourceHandler do
       authorizer.expect(:can_create_resource?, true, [Object, Object])
       authorizer.expect(:account=, nil, [a])
       2.times {authorizer.expect(:account, a)}
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('leases', opts)
       
@@ -456,7 +490,7 @@ describe ResourceHandler do
       authorizer.verify
     end
 
-    it 'wont lease a component that does not exist while creating a new lease xxx' do 
+    it 'wont lease a component that does not exist while creating a new lease' do 
       r = OMF::SFA::Resource::Node.create({:name => 'r1'})
       manager.manage_resource(r)
       a = OMF::SFA::Resource::Account.create(:name => 'account1')
@@ -476,7 +510,7 @@ describe ResourceHandler do
       authorizer.expect(:can_create_resource?, true, [Object, Object])
       authorizer.expect(:account=, nil, [a])
       2.times {authorizer.expect(:account, a)}
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_post('leases', opts)
       
@@ -523,7 +557,7 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_modify_resource?, true, [Object, Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_put('leases', opts)
       
@@ -569,7 +603,7 @@ describe ResourceHandler do
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_release_lease?, true, [Object])
       authorizer.expect(:can_release_resource?, true, [Object])
-      Thread.current["authenticator"] = authorizer
+      1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_delete('leases', opts)
       

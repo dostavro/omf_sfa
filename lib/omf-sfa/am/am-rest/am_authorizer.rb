@@ -60,9 +60,16 @@ module OMF::SFA::AM::Rest
 
     def can_view_account?(account)
       debug "Check permission 'can_view_account?' (#{account == @account}, #{@permissions[:can_view_account?]})"
-      unless (account == @account && @permissions[:can_view_account?]) || @account == @am_manager._get_nil_account
+      return true if @account == @am_manager._get_nil_account
+
+      unless @permissions[:can_view_account?]
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+
+      @user.projects.each do |proj|
+        return true if proj.account == account
+      end
+      raise OMF::SFA::AM::InsufficientPrivilegesException.new
     end
 
     def can_renew_account?(account, expiration_time)
@@ -70,6 +77,7 @@ module OMF::SFA::AM::Rest
       unless (account == @account && @permissions[:can_renew_account?]) || @account == @am_manager._get_nil_account
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
     end
 
     def can_close_account?(account)
@@ -77,6 +85,7 @@ module OMF::SFA::AM::Rest
       unless (account == @account && @permissions[:can_close_account?]) || @account == @am_manager._get_nil_account
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
     end
 
     ##### RESOURCE
@@ -87,6 +96,7 @@ module OMF::SFA::AM::Rest
       unless @account == @am_manager._get_nil_account || (type == 'lease' && @permissions[:can_create_resource]) 
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
     end
 
     ##### LEASE
@@ -96,6 +106,7 @@ module OMF::SFA::AM::Rest
       unless (@account == lease.account && @permissions[:can_modify_lease?]) || @account == @am_manager._get_nil_account
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
     end
 
     def can_release_lease?(lease)
@@ -103,6 +114,7 @@ module OMF::SFA::AM::Rest
       unless (@account == lease.account && @permissions[:can_release_lease?]) || @account == @am_manager._get_nil_account
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
     end
 
     protected
