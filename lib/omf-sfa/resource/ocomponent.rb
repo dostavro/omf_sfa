@@ -97,6 +97,7 @@ module OMF::SFA::Resource
           lease[:valid_from] = l.valid_from.to_s
           lease[:valid_until] = l.valid_until.to_s
           lease[:status] = l.status
+          lease[:account] = l.account.to_hash_brief
           {:lease => lease}
         end
       end
