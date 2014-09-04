@@ -65,9 +65,8 @@ module OMF::SFA::AM::Rest
       unless @permissions[:can_view_account?]
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
-
-      @user.projects.each do |proj|
-        return true if proj.account == account
+      @user.get_all_accounts.each do |acc|
+        return true if acc == account
       end
       raise OMF::SFA::AM::InsufficientPrivilegesException.new
     end
@@ -93,7 +92,7 @@ module OMF::SFA::AM::Rest
     def can_create_resource?(resource, type)
       type = type.downcase
       debug "Check permission 'can_create_resource?' (#{type == 'lease'}, #{@permissions[:can_create_resource?]})"
-      unless @account == @am_manager._get_nil_account || (type == 'lease' && @permissions[:can_create_resource]) 
+      unless @account == @am_manager._get_nil_account || (type == 'lease' && @permissions[:can_create_resource?]) 
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
@@ -120,10 +119,11 @@ module OMF::SFA::AM::Rest
     protected
 
     def initialize(account, user, am_manager)
+      debug "Initialize for account: #{account} and user: #{user.inspect})"
       @user = user
       @am_manager = am_manager
 
-      if account.nil?
+      if @user.nil?
         permissions = {
           can_create_account?:   false,
           can_view_account?:     false,
@@ -142,18 +142,20 @@ module OMF::SFA::AM::Rest
         super(permissions)
       else
         super()
-        @account = am_manager.find_account({name: account}, self)
+        # @account = am_manager.find_account({name: account}, self) if account
+        @account = OMF::SFA::Resource::Account.first({name: account}) if account
+        @account = @user.get_first_account if @account.nil?
         if @account.closed?
           raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{account}' is closed.")
         end
 
         @project = @account.project
-        unless @project.users.include?(@user)
+        unless @user.has_nil_account?(am_manager) || @project.users.include?(@user)
           raise OMF::SFA::AM::InsufficientPrivilegesException.new("The user '#{@user.name}' does not belong to the account '#{account}'")
         end
 
         if @account == am_manager._get_nil_account
-          @permissions.each { |p| p = true } if @account == am_manager._get_nil_account
+          @permissions.each { |p| p = true } 
         else
           @permissions = {
             can_create_account?:   false,
