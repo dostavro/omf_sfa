@@ -24,5 +24,27 @@ module OMF::SFA::Resource
       self.save
     end
 
+    def get_all_accounts
+      accounts = []
+
+      self.projects.each do |proj|
+        accounts <<  proj.account unless proj.account.nil?
+      end
+      accounts
+    end
+
+    def get_first_account
+      ac = OMF::SFA::Resource::Account.first({name: self.name})
+      return ac if ac && ac.project.users.first == self
+      ac = self.projects.first.account
+    end
+
+    def has_nil_account?(am_manager)
+      self.get_all_accounts.each do |acc|
+        return true if acc == am_manager.get_scheduler.get_nil_account
+      end
+      false
+    end
+
   end # User
 end # module
