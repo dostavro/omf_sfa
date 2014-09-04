@@ -35,7 +35,7 @@ module OMF::SFA::AM::Rest
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          if resource_uri == 'accounts' && descr["user"]
+          if resource_uri == 'accounts'
             resource = @am_manager.find_all_accounts(authenticator)
           elsif resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
@@ -67,7 +67,7 @@ module OMF::SFA::AM::Rest
           resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
         end
       end
-      raise UnknownResourceException, "No resources matching the description." if resource.empty?
+      raise UnknownResourceException, "No resources matching the request." if resource.empty?
       show_resource(resource, opts)
     end
 
@@ -197,7 +197,7 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 4))
+          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
