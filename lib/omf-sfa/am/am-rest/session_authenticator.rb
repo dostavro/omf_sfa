@@ -97,6 +97,7 @@ module OMF::SFA::AM::Rest
         content_type = req.content_type
         raise UnsupportedBodyFormatException.new unless content_type == 'application/json'
 
+        (body = body.string) if body.is_a? StringIO
         jb = JSON.parse(body)
         req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], jb['account']['name'], @opts[:am_manager])
       end
