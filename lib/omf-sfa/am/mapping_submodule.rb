@@ -47,6 +47,8 @@ class MappingSubmodule
       end
 
       resolve_resource(res, query[:resources], am_manager, authorizer)
+      res[:valid_from] = res[:valid_from].to_s
+      res[:valid_until] = res[:valid_until].to_s
     end
     puts "Map resolve response: #{query}"
     query
@@ -61,8 +63,8 @@ class MappingSubmodule
     # 
     def resolve_valid_from(resource)
       puts "resolve_valid_from: resource: #{resource}"
-      return resource[:valid_from] = Time.parse(resource[:valid_from]).utc.to_s if resource[:valid_from]
-      resource[:valid_from] = Time.now.utc.to_s 
+      return resource[:valid_from] = Time.parse(resource[:valid_from]).utc if resource[:valid_from]
+      resource[:valid_from] = Time.now.utc
     end
 
     # Resolves the valid until for a specific resource in the query and adds it to the resource
@@ -73,11 +75,11 @@ class MappingSubmodule
     #
     def resolve_valid_until(resource)
       puts "resolve_valid_until: resource: #{resource}"
-      return resource[:valid_until] = Time.parse(resource[:valid_until]).utc.to_s if resource[:valid_until]
+      return resource[:valid_until] = Time.parse(resource[:valid_until]).utc if resource[:valid_until]
       if duration = resource.delete(:duration)
-        resource[:valid_until] = (Time.parse(resource[:valid_from]) + duration).utc.to_s
+        resource[:valid_until] = (resource[:valid_from] + duration).utc
       else
-        resource[:valid_until] = (Time.parse(resource[:valid_from]) + DEFAULT_DURATION).utc.to_s
+        resource[:valid_until] = (resource[:valid_from] + DEFAULT_DURATION).utc
       end
     end
 
