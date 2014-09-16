@@ -1,14 +1,14 @@
 
 require 'omf-sfa/resource/ocomponent'
 require 'omf-sfa/resource/interface'
+require 'omf-sfa/resource/sliver_type'
 
 module OMF::SFA::Resource
 
   class Node < OComponent
 
     oproperty :hardware_type, String, :required => false
-    #oproperty :available, String, :default => true
-    #oproperty :sliver_type, String, :required => false
+    oproperty :sliver_type, :SliverType, :required => false
     oproperty :interfaces, :Interface, :functional => false
     oproperty :exclusive, String, :default => true
     oproperty :disk, String
@@ -18,12 +18,14 @@ module OMF::SFA::Resource
     oproperty :ram, String
     oproperty :ram_type, String
     oproperty :hd_capacity, String
+    oproperty :available_cpu, Integer, :required => false # percentage of available cpu
+    oproperty :available_ram, Integer, :required => false # percentage of available ram
     #belongs_to :sliver
 
     sfa_class 'node'
-    sfa :hardware_type, :inline => true, :has_many => true
+    sfa :hardware_type, :attr_value => 'name'
     sfa :available, :attr_value => 'now'  # <available now="true">
-    #sfa :sliver_type, :attr_value => 'name'
+    sfa :sliver_type, :inline => true
     sfa :interfaces, :inline => true, :has_many => true
     #sfa :client_id, :attribute => true
     sfa :exclusive, :attribute => true

@@ -1,5 +1,6 @@
 require 'omf-sfa/resource'
 require 'omf-sfa/am/am-rest/rest_handler'
+require 'omf-sfa/am/am_manager'
 
 module OMF::SFA::AM::Rest
 
@@ -33,13 +34,40 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          resource = @am_manager.find_all_resources(descr, authenticator)
+          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          if resource_uri == 'accounts'
+            resource = @am_manager.find_all_accounts(authenticator)
+          elsif resource_uri == 'leases'
+            resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
+          else
+            resource =  @am_manager.find_all_resources(descr, authenticator)
+          end
         else
+          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
-        resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
+        body, format = parse_body(opts)
+        debug "body: #{body.inspect}, format: #{format.inspect}"
+        unless body.empty?
+          if format == :json
+            begin
+              resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
+              debug "response: #{resource}, #{resource.class}"
+              return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
+            rescue OMF::SFA::AM::UnavailableResourceException
+              raise UnknownResourceException, "There are no available resources matching the request."
+            rescue MappingSubmodule::UnknownTypeException
+              raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
+            end
+          else
+            raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
+          end
+        else
+          resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
+        end
       end
+      raise UnknownResourceException, "No resources matching the request." if resource.empty?
       show_resource(resource, opts)
     end
 
@@ -154,7 +182,7 @@ module OMF::SFA::AM::Rest
     end
 
     def resource_to_json(resource, path, opts, already_described = {})
-      debug "resource_to_json: resource: #{resource}, path: #{path}"
+      debug "resource_to_json: resource: #{resource.inspect}, path: #{path}"
       if resource.kind_of? Enumerable
         res = []
         resource.each do |r|
@@ -200,6 +228,10 @@ module OMF::SFA::AM::Rest
         type = "LteBase"
       when "openflow"
         type = "OpenflowSwitch"
+      when "accounts"
+        type = "Account"
+      when "users"
+        type = "User"
       else
         #TODO find the type automatically through eval and raise exception if not possible
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
@@ -216,6 +248,7 @@ module OMF::SFA::AM::Rest
     # @raise [UnknownResourceException] if no resource can be created
     #
     def create_new_resource(resource_descr, type_to_create, authorizer)
+      debug "create_new_resource: resource_descr: #{resource_descr}, type_to_create: #{type_to_create}"
       authorizer.can_create_resource?(resource_descr, type_to_create)
       descr = {}
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
@@ -226,25 +259,33 @@ module OMF::SFA::AM::Rest
         raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
       end
 
-      resource_descr.each do |key, value|
-        # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
-        if value.kind_of? Array
-          value.each_with_index do |v, i|
-            if v.kind_of? Hash
-              # debug "Array: #{v.inspect}"
-              model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-              resource_descr[key][i] = (k = eval("#{model}").first(v)) ? k : v
+      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
+        resource_descr.each do |key, value|
+          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          if value.kind_of? Array # this will be components
+            value.each_with_index do |v, i|
+              if v.kind_of? Hash
+                # debug "Array: #{v.inspect}"
+                model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+                if k = eval("#{model}").first(v)
+                  resource_descr[key][i] = k 
+                else
+                  resource_descr[key].delete_at(i)
+                  i -= 1 # just ignore the resource
+                end
+              end
+            end
+          elsif value.kind_of? Hash #this will be account
+            # debug "Hash: #{value.inspect}"
+            model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
+            if k = eval("#{model}").first(value)
+              resource_descr[key] = k 
+            else
+              resource_descr.delete!(key)
             end
           end
-        elsif value.kind_of? Hash
-          # debug "Hash: #{value.inspect}"
-          model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-          resource_descr[key] = (k = eval("#{model}").first(value)) ? k : value
         end
-      end
 
-      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
-        
         res_descr = {name: resource_descr[:name]}
         if comps = resource_descr[:components]
           resource_descr.tap { |hs| hs.delete(:components) }
@@ -262,6 +303,35 @@ module OMF::SFA::AM::Rest
           @scheduler.lease_component(resource, c)
         end
       else
+        resource_descr.each do |key, value|
+          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          if value.kind_of? Array
+            value.each_with_index do |v, i|
+              if v.kind_of? Hash
+                # debug "Array: #{v.inspect}"
+                begin
+                  k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+                  raise NameError if k.nil?
+                  resource_descr[key][i] = k
+                rescue NameError => nex
+                  model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+                  resource_descr[key][i] = (k = eval("OMF::SFA::Resource::#{model}").first(v)) ? k : v
+                end
+              end
+            end
+          elsif value.kind_of? Hash
+            # debug "Hash: #{key.inspect}: #{value.inspect}"
+            begin
+              k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+              raise NameError if k.nil?
+              resource_descr[key] = k
+            rescue NameError => nex
+              model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+              resource_descr[key] = (k = eval("OMF::SFA::Resource::#{model}").first(value)) ? k : value
+            end
+          end
+        end
+
         resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
         @am_manager.manage_resource(resource)
       end

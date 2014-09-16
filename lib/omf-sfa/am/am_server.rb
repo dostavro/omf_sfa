@@ -146,7 +146,7 @@ module OMF::SFA::AM
     end
 
     def init_am_manager(opts = {})
-      @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
+      @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new(opts))
       opts.merge!({am: {manager: @am_manager}})
     end
 
@@ -215,7 +215,12 @@ opts = {
   },
   :dm_db => "#{db_desc}",
   :dm_log => '/tmp/am_server-dm.log',
-  :rackup => File.dirname(__FILE__) + '/config.ru'
+  :rackup => File.dirname(__FILE__) + '/config.ru',
 }
+if @@config[:mapping_submodule]
+  opts[:mapping_submodule] = {}
+  opts[:mapping_submodule][:require] =  @@config[:mapping_submodule][:require]
+  opts[:mapping_submodule][:constructor] =  @@config[:mapping_submodule][:constructor]
+end
 OMF::SFA::AM::AMServer.new.run(opts)
 

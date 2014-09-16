@@ -1,4 +1,4 @@
-
+  
 require 'omf_common/lobject'
 require 'omf-sfa/resource'
 # require 'omf-sfa/resource/comp_group'
@@ -502,6 +502,59 @@ module OMF::SFA::AM
       end
       authorizer.can_view_resource?(resource)
       resource
+    end
+
+    # Find all resources matching the resource description that are not leased for the given timeslot.
+    # If it doesn't exist, or is not visible to requester
+    # throws +UnknownResourceException+.
+    #
+    # @param [Hash] description of resources
+    # @param [Hash] oproperties of resources
+    # @param [String, Time] beggining of the timeslot 
+    # @param [String, Time] ending of the timeslot
+    # @return [Array] All availlable resources
+    # @raise [UnknownResourceException] if no matching resource can be found
+    #
+    def find_all_available_resources(resource_descr = {}, oproperties = {}, valid_from, valid_until, authorizer)
+      debug "find_all_available_resources: descr: '#{resource_descr.inspect}', oprop: #{oproperties}, from: '#{valid_from}', until: '#{valid_until}'"
+      resource_descr[:account] = _get_nil_account if resource_descr[:account].nil?
+      all_resources = OMF::SFA::Resource::OResource.all(resource_descr)
+      
+      resources = filter_resources_with_oproperties(all_resources, oproperties)
+
+      resources = resources.select do |res|
+        authorizer.can_view_resource?(res)
+        @scheduler.resource_available?(res, valid_from, valid_until)
+      end
+
+      raise UnavailableResourceException if resources.empty?
+      resources
+    end
+
+    # Filters a set of resources using a set of oproperties.
+    #
+    # @param [Array] a set of resources
+    # @param [Hash] a set of oproperties
+    # @return [Array] a set of resources
+    #
+    def filter_resources_with_oproperties(resources, oproperties)
+      debug "filter_resources_with_oproperties: descr: '#{resources.inspect}', oprop: '#{oproperties.inspect}'"
+      response = []
+      unless oproperties.empty?
+        resources.each do |res|
+          failed = false
+          oproperties.each do |k, v|
+            if res.send(k.to_sym) != v
+              failed = true
+              break
+            end
+          end
+          response << res unless failed
+        end
+      else
+        return resources
+      end
+      response
     end
 
     # Find a resource which has been assigned to the authorizer's account.

@@ -56,7 +56,7 @@ module OMF::SFA::Resource
 
     def create_from_xml(modifier_el, opts)
       if modifier_el.children.length > 0
-        warn "'update_from_xml' not implememted '#{modifier_el}'"
+        warn "'create_from_xml' not implememted '#{modifier_el}'"
       end
     end
 
@@ -97,6 +97,7 @@ module OMF::SFA::Resource
           lease[:valid_from] = l.valid_from.to_s
           lease[:valid_until] = l.valid_until.to_s
           lease[:status] = l.status
+          lease[:account] = l.account.to_hash_brief
           {:lease => lease}
         end
       end

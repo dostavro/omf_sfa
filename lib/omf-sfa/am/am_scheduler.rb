@@ -7,6 +7,7 @@ require 'omf-sfa/am/am_liaison'
 require 'active_support/inflector'
 
 
+
 module OMF::SFA::AM
 
   extend OMF::SFA::AM
@@ -14,6 +15,8 @@ module OMF::SFA::AM
   # This class implements a default resource scheduler
   #
   class AMScheduler < OMF::Common::LObject
+
+    @@mapping_hook = nil
 
     # Create a resource of specific type given its description in a hash. If the type
     # or the resource is physical then we create a clone of itself and assign it to
@@ -82,7 +85,7 @@ module OMF::SFA::AM
         base.leases.each do |l|
           if (l.id == resource.leases.first.id)
             time = Time.now
-            if (l.valid_until <= time)
+            if (l.valid_until.utc <= time.utc)
               l.status = "past"
             else
               l.status = "cancelled"
@@ -109,11 +112,11 @@ module OMF::SFA::AM
 
       base = component.provided_by
       base.leases.each do |l|
-        if (lease.valid_from >= l.valid_until || lease.valid_until <= l.valid_from)
+        if (lease.valid_from.utc >= l.valid_until.utc || lease.valid_until.utc <= l.valid_from.utc)
           #all ok, do nothing
-        elsif (lease.valid_from <= l.valid_from && lease.valid_until > l.valid_from)#overlapping time
+        elsif (lease.valid_from.utc <= l.valid_from.utc && lease.valid_until.utc > l.valid_from.utc)#overlapping time
           raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
-        elsif (lease.valid_from >= l.valid_from && lease.valid_from <= l.valid_until)#overlapping time
+        elsif (lease.valid_from.utc >= l.valid_from.utc && lease.valid_from.utc <= l.valid_until.utc)#overlapping time
           raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
         end
       end
@@ -126,6 +129,36 @@ module OMF::SFA::AM
       return true
     end
 
+    # Check if a resource is available in a specific timeslot or not.
+    #
+    # @param [OMF::SFA::OResource] the resource
+    # @param [Time] the starting point of the timeslot
+    # @param [Time] the ending point of the timeslot
+    # @return [Boolean] true if it is available, false if it is not
+    #
+    def resource_available?(resource, valid_from, valid_until)
+      return resource.available unless resource.exclusive
+      resource.leases.each do |l|
+        if (valid_from.utc >= l.valid_until.utc || valid_until.utc < l.valid_from.utc)
+          next
+        else
+          return false
+        end
+      end
+      true
+    end
+
+    # Resolve an unbound query.
+    #
+    # @param [Hash] a hash containing the query.
+    # @return [Hash] a 
+    #
+    def resolve_query(query, am_manager, authorizer)
+      debug "resolve_query: #{query}"
+
+      @@mapping_hook.resolve(query, am_manager, authorizer)
+    end
+
     # It returns the default account, normally used for admin account.
     #
     # @return [Account] returns the default account object
@@ -134,8 +167,19 @@ module OMF::SFA::AM
       @nil_account
     end
 
-    def initialize()
+    def initialize(opts = {})
       @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
+      if (mopts = opts[:mapping_submodule]) && (opts[:mapping_submodule][:require]) && (opts[:mapping_submodule][:constructor])
+        require mopts[:require] if mopts[:require]
+        unless mconstructor = mopts[:constructor]
+          raise "Missing PDP provider declaration."
+        end
+        @@mapping_hook = eval(mconstructor).new(opts)
+      else
+        debug "Loading default Mapping Submodule."
+        require 'omf-sfa/am/mapping_submodule'
+        @@mapping_hook = MappingSubmodule.new(opts)
+      end
       #@am_liaison = OMF::SFA::AM::AMLiaison.new
     end
 

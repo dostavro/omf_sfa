@@ -66,6 +66,10 @@ module OMF::SFA::Resource
 
     belongs_to :account, :model => 'Account', :child_key  => [ :account_id ], :required => false
 
+    def self.get_oprops
+      @@oprops[self]
+    end
+
     # Override of the Class method 'first' of DataMapper such that we can search with oproperties
     def self.first(*args)
       class_props = @@oprops[self]
@@ -367,7 +371,6 @@ module OMF::SFA::Resource
       res
     end
 
-
     before :save do
       unless self.resource_type
         self.resource_type = self.class.to_s.split('::')[-1].downcase
@@ -477,7 +480,7 @@ module OMF::SFA::Resource
       name = self.name
       if  name && ! name.start_with?('_')
         h[:name] = self.name
-        h[:account] = self.account.to_hash_brief(opts) unless self.account.nil?
+        h[:account] = self.account.to_hash_brief(opts) unless self.account.nil? || self.is_a?(OMF::SFA::Resource::Account)
       end
       h[:type] = self.resource_type
       h
@@ -498,6 +501,7 @@ module OMF::SFA::Resource
         if op = @@oprops[klass]
           op.each do |k, v|
             k = k.to_sym
+            next if k == :provides
             unless (value = send(k)).nil?
               #puts "OPROPS_TO_HAHS(#{k}): #{value}::#{value.class}--#{oproperty_get(k)}"
               if value.is_a? OResource
