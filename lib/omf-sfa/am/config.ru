@@ -34,10 +34,6 @@ am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opt
 use Rack::Session::Pool
 
 require 'omf-sfa/am/am-rest/session_authenticator'
-use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
-          :login_url => (REQUIRE_LOGIN ? '/login' : nil),
-          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
-          :am_manager => am_mgr
 
 
 map RPC_URL do
@@ -53,12 +49,20 @@ map RPC_URL do
 end
 
 map '/slices' do
+  use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
+          :login_url => (REQUIRE_LOGIN ? '/login' : nil),
+          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
+          :am_manager => am_mgr
   require 'omf-sfa/am/am-rest/account_handler'
   run OMF::SFA::AM::Rest::AccountHandler.new(opts[:am][:manager], opts)
 end
 
 
 map "/resources" do
+  use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
+          :login_url => (REQUIRE_LOGIN ? '/login' : nil),
+          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
+          :am_manager => am_mgr
   require 'omf-sfa/am/am-rest/resource_handler'
   # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
   # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))

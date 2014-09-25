@@ -78,11 +78,14 @@ module OMF::SFA::AM
     def find_or_create_account(account_descr, authorizer)
       debug "find_or_create_account: '#{account_descr.inspect}'"
       begin
-        return find_account(account_descr, authorizer)
+        account = find_account(account_descr, authorizer)
+        raise ClosedAccountException unless account.active?
+        return account
       rescue UnavailableResourceException
+        authorizer.can_create_account?
+        account = OMF::SFA::Resource::Account.create(account_descr)
+      rescue ClosedAccountException
       end
-      authorizer.can_create_account?
-      account = OMF::SFA::Resource::Account.create(account_descr)
       # Ask the corresponding RC to create an account
       @liaison.create_account(account)
       # We have an 1-to-1 relationship between account and project for the moment
