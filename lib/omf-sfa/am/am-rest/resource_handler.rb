@@ -350,7 +350,7 @@ module OMF::SFA::AM::Rest
       authorizer.can_modify_resource?(resource_descr, type_to_create)
       descr = {}
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
-      descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+      descr.merge!({name: resource_descr[:name]}) if descr[:uuid].nil? && resource_descr.has_key?(:name)
       unless descr.empty?
         if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
           resource.update(resource_descr)
