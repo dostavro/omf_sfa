@@ -101,7 +101,7 @@ class MappingSubmodule
           end
         end
       end
-      all_resources = OMF::SFA::Resource::OResource.all({type: resource[:type]})
+      all_resources = am_manager.find_all_resources({type: resource[:type]}, authorizer)
       all_excl_res = all_resources.select {|res| !res.exclusive.nil? && res.exclusive}
 
       av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {}, resource[:valid_from], resource[:valid_until], authorizer)
