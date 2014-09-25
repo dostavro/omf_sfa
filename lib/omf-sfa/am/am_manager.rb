@@ -503,7 +503,10 @@ module OMF::SFA::AM
       unless resource
         raise UnknownResourceException.new "Resource '#{resource_descr.inspect}' is not available or doesn't exist"
       end
-      authorizer.can_view_resource?(resource)
+
+      resource.each do |res|
+        authorizer.can_view_resource?(res)
+      end
       resource
     end
 

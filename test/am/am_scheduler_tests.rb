@@ -268,7 +268,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -302,7 +302,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      6.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      8.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -340,7 +340,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      6.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      8.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -380,7 +380,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      6.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      8.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -401,7 +401,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -426,7 +426,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -451,7 +451,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      2.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -495,7 +495,7 @@ describe AMScheduler do
       ans[:resources][1][:exclusive].must_equal(true)
     end
 
-    it 'can resolve domain in unbound queries' do
+    it 'can resolve domain in unbound queries xxx' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", exclusive: true)
       n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2", exclusive: true)
@@ -511,7 +511,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      8.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      11.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -544,7 +544,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      10.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      13.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -577,7 +577,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      3.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      4.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 
@@ -625,7 +625,7 @@ describe AMScheduler do
         ]
       }
       authorizer = MiniTest::Mock.new
-      6.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      8.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
       
       manager = OMF::SFA::AM::AMManager.new(scheduler)
 

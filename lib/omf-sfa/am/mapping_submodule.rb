@@ -101,13 +101,13 @@ class MappingSubmodule
           end
         end
       end
-      all_resources = am_manager.find_all_resources({type: resource[:type]}, authorizer)
+      all_resources = am_manager.find_all_resources({type: resource[:type], account: am_manager._get_nil_account}, authorizer)
       all_excl_res = all_resources.select {|res| !res.exclusive.nil? && res.exclusive}
 
       av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {}, resource[:valid_from], resource[:valid_until], authorizer)
       
       av_excl_res = av_resources.select {|res| res.exclusive}
-      excl_percent = all_excl_res.size == 0 ? 0 : av_excl_res.size / all_excl_res.size
+      excl_percent = all_excl_res.size == 0 ? 0 : av_excl_res.size.to_f / all_excl_res.size.to_f
 
       av_non_excl_res = av_resources.select {|res| !res.exclusive.nil? && !res.exclusive}
       cpu_sum = 0
@@ -116,8 +116,8 @@ class MappingSubmodule
         cpu_sum += res.available_cpu
         ram_sum += res.available_ram
       end
-      cpu_percent = av_non_excl_res.size == 0 ? 0 : cpu_sum / av_non_excl_res.size
-      ram_percent = av_non_excl_res.size == 0 ? 0 : ram_sum / av_non_excl_res.size
+      cpu_percent = av_non_excl_res.size == 0 ? 0 : cpu_sum.to_f / av_non_excl_res.size.to_f
+      ram_percent = av_non_excl_res.size == 0 ? 0 : ram_sum.to_f / av_non_excl_res.size.to_f
       non_excl_percent = (cpu_percent + ram_percent) / 2
 
       resource[:exclusive] = excl_percent > non_excl_percent ? true : false
