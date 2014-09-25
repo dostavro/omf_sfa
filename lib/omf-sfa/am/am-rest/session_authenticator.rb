@@ -90,16 +90,20 @@ module OMF::SFA::AM::Rest
 
       if method == 'GET'
         req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], req.params["account"], @opts[:am_manager])
+      elsif method == 'OPTIONS'
+        #do nothing for OPTIONS      
       else
         body = req.body
-        raise EmptyBodyException.new unless body
+        raise EmptyBodyException.new if body.nil?
+        (body = body.string) if body.is_a? StringIO
+        raise EmptyBodyException.new if body.empty?
 
         content_type = req.content_type
         raise UnsupportedBodyFormatException.new unless content_type == 'application/json'
 
-        (body = body.string) if body.is_a? StringIO
         jb = JSON.parse(body)
-        req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], jb['account']['name'], @opts[:am_manager])
+        account = jb['account'] ? jb['account']['name'] : nil
+        req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], account, @opts[:am_manager])
       end
 
       status, headers, body = @app.call(env)
@@ -117,6 +121,26 @@ module OMF::SFA::AM::Rest
       # debug ex.backtrace.join("\n")
       
       return [401, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, PUT, POST, OPTIONS' }, JSON.pretty_generate(body)]
+    rescue EmptyBodyException => ex
+      body = {
+        :error => {
+          :reason => ex.to_s,
+        }
+      }
+      warn "ERROR: #{ex}"
+      # debug ex.backtrace.join("\n")
+      
+      return [400, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, PUT, POST, OPTIONS' }, JSON.pretty_generate(body)]
+    rescue UnsupportedBodyFormatException => ex
+      body = {
+        :error => {
+          :reason => ex.to_s,
+        }
+      }
+      warn "ERROR: #{ex}"
+      # debug ex.backtrace.join("\n")
+      
+      return [400, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, PUT, POST, OPTIONS' }, JSON.pretty_generate(body)]
     end
 
     @@def_authenticator = nil
