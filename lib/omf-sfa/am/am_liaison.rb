@@ -11,6 +11,7 @@ module OMF::SFA::AM
   class AMLiaison < OMF::Common::LObject
 
     include OmfCommon
+    include OmfCommon::Auth
 
     attr_accessor :comm
     @leases = {}
@@ -42,13 +43,37 @@ module OMF::SFA::AM
                     if m.read_content("itype").eql?('STATUS')
                       #info "#{m.inspect}"
                       if m.read_property("status_type") == 'APP_EVENT'
-                        #puts "Succesfully created user"
-                        am_cert = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
+                        issuer = OmfCommon::Auth::CertificateStore.instance.cert_for(OmfCommon.comm.local_topic.address)
+                        # am_cert = Certificate.create_from_pem(File.read('/root/.omf/trusted_roots/root.pem'))
                         # urn:publicid:IDN+omf:nitos+slice+alice
-                        puts "ACCOUNT #{account.valid_until}"
-                        duration = account.valid_until.to_i - Time.now.to_i
-                        user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', duration, m.read_property('pub_key'))
-                        user.configure(cert: user_cert.to_pem) do |reply|
+                        duration = account.valid_until.to_i - Time.now.utc.to_i
+                        email = "#{account.name}@#{OMF::SFA::Resource::Constants.default_domain}"
+                        pub_key = m.read_property('pub_key')
+                        key = OpenSSL::PKey::RSA.new(pub_key)
+                        user_id = account.uuid
+                        geni_uri = "URI:urn:publicid:IDN+#{OMF::SFA::Resource::Constants.default_domain}+user+#{account.name}"
+
+                        xname = [['C', 'US'], ['ST', 'CA'], ['O', 'ACME'], ['OU', 'Roadrunner']]
+                        xname << ['CN', "#{user_id}/emailAddress=#{email}"]
+                        subject = OpenSSL::X509::Name.new(xname)
+
+                        addresses = []
+                        addresses << "URI:uuid:#{user_id}"
+                        addresses << geni_uri
+
+                        user_cert = OmfCommon::Auth::Certificate._create_x509_cert(subject, key, nil, issuer, Time.now, duration, addresses)
+                        # user_cert = am_cert.create_for(account.urn, account.name, 'slice', 'omf', duration, m.read_property('pub_key'))
+                        # opts = {}
+                        # opts[:duration] = duration
+                        # opts[:email] = "#{account.name}@#{OMF::SFA::Resource::Constants.default_domain}"
+                        # puts "---- #{duration}"
+                        # pub_key = OmfCommon::Auth::SSHPubKeyConvert.convert(pub_key)
+                        # opts[:key] = Certificate.create_from_pem(pub_key) 
+                        # opts[:key] = OpenSSL::PKey::RSA.new(pub_key)
+                        # opts[:user_id] = account.uuid
+                        # opts[:geni_uri] = "URI:urn:publicid:IDN+#{OMF::SFA::Resource::Constants.default_domain}+user+#{account.name}"
+                        # user_cert = am_cert.create_for_user(account.name, opts)
+                        user.configure(cert: user_cert[:cert].to_pem) do |reply|
                           if reply.success?
                             release_proxy(user_rc, user)
                           else
