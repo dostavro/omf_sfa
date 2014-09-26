@@ -79,7 +79,6 @@ module OMF::SFA::AM::Rest
     end
   end
 
-
   class RestHandler < OMF::Common::LObject
 
     def initialize(am_manager, opts = {})
@@ -103,10 +102,16 @@ module OMF::SFA::AM::Rest
         return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body]
       rescue RackException => rex
         return rex.reply
-      rescue OMF::SFA::AM::AMManagerException => aex
-        debug aex.backtrace.join("\n")
-        return RackException.new(400, aex.to_s).reply
+      rescue OMF::SFA::AM::InsufficientPrivilegesException => iex
+        debug iex.to_s
+        # debug iex.backtrace.join("\n")
+        return RackException.new(401, iex.to_s).reply
+      rescue OMF::SFA::AM::AMManagerException => mex
+        debug mex.to_s
+        # debug mex.backtrace.join("\n")
+        return RackException.new(400, mex.to_s).reply
       rescue ArgumentError => aex
+        debug aex.to_s
         debug aex.backtrace.join("\n")
         return RackException.new(400, aex.to_s).reply
       rescue Exception => ex

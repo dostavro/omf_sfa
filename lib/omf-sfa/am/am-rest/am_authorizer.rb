@@ -155,7 +155,21 @@ module OMF::SFA::AM::Rest
         end
 
         if @account == am_manager._get_nil_account
-          @permissions.each { |p| p = true } 
+          @permissions = {
+            can_create_account?:   true,
+            can_view_account?:     true,
+            can_renew_account?:    true,
+            can_close_account?:    true,
+            # RESOURCE
+            can_create_resource?:  true,
+            can_modify_resource?:  true,
+            can_view_resource?:    true,
+            can_release_resource?: true,
+            # LEASE
+            can_view_lease?:       true,
+            can_modify_lease?:     true,
+            can_release_lease?:    true
+          } 
         else
           @permissions = {
             can_create_account?:   false,
