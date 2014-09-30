@@ -14,9 +14,10 @@ Table of contents
 ================= 
 
 1. API
-2. Examples
-3. More Examples
-4. Footnotes
+2. Authentication
+3. Examples
+4. More Examples
+5. Footnotes
 
 API
 ===
@@ -201,6 +202,24 @@ Wimax Base Stations
   * PUT: Not allowed
   * DELETE: Not allowed
 
+Authentication
+==============
+
+Introduction
+------------
+
+The REST Interface of NITOS Broker is using https and x509 certificates to authenticate and authorize requests.
+
+* GET requests: Certificates are not mandatory , with the exception of path '/resources/accounts' (this request shows only user's accounts).
+* POST requests: Certificates are mandatory. Regular users can only use /resources/leases connected to their own account, administrator priviledges are required in order to create other type of resources.
+* PUT requests: Certificates are mandatory. Regular users can only use /resources/leases connected to their own account, administrator priviledges are required in order to update other type of resources.
+* DELETE requests: Certificates are mandatory. Regular users can only use /resources/leases connected to their own account, administrator priviledges are required in order to delete other type of resources.
+
+Example of using Certificates
+-----------------------------
+
+    $ curl --cert /path/to/certificate/user_cert.pem --key /path/to/private/key/user_key.pkey -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST -d @lease.json -k https://localhost:8001/resources/leases/
+
 Examples
 ========
 
@@ -286,6 +305,9 @@ Delete a resource of type Node using json as input.
 
 More examples
 =============
+
+The following examples assume that the Authentication/Authorization mechanism is disabled. Follow Chapter 2 on how to send requests 
+using certificates.
 
 Channels
 --------

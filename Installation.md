@@ -65,7 +65,7 @@ Please notice that we are using the root certificate we have just created in --r
 
 We also have to create a user certificate for the various scripts to use.
 
-    % ruby omf_cert.rb -o user_cert.pem --email root@nitlab.inf.uth.gr --user root --root root.pem --duration 5000000 create_user
+    % ruby omf_cert.rb -o user_cert.pem --geni_uri URI:urn:publicid:IDN+DOMAIN+user+USERNAME --email root@nitlab.inf.uth.gr --user root --root root.pem --duration 5000000 create_user
     % cp user_cert.pem ~/.omf/
 
 Now open the above certificates with any text editor copy the private key at the bottom of the certificate (with the headings)
@@ -102,19 +102,24 @@ First you have to edit the configuration file accordingly:
 
 Then a json file that describes the resources is required. This file can contain either a single resource
 or more than one resources in the form of an array. In NITOS we have exported a json file from the old inventory
-(new_nitos_nodes.json) and created a parser (nitos_nodes_json_parser) to convert this file to the new format.
+(sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_nodes_input.json)) 
+and created a parser (example script [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/nitos_nodes_json_parser)) to convert this file and get a new json file (sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_nodes_out.json)). 
+This new json file contains the bare minimum information needed to complete the whole procedure, an enriched version can be found [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_enriched_nodes_out.json). Please have in mind that 
+although most of the properties are optional, there are properties like 'urn' which are mandatory (skipping urn might cause unexpected 
+behaviour), also there are properties like 'hardware_type' that are testbed specific and follow a convention. You can browse the node 
+model [here](https://github.com/dostavro/omf_sfa/blob/master/lib/omf-sfa/resource/node.rb) and choose which extra properties you can use.
 Parser usage:
 
     % ./nitos_nodes_json_parser new_nitos_nodes.json
 
-This will create the file 'nitos_nodes_out.json'. We can use this file as input to create_resource script.
+This will create the file 'nitos_nodes_out.json'. We can use this file as input to create_resource script (or use te REST API to send a PUT request on path /resources/nodes, you can find a tutorial [here](https://github.com/dostavro/omf_sfa/tree/master/lib/omf-sfa/am/am-rest/REST_API.md)).
 
     % ./create_resource -t node -c conf.yaml -i nitos_nodes_out.json
 
 This script uses the xmpp interface of am_server to import data in the database.
 
 In order to populate the database with the channels a similar procedure can be followed. We need a json that describes the
-channels (nitos_channels.json).
+channels (sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_channels.json)).
 
     % ./create_resource -t channel -c conf.yaml -i nitos_channels.json
 
