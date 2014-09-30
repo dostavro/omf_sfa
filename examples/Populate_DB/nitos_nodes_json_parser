@@ -7,6 +7,7 @@ require 'json'
 
 OUT_FILE = 'nitos_nodes_out.json'
 BASE_CMC_IP = '10.1.0'
+BASE_URN = 'urn:publicid:IDN+omf:nitos+node+'
 
 infile = ARGV[0]
 
@@ -15,6 +16,7 @@ json = JSON.parse(File.read(infile))
 @base_node = {
               name: "",
               hostname: "",
+              urn: "",
               interfaces: [
                 {
                   name: "",
@@ -71,6 +73,7 @@ def match_node_to_res(node, i)
   puts "new node: '#{n.inspect}'"
   n[:name] = node['hostname']
   n[:hostname] = node['hostname']
+  n[:urn] = "#{BASE_URN}#{node['hostname']}"
   n[:interfaces].each do |interface|
     if interface[:role] == "control"
       interface[:name] = node['hostname'] + ":if0"
