@@ -371,7 +371,6 @@ module OMF::SFA::AM::Rest
     # @raise [UnknownResourceException] if no resource can be created
     #
     def release_resource(resource_descr, type_to_create, authorizer)
-      authorizer.can_release_resource?(resource_descr)
       if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
         if resource = OMF::SFA::Resource::Lease.first(resource_descr)
           @am_manager.release_lease(resource, authorizer)
@@ -379,6 +378,7 @@ module OMF::SFA::AM::Rest
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown Lease with descr'#{resource_descr}'."
         end
       else
+        authorizer.can_release_resource?(resource_descr)
         if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(resource_descr)
           resource.destroy
         else

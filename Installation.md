@@ -131,3 +131,37 @@ To start an AM with a some pre-populated resources ('--test-load-am') from this 
     % cd $OMF_SFA_HOME
     % bundle exec ruby -I lib lib/omf-sfa/am/am_server.rb start
 
+Creating an upstart service 
+---------------------------
+
+An Upstart service is an event-based daemon which handles starting of tasks and services during boot, 
+stopping them during shutdown and supervising them while the system is running.
+In order to create your own upstart service you need to copy the conf file located in init/omf-sfa.conf of
+your cloned repository and paste it to folder /etc/init. 
+
+    % cp init/omf-sfa.conf
+
+Then edit it accordingly (line 'chdir /root/omf/omf_sfa' must be changed to point to your omf-sfa folder). For example:
+
+
+    % start on runlevel [2345]
+
+    % respawn
+    % env HOME=/root
+    % chdir /root/omf/omf_sfa
+     
+    % script
+    %   exec bundle exec ruby -I lib/ lib/omf-sfa/am/am_server.rb start
+    % end script
+
+Then you can start stop or restart the service with:
+
+    % start omf-sfa
+    % stop omf-sfa
+    % restart omf-sfa
+
+Now this service will start on system boot, and respawn  respawned if it dies unexpectedly.
+
+You can find the log file on omf-sfa on folder '/var/log/upstart/omf-sfa.log'
+
+    % tail -f /var/log/upstart/omf_sfa.log 
