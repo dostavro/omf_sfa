@@ -1,0 +1,17 @@
+[
+  {
+    "name":"1",
+    "frequency":"2.412GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+1"
+  },
+  {
+    "name":"2",
+    "frequency":"2.417GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+2"
+  },
+  {
+    "name":"3",
+    "frequency":"2.422GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+3"
+  }
+]
