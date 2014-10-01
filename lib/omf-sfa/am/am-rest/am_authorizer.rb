@@ -60,7 +60,7 @@ module OMF::SFA::AM::Rest
 
     def can_view_account?(account)
       debug "Check permission 'can_view_account?' (#{account == @account}, #{@permissions[:can_view_account?]})"
-      return true if @account == @am_manager._get_nil_account
+      return true if @account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager) 
 
       unless @permissions[:can_view_account?]
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
@@ -73,7 +73,7 @@ module OMF::SFA::AM::Rest
 
     def can_renew_account?(account, expiration_time)
       debug "Check permission 'can_renew_account?' (#{account == @account}, #{@permissions[:can_renew_account?]})"
-      unless (account == @account && @permissions[:can_renew_account?]) || @account == @am_manager._get_nil_account
+      unless (@account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager)) || (account == @account && @permissions[:can_renew_account?])
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
@@ -81,7 +81,7 @@ module OMF::SFA::AM::Rest
 
     def can_close_account?(account)
       debug "Check permission 'can_close_account?' (#{account == @account}, #{@permissions[:can_close_account?]})"
-      unless (account == @account && @permissions[:can_close_account?]) || @account == @am_manager._get_nil_account
+      unless (@account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager)) || (account == @account && @permissions[:can_close_account?])
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
@@ -92,7 +92,7 @@ module OMF::SFA::AM::Rest
     def can_create_resource?(resource, type)
       type = type.downcase
       debug "Check permission 'can_create_resource?' (#{type == 'lease'}, #{@permissions[:can_create_resource?]})"
-      unless @account == @am_manager._get_nil_account || (type == 'lease' && @permissions[:can_create_resource?]) 
+      unless (@account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager)) || (type == 'lease' && @permissions[:can_create_resource?])
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
@@ -102,7 +102,7 @@ module OMF::SFA::AM::Rest
 
     def can_modify_lease?(lease)
       debug "Check permission 'can_modify_lease?' (#{@account == lease.account}, #{@permissions[:can_modify_lease?]})"
-      unless (@account == lease.account && @permissions[:can_modify_lease?]) || @account == @am_manager._get_nil_account
+      unless (@account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager)) || (@account == lease.account && @permissions[:can_modify_lease?])
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
@@ -110,7 +110,7 @@ module OMF::SFA::AM::Rest
 
     def can_release_lease?(lease)
       debug "Check permission 'can_release_lease?' (#{@account == lease.account}, #{@permissions[:can_release_lease?]})"
-      unless (@account == lease.account && @permissions[:can_release_lease?]) || @account == @am_manager._get_nil_account
+      unless (@account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager)) || (@account == lease.account && @permissions[:can_release_lease?])
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
       true
