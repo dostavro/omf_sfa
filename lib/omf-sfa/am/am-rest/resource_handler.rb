@@ -214,12 +214,6 @@ module OMF::SFA::AM::Rest
       params.delete("account")
 
       case resource_uri
-      when "nodes"
-        type = "Node"
-      when "channels"
-        type = "Channel"
-      when "leases"
-        type = "Lease"
       when "cmc"
         type = "ChasisManagerCard"
       when "wimax"
@@ -228,13 +222,13 @@ module OMF::SFA::AM::Rest
         type = "LteBase"
       when "openflow"
         type = "OpenflowSwitch"
-      when "accounts"
-        type = "Account"
-      when "users"
-        type = "User"
       else
-        #TODO find the type automatically through eval and raise exception if not possible
-        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
+        type = resource_uri.singularize.camelize
+        begin
+          eval("OMF::SFA::Resource::#{type}").class
+        rescue NameError => ex
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type '#{resource_uri}'."
+        end
       end
       [type, params]
     end
