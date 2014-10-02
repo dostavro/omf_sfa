@@ -36,6 +36,7 @@ module OMF::SFA::AM::Rest
         if descr[:name].nil? && descr[:uuid].nil?
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           if resource_uri == 'accounts'
+            raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
           elsif resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
