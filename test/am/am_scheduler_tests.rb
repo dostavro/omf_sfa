@@ -495,7 +495,7 @@ describe AMScheduler do
       ans[:resources][1][:exclusive].must_equal(true)
     end
 
-    it 'can resolve domain in unbound queries xxx' do
+    it 'can resolve domain in unbound queries' do
       n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
       n2 = OMF::SFA::Resource::Node.create(name: 'n2', account: default_account, domain: "domain1", exclusive: true)
       n3 = OMF::SFA::Resource::Node.create(name: 'n3', account: default_account, domain: "domain2", exclusive: true)
@@ -555,6 +555,41 @@ describe AMScheduler do
       ans[:resources][0][:valid_from].must_equal(t1.utc.to_s)
       ans[:resources][0][:valid_until].must_equal((t1 + 7200).utc.to_s)
       ans[:resources][1][:domain].must_equal('domain1')
+      ans[:resources][1][:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources][1][:valid_until].must_equal((t1 + 7200).utc.to_s)
+    end
+
+    it 'can resolve both a channel and a node in the same request' do
+      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: default_account, domain: "domain1", exclusive: true)
+      c1 = OMF::SFA::Resource::Channel.create(name: 'c2', account: default_account, domain: "domain1", exclusive: true)
+      t1 = Time.now
+
+      q = {
+        resources:[
+          {
+            type: "Node",
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          },
+          {
+            type: "Channel",
+            valid_from:"#{t1}",
+            valid_until:"#{t1 + 7200}"
+          }
+        ]
+      }
+      authorizer = MiniTest::Mock.new
+      13.times {authorizer.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
+      
+      manager = OMF::SFA::AM::AMManager.new(scheduler)
+
+      ans = scheduler.resolve_query(q, manager, authorizer)
+
+      # ans[:resources].first[:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources][0][:uuid].must_equal(n1.uuid.to_s)
+      ans[:resources][0][:valid_from].must_equal(t1.utc.to_s)
+      ans[:resources][0][:valid_until].must_equal((t1 + 7200).utc.to_s)
+      ans[:resources][1][:uuid].must_equal(c1.uuid.to_s)
       ans[:resources][1][:valid_from].must_equal(t1.utc.to_s)
       ans[:resources][1][:valid_until].must_equal((t1 + 7200).utc.to_s)
     end
