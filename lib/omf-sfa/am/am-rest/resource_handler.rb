@@ -299,13 +299,13 @@ module OMF::SFA::AM::Rest
         end
       else
         resource_descr.each do |key, value|
-          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
           if value.kind_of? Array
             value.each_with_index do |v, i|
               if v.kind_of? Hash
                 # debug "Array: #{v.inspect}"
                 begin
-                  k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+                  k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(v)
                   raise NameError if k.nil?
                   resource_descr[key][i] = k
                 rescue NameError => nex
@@ -315,9 +315,9 @@ module OMF::SFA::AM::Rest
               end
             end
           elsif value.kind_of? Hash
-            # debug "Hash: #{key.inspect}: #{value.inspect}"
+            debug "Hash: #{key.inspect}: #{value.inspect}"
             begin
-              k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+              k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(value)
               raise NameError if k.nil?
               resource_descr[key] = k
             rescue NameError => nex
@@ -327,8 +327,9 @@ module OMF::SFA::AM::Rest
           end
         end
 
+        debug "resource_description: #{resource_descr}"
         resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
-        @am_manager.manage_resource(resource)
+        @am_manager.manage_resource(resource) if resource.account.nil?
       end
       resource
     end
