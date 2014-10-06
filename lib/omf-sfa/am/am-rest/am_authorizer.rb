@@ -60,11 +60,13 @@ module OMF::SFA::AM::Rest
 
     def can_view_account?(account)
       debug "Check permission 'can_view_account?' (#{account == @account}, #{@permissions[:can_view_account?]})"
-      return true if @account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager) 
 
       unless @permissions[:can_view_account?]
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+
+      return true if @account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager) 
+
       @user.get_all_accounts.each do |acc|
         return true if acc == account
       end
