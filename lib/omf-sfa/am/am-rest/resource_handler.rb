@@ -36,6 +36,7 @@ module OMF::SFA::AM::Rest
         if descr[:name].nil? && descr[:uuid].nil?
           descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           if resource_uri == 'accounts'
+            raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
           elsif resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
@@ -214,12 +215,6 @@ module OMF::SFA::AM::Rest
       params.delete("account")
 
       case resource_uri
-      when "nodes"
-        type = "Node"
-      when "channels"
-        type = "Channel"
-      when "leases"
-        type = "Lease"
       when "cmc"
         type = "ChasisManagerCard"
       when "wimax"
@@ -228,13 +223,13 @@ module OMF::SFA::AM::Rest
         type = "LteBase"
       when "openflow"
         type = "OpenflowSwitch"
-      when "accounts"
-        type = "Account"
-      when "users"
-        type = "User"
       else
-        #TODO find the type automatically through eval and raise exception if not possible
-        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type'#{resource_uri}'."
+        type = resource_uri.singularize.camelize
+        begin
+          eval("OMF::SFA::Resource::#{type}").class
+        rescue NameError => ex
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type '#{resource_uri}'."
+        end
       end
       [type, params]
     end
@@ -304,13 +299,13 @@ module OMF::SFA::AM::Rest
         end
       else
         resource_descr.each do |key, value|
-          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+          debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
           if value.kind_of? Array
             value.each_with_index do |v, i|
               if v.kind_of? Hash
                 # debug "Array: #{v.inspect}"
                 begin
-                  k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+                  k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(v)
                   raise NameError if k.nil?
                   resource_descr[key][i] = k
                 rescue NameError => nex
@@ -320,9 +315,9 @@ module OMF::SFA::AM::Rest
               end
             end
           elsif value.kind_of? Hash
-            # debug "Hash: #{key.inspect}: #{value.inspect}"
+            debug "Hash: #{key.inspect}: #{value.inspect}"
             begin
-              k = eval("OMF::SFA::Resource::#{key.capitalize}").first(value)
+              k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(value)
               raise NameError if k.nil?
               resource_descr[key] = k
             rescue NameError => nex
@@ -332,8 +327,9 @@ module OMF::SFA::AM::Rest
           end
         end
 
+        debug "resource_description: #{resource_descr}"
         resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
-        @am_manager.manage_resource(resource)
+        @am_manager.manage_resource(resource) if resource.account.nil?
       end
       resource
     end
