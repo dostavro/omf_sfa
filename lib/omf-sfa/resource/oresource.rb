@@ -476,6 +476,7 @@ module OMF::SFA::Resource
     def to_hash_brief(opts = {})
       h = {}
       uuid = h[:uuid] = self.uuid.to_s
+      h[:urn] = self.urn.to_s unless self.urn.nil?
       h[:href] = self.href(opts)
       name = self.name
       if  name && ! name.start_with?('_')
