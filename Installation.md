@@ -24,10 +24,11 @@ If your bundle FAILS because it cannot find PostgreSQL build environment, and yo
 Configuration
 -------------
 
-Edit the configuration file (OMF_SFA_HOME/etc/omf-sfa/omf-sfa-am.yaml). At first, you are able to use nitlab.inf.uth.gr as xmpp server. In case you want to use your own one, you can change it here.
+This file OMF_SFA_HOME/etc/omf-sfa/omf-sfa-am.yaml, is the central configuration file of omf-sfa.
+At first, you are able to use nitlab.inf.uth.gr as xmpp server. In case you want to use your own one, you can change it here [tutorial for xmpp](http://mytestbed.net/doc/omf/file.set_up_communication_server.html).
 
     % cd $OMF_SFA_HOME/etc/omf-sfa
-    % vim omf-sfa-am.yaml
+    % nano omf-sfa-am.yaml
 
 Database
 --------
@@ -64,8 +65,9 @@ Then you have to copy this file to the trusted roots directory (defined in the c
 
 Now we have to create the certificate used by am_server and copy it to the coresponding directory.
 Please notice that we are using the root certificate we have just created in --root argument, also 
-notice that we are using omf:testserver as our domain, if you have changed the domain in the configuration file of 
-omf-sfa change the following commands accordingly too.
+notice that we are using omf:testserver as our domain, if you have changed the domain in the configuration file 
+omf-sfa-am.yaml change the following commands accordingly too (also if on previous steps you have decided to 
+use your xmpp, change the xmpp here as well). 
 
 
     % omf_cert.rb -o am.pem  --geni_uri URI:urn:publicid:IDN+omf:testserver+user+am --email am@nitlab.inf.uth.gr --resource-id xmpp://am_controller@nitlab.inf.uth.gr --resource-type am_controller --root root.pem --duration 5000000 create_resource
@@ -92,7 +94,7 @@ For example:
     % nano user_cert.pkey
     paste
 
-Repeat this proccess for the am.pem certificate.
+Repeat this process for the am.pem certificate.
 Also copy the am certificate to trusted_roots folder.
 
 	% cp am.pem ~/.omf/trusted_roots 
@@ -123,7 +125,8 @@ not required (and best skipped), but it is really usefull, from an administratio
 Populate the database
 ---------------------
 
-First you have to edit the configuration file for the create_resource script accordingly:
+First you have to edit the configuration file for the create_resource script accordingly (if on previous steps you have decided to 
+use your xmpp, change the xmpp here as well):
 
     % nano $OMF_SFA_HOME/bin/conf.yaml
 
