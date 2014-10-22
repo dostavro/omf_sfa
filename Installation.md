@@ -1,20 +1,30 @@
 Installation Guide
 ==================
 
+Prerequirements
+---------------
+
+Install xmlsec1, which is required by the am_server
+
+    % apt-get install libxmlsec1-dev xmlsec1
+
 Repository
 ----------
 
-At this stage the best course of action is to clone the repository
+At this stage the best course of action is to clone the 'dostavro/omf_sfa' repository, which includes the most updated version (very soon, it will be pulled to the original repository 'mytestbed/omf_sfa').
 
-    % git clone https://github.com/mytestbed/omf_sfa.git
+    % git clone https://github.com/dostavro/omf_sfa.git
     % cd omf_sfa
     % export OMF_SFA_HOME=`pwd`
     % bundle install
 
+If your bundle FAILS because it cannot find PostgreSQL build environment, and you don't need this feature, then you should comment-in the line 
+'s.add_runtime_dependency "dm-postgres-adapter"' in the file $OMF_SFA_HOME/omf_sfa.gemspec and then bundle install again.
+
 Configuration
 -------------
 
-Edit the configuration file (OMF_SFA_HOME/etc/omf-sfa/omf-sfa-am.yaml).
+Edit the configuration file (OMF_SFA_HOME/etc/omf-sfa/omf-sfa-am.yaml). At first, you are able to use nitlab.inf.uth.gr as xmpp server. In case you want to use your own one, you can change it here.
 
     % cd $OMF_SFA_HOME/etc/omf-sfa
     % vim omf-sfa-am.yaml
@@ -22,7 +32,7 @@ Edit the configuration file (OMF_SFA_HOME/etc/omf-sfa/omf-sfa-am.yaml).
 Database
 --------
 
-Use the Rakefile to create the database.
+Use the Rakefile to create the database, where the description of your resources is being stored.
 
     % cd $OMF_SFA_HOME
     % rake autoMigrate
@@ -41,31 +51,30 @@ Certificates
 The directory which holds the certificates is specified in the configuration
 file.
 
-In order to create the required certificates we need to use a script in the
-bin directory of OMF (in the future this file will be an executable in the
-systems directory so we can use it directly, at the time being though this is
-not the case).
-
-    % cd OMF_HOME/bin
-
-First we have to create a root certificate for our testbed that will sign every other
+First we have to create a root self signed certificate for our testbed that will sign every other
 certificate we create.
 
-    % ruby omf_cert.rb --email root@nitlab.inf.uth.gr -o root.pem --duration 5000000 create_root
+    % omf_cert.rb --email root@nitlab.inf.uth.gr -o root.pem --duration 5000000 create_root
 
 Then you have to copy this file to the trusted roots directory (defined in the configuration file)
 
+    % mkdir ~/.omf
+    % mkdir ~/.omf/trusted_roots
     % cp root.pem ~/.omf/trusted_roots
 
-Now we have to create the certificate used by am_server and copy it to the coresponding direcotry.
-Please notice that we are using the root certificate we have just created in --root arguement
+Now we have to create the certificate used by am_server and copy it to the coresponding directory.
+Please notice that we are using the root certificate we have just created in --root argument, also 
+notice that we are using omf:testserver as our domain, if you have changed the domain in the configuration file of 
+omf-sfa change the following commands accordingly too.
 
-    % ruby omf_cert.rb -o am.pem --email am@nitlab.inf.uth.gr --resource-id xmpp://am_controller@testserver --resource-type am_controller --root root.pem --duration 5000000 create_resource
+
+    % omf_cert.rb -o am.pem  --geni_uri URI:urn:publicid:IDN+omf:testserver+user+am --email am@nitlab.inf.uth.gr --resource-id xmpp://am_controller@nitlab.inf.uth.gr --resource-type am_controller --root root.pem --duration 5000000 create_resource
     % cp am.pem ~/.omf/
 
-We also have to create a user certificate for the various scripts to use.
+We also have to create a user certificate (for root user) for the various scripts to use. You can use this command to 
+create certificates for any user you wish.
 
-    % ruby omf_cert.rb -o user_cert.pem --geni_uri URI:urn:publicid:IDN+DOMAIN+user+USERNAME --email root@nitlab.inf.uth.gr --user root --root root.pem --duration 5000000 create_user
+    % omf_cert.rb -o user_cert.pem --geni_uri URI:urn:publicid:IDN+omf:testserver+user+root --email root@nitlab.inf.uth.gr --user root --root root.pem --duration 5000000 create_user
     % cp user_cert.pem ~/.omf/
 
 Now open the above certificates with any text editor copy the private key at the bottom of the certificate (with the headings)
@@ -83,53 +92,66 @@ For example:
     % nano user_cert.pkey
     paste
 
-Repeat this proccess for other certificates too.
+Repeat this proccess for the am.pem certificate.
+Also copy the am certificate to trusted_roots folder.
+
+	% cp am.pem ~/.omf/trusted_roots 
 
 Hint: you can use the following command in order to inspect a certificate in a human readable way.
 
     % openssl x509 -in root.pem -text
 
+Execute am_server
+-------------------
+
+To start an AM from this directory, run the following:
+
+    % cd $OMF_SFA_HOME
+    % bundle exec ruby -I lib lib/omf-sfa/am/am_server.rb start
+
+Now lets use the REST interface to check that the server is running, open a browser and type in the address bar:
+
+	https://localhost:8001/
+
+If the browser asks you to trust the certificate of the server, press yes (I understand the risks choice in firefox).
+Then you should see the readme file of the REST interface. This means that you have a working am_server, but the inventory is 
+empty, in next section it is explained how to populate the db, with resource description.
+
+Hint: The last part of this tutorial explains how you can setup the server to run as an upstart service, for now it is 
+not required (and best skipped), but it is really usefull, from an administration prospective, when you are running a production server.
+
 Populate the database
 ---------------------
 
-In order to populate the database you have to use the following script:
+First you have to edit the configuration file for the create_resource script accordingly:
 
-    OMF_SFA_HOME/bin/create_resource
+    % nano $OMF_SFA_HOME/bin/conf.yaml
 
-First you have to edit the configuration file accordingly:
+Then a json file that describes the resources is required. 
+This file can contain either a single resource or more than one resources in the form of an array. 
+A sample file is [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_enriched_nodes_out.json). 
+The description of each resource is in the form of filling specific values to the predefined properties of each resources. 
+The set of the properties of each resource is defined in its model (e.g. for the resource of type node, the model is [here](https://github.com/dostavro/omf_sfa/blob/master/lib/omf-sfa/resource/node.rb.
+Please have in mind that although most of the properties are optional, there are properties like 'urn' which are mandatory (skipping urn might cause unexpected behaviour).
+Moreover, there are properties like 'hardware_type' that are testbed specific and follow a convention.
 
-    % nano OMF_SFA_HOME/bin/conf.yaml
+To populate the database with the nodes:
 
-Then a json file that describes the resources is required. This file can contain either a single resource
-or more than one resources in the form of an array. In NITOS we have exported a json file from the old inventory
-(sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_nodes_input.json)) 
-and created a parser (example script [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/nitos_nodes_json_parser)) to convert this file and get a new json file (sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_nodes_out.json)). 
-This new json file contains the bare minimum information needed to complete the whole procedure, an enriched version can be found [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_enriched_nodes_out.json). Please have in mind that 
-although most of the properties are optional, there are properties like 'urn' which are mandatory (skipping urn might cause unexpected 
-behaviour), also there are properties like 'hardware_type' that are testbed specific and follow a convention. You can browse the node 
-model [here](https://github.com/dostavro/omf_sfa/blob/master/lib/omf-sfa/resource/node.rb) and choose which extra properties you can use.
-Parser usage:
-
-    % ./nitos_nodes_json_parser new_nitos_nodes.json
-
-This will create the file 'nitos_nodes_out.json'. We can use this file as input to create_resource script (or use te REST API to send a PUT request on path /resources/nodes, you can find a tutorial [here](https://github.com/dostavro/omf_sfa/tree/master/lib/omf-sfa/am/am-rest/REST_API.md)).
-
-    % ./create_resource -t node -c conf.yaml -i nitos_nodes_out.json
+    % ./create_resource -t node -c conf.yaml -i nodes_description.json
 
 This script uses the xmpp interface of am_server to import data in the database.
 
 In order to populate the database with the channels a similar procedure can be followed. We need a json that describes the
 channels (sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_channels.json)).
 
-    % ./create_resource -t channel -c conf.yaml -i nitos_channels.json
+    % ./create_resource -t channel -c conf.yaml -i channels_description.json
 
-Executing am_server
--------------------
+Now let's use the REST interface again to see the data in the browser, open the browser again and type in the address bar:
+    
+    https://localhost:8001/resources/nodes
 
-To start an AM with a some pre-populated resources ('--test-load-am') from this directory, run the following:
-
-    % cd $OMF_SFA_HOME
-    % bundle exec ruby -I lib lib/omf-sfa/am/am_server.rb start
+A json with the description of the nodes should appear (you can try https://localhost:8001/resources/channels also if you want).
+Congratulations you have a working am_server!
 
 Creating an upstart service 
 ---------------------------
@@ -139,7 +161,7 @@ stopping them during shutdown and supervising them while the system is running.
 In order to create your own upstart service you need to copy the conf file located in init/omf-sfa.conf of
 your cloned repository and paste it to folder /etc/init. 
 
-    % cp init/omf-sfa.conf
+    % cp init/omf-sfa.conf /etc/init/
 
 Then edit it accordingly (line 'chdir /root/omf/omf_sfa' must be changed to point to your omf-sfa folder). For example:
 
@@ -160,7 +182,7 @@ Then you can start stop or restart the service with:
     % stop omf-sfa
     % restart omf-sfa
 
-Now this service will start on system boot, and respawn  respawned if it dies unexpectedly.
+Now that this service will start on system boot, and respawn if it dies unexpectedly.
 
 You can find the log file on omf-sfa on folder '/var/log/upstart/omf-sfa.log'
 
