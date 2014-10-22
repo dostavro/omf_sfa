@@ -5,6 +5,6 @@
 :xmpp:
   :username: one
   :password: pw
-  :server: testserver
+  :server: nitlab.inf.uth.gr
   :topic: am_controller
   :operation_mode: development
