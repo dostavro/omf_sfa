@@ -245,13 +245,25 @@ module OMF::SFA::AM::Rest
     def create_new_resource(resource_descr, type_to_create, authorizer)
       debug "create_new_resource: resource_descr: #{resource_descr}, type_to_create: #{type_to_create}"
       authorizer.can_create_resource?(resource_descr, type_to_create)
-      descr = {}
-      descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
-      descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
-      if descr.empty?
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
-      else
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+      if resource_descr.kind_of? Array
+        descr = []
+        resource_descr.each do |res|
+          res_descr = {}
+          res_descr.merge!({uuid: res[:uuid]}) if res.has_key?(:uuid)
+          res_descr.merge!({name: res[:name]}) if res.has_key?(:name)
+          descr << res_descr unless eval("OMF::SFA::Resource::#{type_to_create}").first(res_descr)
+        end
+        raise OMF::SFA::AM::Rest::BadRequestException.new "No resources described in description #{resource_descr} is valid. Maybe all the resources alreadt=y exist." if descr.empty?
+      elsif resource_descr.kind_of? Hash
+        descr = {}
+        descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
+        descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+      
+        if descr.empty?
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
+        else
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+        end
       end
 
       if type_to_create == "Lease" #Lease is a unigue case, needs special treatment

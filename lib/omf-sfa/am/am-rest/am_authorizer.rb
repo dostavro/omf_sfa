@@ -147,8 +147,9 @@ module OMF::SFA::AM::Rest
         # @account = am_manager.find_account({name: account}, self) if account
         @account = OMF::SFA::Resource::Account.first({name: account}) if account
         @account = @user.get_first_account if @account.nil?
+
         if @account.closed?
-          raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{account}' is closed.")
+          raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{@account.name}' is closed.")
         end
 
         @project = @account.project
