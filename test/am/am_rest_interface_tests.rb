@@ -129,7 +129,8 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       # 5.times {authorizer.expect(:can_view_resource?, true, [Object])}
-      1.times {authorizer.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])}
+      1.times {authorizer.expect(:user, "u1")}
+      2.times {authorizer.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])}
       2.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_get('accounts', opts)
@@ -602,7 +603,6 @@ describe ResourceHandler do
 
       authorizer = MiniTest::Mock.new
       authorizer.expect(:can_release_lease?, true, [Object])
-      authorizer.expect(:can_release_resource?, true, [Object])
       1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
       type, json = rest.on_delete('leases', opts)
