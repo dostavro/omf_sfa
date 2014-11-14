@@ -245,13 +245,25 @@ module OMF::SFA::AM::Rest
     def create_new_resource(resource_descr, type_to_create, authorizer)
       debug "create_new_resource: resource_descr: #{resource_descr}, type_to_create: #{type_to_create}"
       authorizer.can_create_resource?(resource_descr, type_to_create)
-      descr = {}
-      descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
-      descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
-      if descr.empty?
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
-      else
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+      if resource_descr.kind_of? Array
+        descr = []
+        resource_descr.each do |res|
+          res_descr = {}
+          res_descr.merge!({uuid: res[:uuid]}) if res.has_key?(:uuid)
+          res_descr.merge!({name: res[:name]}) if res.has_key?(:name)
+          descr << res_descr unless eval("OMF::SFA::Resource::#{type_to_create}").first(res_descr)
+        end
+        raise OMF::SFA::AM::Rest::BadRequestException.new "No resources described in description #{resource_descr} is valid. Maybe all the resources alreadt=y exist." if descr.empty?
+      elsif resource_descr.kind_of? Hash
+        descr = {}
+        descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
+        descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+      
+        if descr.empty?
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
+        else
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+        end
       end
 
       if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
@@ -298,38 +310,18 @@ module OMF::SFA::AM::Rest
           @scheduler.lease_component(resource, c)
         end
       else
-        resource_descr.each do |key, value|
-          debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
-          if value.kind_of? Array
-            value.each_with_index do |v, i|
-              if v.kind_of? Hash
-                # debug "Array: #{v.inspect}"
-                begin
-                  k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(v)
-                  raise NameError if k.nil?
-                  resource_descr[key][i] = k
-                rescue NameError => nex
-                  model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
-                  resource_descr[key][i] = (k = eval("OMF::SFA::Resource::#{model}").first(v)) ? k : v
-                end
-              end
-            end
-          elsif value.kind_of? Hash
-            debug "Hash: #{key.inspect}: #{value.inspect}"
-            begin
-              k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(value)
-              raise NameError if k.nil?
-              resource_descr[key] = k
-            rescue NameError => nex
-              model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
-              resource_descr[key] = (k = eval("OMF::SFA::Resource::#{model}").first(value)) ? k : value
-            end
+        if resource_descr.kind_of? Array
+          resource = []
+          resource_descr.each do |res_desc|
+            res_desc = parse_resource_description(res_desc, type_to_create)
+            resource << eval("OMF::SFA::Resource::#{type_to_create}").create(res_desc)
+            @am_manager.manage_resource(resource.last) if resource.last.account.nil?
           end
+        elsif resource_descr.kind_of? Hash
+          resource_descr = parse_resource_description(resource_descr, type_to_create)
+          resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
+          @am_manager.manage_resource(resource) if resource.account.nil?
         end
-
-        debug "resource_description: #{resource_descr}"
-        resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
-        @am_manager.manage_resource(resource) if resource.account.nil?
       end
       resource
     end
@@ -383,5 +375,44 @@ module OMF::SFA::AM::Rest
       end
       resource
     end
+
+    # Before create a new resource, parse the resource description and alternate existing resources.
+    #
+    # @param [Hash] Resource Description
+    # @return [Hash] New Resource Description
+    # @raise [UnknownResourceException] if no resource can be created
+    #
+    def parse_resource_description(resource_descr, type_to_create)
+      resource_descr.each do |key, value|
+        debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+        if value.kind_of? Array
+          value.each_with_index do |v, i|
+            if v.kind_of? Hash
+              # debug "Array: #{v.inspect}"
+              begin
+                k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(v)
+                raise NameError if k.nil?
+                resource_descr[key][i] = k
+              rescue NameError => nex
+                model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+                resource_descr[key][i] = (k = eval("OMF::SFA::Resource::#{model}").first(v)) ? k : v
+              end
+            end
+          end
+        elsif value.kind_of? Hash
+          debug "Hash: #{key.inspect}: #{value.inspect}"
+          begin
+            k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(value)
+            raise NameError if k.nil?
+            resource_descr[key] = k
+          rescue NameError => nex
+            model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
+            resource_descr[key] = (k = eval("OMF::SFA::Resource::#{model}").first(value)) ? k : value
+          end
+        end
+      end
+      resource_descr
+    end
+
   end # ResourceHandler
 end # module
