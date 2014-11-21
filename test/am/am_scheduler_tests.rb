@@ -56,6 +56,15 @@ describe AMScheduler do
       default_account = scheduler.get_nil_account()
       default_account.must_be_instance_of(OMF::SFA::Resource::Account)
     end
+
+    it 'can create a project and a root user for the default account' do
+      default_account = scheduler.get_nil_account()
+
+      default_account.project.wont_be_nil
+      default_account.project.must_be_instance_of(OMF::SFA::Resource::Project)
+      default_account.project.users.first.name.must_equal("root")
+      default_account.project.users.first.must_be_instance_of(OMF::SFA::Resource::User)
+    end
   end
 
   describe 'resources' do
