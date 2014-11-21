@@ -63,6 +63,7 @@ describe AMScheduler do
       default_account.project.wont_be_nil
       default_account.project.must_be_instance_of(OMF::SFA::Resource::Project)
       default_account.project.users.first.name.must_equal("root")
+      default_account.project.users.first.urn.wont_be_nil
       default_account.project.users.first.must_be_instance_of(OMF::SFA::Resource::User)
     end
   end

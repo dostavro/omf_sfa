@@ -171,13 +171,13 @@ module OMF::SFA::AM
       @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
 
       if @nil_account.project.nil?
-        user = OMF::SFA::Resource::User.first_or_create({:name => 'root', :account => @nil_account})
+        user = OMF::SFA::Resource::User.first_or_create({:name => 'root', :urn => "urn:publicid:IDN+#{OMF::SFA::Resource::Constants.default_domain}+user+root", :account => @nil_account})
         project = OMF::SFA::Resource::Project.first_or_create({:name => '__default__project__', :account => @nil_account})
         project.add_user(user)
         user.save
         project.save
       end
-      
+
       if (mopts = opts[:mapping_submodule]) && (opts[:mapping_submodule][:require]) && (opts[:mapping_submodule][:constructor])
         require mopts[:require] if mopts[:require]
         unless mconstructor = mopts[:constructor]
