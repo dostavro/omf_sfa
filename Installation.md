@@ -8,6 +8,10 @@ Install xmlsec1, which is required by the am_server
 
     % apt-get install libxmlsec1-dev xmlsec1
 
+    % apt-get install libsqlite3-dev
+
+    % gem install bundler
+
 Repository
 ----------
 
@@ -134,7 +138,7 @@ Then a json file that describes the resources is required.
 This file can contain either a single resource or more than one resources in the form of an array. 
 A sample file is [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_enriched_nodes_out.json). 
 The description of each resource is in the form of filling specific values to the predefined properties of each resources. 
-The set of the properties of each resource is defined in its model (e.g. for the resource of type node, the model is [here](https://github.com/dostavro/omf_sfa/blob/master/lib/omf-sfa/resource/node.rb.
+The set of the properties of each resource is defined in its model (e.g. for the resource of type node, the model is [here](https://github.com/dostavro/omf_sfa/blob/master/lib/omf-sfa/resource/node.rb).
 Please have in mind that although most of the properties are optional, there are properties like 'urn' which are mandatory (skipping urn might cause unexpected behaviour).
 Moreover, there are properties like 'hardware_type' that are testbed specific and follow a convention.
 
