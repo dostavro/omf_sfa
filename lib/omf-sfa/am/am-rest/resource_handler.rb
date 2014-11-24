@@ -27,6 +27,7 @@ module OMF::SFA::AM::Rest
     def on_get(resource_uri, opts)
       debug "on_get: #{resource_uri}"
       authenticator = opts[:req].session[:authorizer]
+      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
         descr = {}
@@ -51,19 +52,8 @@ module OMF::SFA::AM::Rest
         body, format = parse_body(opts)
         debug "body: #{body.inspect}, format: #{format.inspect}"
         unless body.empty?
-          if format == :json
-            begin
-              resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
-              debug "response: #{resource}, #{resource.class}"
-              return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
-            rescue OMF::SFA::AM::UnavailableResourceException
-              raise UnknownResourceException, "There are no available resources matching the request."
-            rescue MappingSubmodule::UnknownTypeException
-              raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
-            end
-          else
-            raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
-          end
+          resp = resolve_unbound_request(body, format, authenticator)
+          return resp
         else
           resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
         end
@@ -79,6 +69,7 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the updated resource.
     def on_put(resource_uri, opts)
       debug "on_put: #{resource_uri}"
+      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       resource = update_resource(resource_uri, true, opts)
       show_resource(resource, opts)
     end
@@ -89,7 +80,13 @@ module OMF::SFA::AM::Rest
     # @param [Hash] options of the request
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
-      debug "on_post: #{resource_uri}"
+      debug "on_post: #{resource_uri} - #{opts}"
+      if opts[:req].env["REQUEST_PATH"] == '/mapper'
+        body, format = parse_body(opts)
+        authenticator = opts[:req].session[:authorizer]
+        resp = resolve_unbound_request(body, format, authenticator)
+        return resp
+      end
       resource = update_resource(resource_uri, false, opts)
       show_resource(resource, opts)
     end
@@ -101,6 +98,7 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_delete(resource_uri, opts)
       debug "on_delete: #{resource_uri}"
+      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       delete_resource(resource_uri, opts)
       show_resource(nil, opts)
     end
@@ -213,6 +211,8 @@ module OMF::SFA::AM::Rest
     def parse_uri(resource_uri, opts)
       params = opts[:req].params
       params.delete("account")
+
+      return ['mapper', params] if opts[:req].env["REQUEST_PATH"] == '/mapper'
 
       case resource_uri
       when "cmc"
@@ -350,7 +350,7 @@ module OMF::SFA::AM::Rest
       resource
     end
 
-    # Update a resource
+    # Release a resource
     #
     # @param [Hash] Describing properties of the requested resource
     # @param [String] Type to create
@@ -374,6 +374,22 @@ module OMF::SFA::AM::Rest
         end
       end
       resource
+    end
+
+    def resolve_unbound_request(body, format, authenticator)
+      if format == :json
+        begin
+          resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
+          debug "response: #{resource}, #{resource.class}"
+          return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
+        rescue OMF::SFA::AM::UnavailableResourceException
+          raise UnknownResourceException, "There are no available resources matching the request."
+        rescue MappingSubmodule::UnknownTypeException
+          raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
+        end
+      else
+        raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
+      end
     end
 
     # Before create a new resource, parse the resource description and alternate existing resources.
