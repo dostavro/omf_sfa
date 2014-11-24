@@ -69,6 +69,17 @@ map "/resources" do
   run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
 end
 
+map "/mapper" do
+  use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
+          :login_url => (REQUIRE_LOGIN ? '/login' : nil),
+          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
+          :am_manager => am_mgr
+  require 'omf-sfa/am/am-rest/resource_handler'
+  # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
+  # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
+  run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
+end
+
 if REQUIRE_LOGIN
   map '/login' do
     require 'omf-sfa/am/am-rest/login_handler'

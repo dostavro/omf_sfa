@@ -91,7 +91,9 @@ module OMF::SFA::AM::Rest
       if method == 'GET'
         req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], req.params["account"], @opts[:am_manager])
       elsif method == 'OPTIONS'
-        #do nothing for OPTIONS      
+        #do nothing for OPTIONS  
+      elsif env["REQUEST_PATH"] == '/mapper'
+        req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], req.params["account"], @opts[:am_manager])
       else
         body = req.body
         raise EmptyBodyException.new if body.nil?
