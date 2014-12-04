@@ -80,8 +80,9 @@ module OMF::SFA::AM::Rest
     # @param [Hash] options of the request
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
-      debug "on_post: #{resource_uri} - #{opts}"
-      if opts[:req].env["REQUEST_PATH"] == '/mapper'
+      debug "on_post: #{resource_uri} - #{opts[:req].env["REQUEST_PATH"]}"
+      if opts[:req].env["REQUEST_PATH"] == '/mapper' || opts[:req].env["REQUEST_PATH"] == '/mapper/'
+        debug "Unbound request detected."
         body, format = parse_body(opts)
         authenticator = opts[:req].session[:authorizer]
         resp = resolve_unbound_request(body, format, authenticator)
