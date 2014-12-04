@@ -34,8 +34,8 @@ module OMF::SFA::Resource
     end
 
     def get_first_account
-      ac = OMF::SFA::Resource::Account.first({name: self.name})
-      return ac if ac && ac.project.users.first == self
+      # ac = OMF::SFA::Resource::Account.first({name: self.name})
+      # return ac if ac && ac.project.users.first == self
       ac = self.projects.first.account
     end
 

@@ -148,7 +148,12 @@ module OMF::SFA::AM::RPC
           raise OMF::SFA::AM::InsufficientPrivilegesException.new "Slice urn mismatch in XML call and credentials"
         end
 
-        @account = am_manager.find_or_create_account({:urn => account_urn}, self)
+        gurn = OMF::SFA::Resource::GURN.create(account_urn, :type => "OMF::SFA::Resource::Account")
+        domain = gurn.domain.sub(":", '.')
+        acc_name = "#{domain}.#{gurn.short_name}"
+        # acc_name = "#{gurn.domain.sub!(":", '_').sub!(".", '_')}.#{gurn.short_name}"
+
+        @account = am_manager.find_or_create_account({:urn => account_urn, :name => acc_name}, self)
         @account.valid_until = @user_cred.valid_until
         if @account.closed?
           if @permissions[:can_create_account?]
