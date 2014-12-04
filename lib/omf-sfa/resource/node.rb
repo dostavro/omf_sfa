@@ -20,6 +20,8 @@ module OMF::SFA::Resource
     oproperty :hd_capacity, String
     oproperty :available_cpu, Integer, :required => false # percentage of available cpu
     oproperty :available_ram, Integer, :required => false # percentage of available ram
+    oproperty :location, :Location
+    oproperty :boot_state, String
     #belongs_to :sliver
 
     sfa_class 'node'
@@ -29,6 +31,8 @@ module OMF::SFA::Resource
     sfa :interfaces, :inline => true, :has_many => true
     #sfa :client_id, :attribute => true
     sfa :exclusive, :attribute => true
+    sfa :location, :inline => true
+    sfa :boot_state, :attribute => true
 
 
     # Override xml serialization of 'interface'
