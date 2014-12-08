@@ -201,7 +201,7 @@ db = OMF::SFA::AM::AMServer.db_config
 db_desc = (db[:dbType] == :sqlite) ? "#{db[:dbType]}://#{db[:dbName]}" : "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
 opts = {
   :app_name => 'am_server',
-  :port => 8001,
+  :port => rpc[:port] || 8001,
   :environment => @@config[:operationMode],
   :ssl =>
   {
