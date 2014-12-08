@@ -35,7 +35,8 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          descr[:account] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
@@ -45,7 +46,8 @@ module OMF::SFA::AM::Rest
             resource =  @am_manager.find_all_resources(descr, authenticator)
           end
         else
-          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          descr[:account] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
