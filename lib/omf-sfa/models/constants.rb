@@ -1,0 +1,22 @@
+module OMF::SFA::Model
+  module Constants
+
+    @@default_domain = "domain"
+
+    def self.default_domain=(dname)
+      @@default_domain = dname
+    end
+
+    def self.default_domain()
+      @@default_domain
+    end
+
+    def self.default_component_manager_id=(gurn)
+      @@default_component_manager_id = OMF::SFA::Model::GURN.create(gurn).to_s
+    end
+
+    def self.default_component_manager_id()
+      @@default_component_manager_id ||= OMF::SFA::Model::GURN.create("authority+cm").to_s
+    end
+  end
+end
