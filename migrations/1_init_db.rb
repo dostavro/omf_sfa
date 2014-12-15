@@ -14,7 +14,6 @@ Sequel.migration do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade 
       foreign_key :parent_id, :components, :on_delete => :cascade
       String :domain
-      TrueClass :exclusive, :default => true
       TrueClass :available
       String :status
     end
@@ -24,6 +23,7 @@ Sequel.migration do
       foreign_key :sliver_type_id, :sliver_types, :on_delete => :set_null
       foreign_key :cmc_id, :on_delete => :set_null
 
+      TrueClass :exclusive, :default => true
       String :hardware_type
       String :hostname
       String :disk
@@ -155,7 +155,6 @@ Sequel.migration do
     drop_table(:leases)
     drop_table(:nodes)
     drop_table(:components)
-    # drop_column :resources, :account_id # need to do this first, otherwise complains about FOREIGN KEY constraint
     drop_table(:accounts)
     drop_table(:resources)
   end
