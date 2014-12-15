@@ -5,6 +5,8 @@ module OMF::SFA::Model
     one_to_many :resources
     many_to_many :users
 
+    @@def_duration = 100 * 86400 # 100 days
+
     def active?
       return false unless self.closed_at.nil?
 
@@ -26,7 +28,17 @@ module OMF::SFA::Model
     # Close account
     def close
       self.closed_at = Time.now
-      save
     end
-  end
-end
+
+    # Open account
+    def open
+      self.closed_at = nil
+    end
+
+    def before_save
+      self.created_at ||= Time.now
+      self.valid_until ||= Time.now + @@def_duration
+      super
+    end
+  end # Class
+end # Module
