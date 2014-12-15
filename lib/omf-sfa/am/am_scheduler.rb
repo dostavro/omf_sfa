@@ -1,6 +1,6 @@
 
 require 'omf_common/lobject'
-require 'omf-sfa/resource'
+# require 'omf-sfa/models'
 # require 'omf-sfa/resource/comp_group'
 require 'omf-sfa/am/am_manager'
 require 'omf-sfa/am/am_liaison'
@@ -36,7 +36,7 @@ module OMF::SFA::AM
 
         resource_descr[:resource_type] = type_to_create
         resource_descr[:account] = authorizer.account
-        lease = OMF::SFA::Resource::Lease.create(resource_descr)
+        lease = OMF::SFA::Model::Lease.create(resource_descr)
         lease.valid_from = oproperties[:valid_from]
         lease.valid_until = oproperties[:valid_until]
         raise UnavailableResourceException.new "Cannot create '#{resource_descr.inspect}'" unless lease.save
@@ -47,21 +47,24 @@ module OMF::SFA::AM
 
         type = type_to_create.camelize
 
-        base_resource = eval("OMF::SFA::Resource::#{type}").first(desc)
+        base_resource = eval("OMF::SFA::Model::#{type}").first(desc)
 
         if base_resource.nil? || !base_resource.available
           raise UnknownResourceException.new "Resource '#{desc.inspect}' is not available or doesn't exist"
         end
 
         # create a clone
-        vr = base_resource.clone
+        values = base_resource.values
+        values.delete(:id)
+        vr = eval("OMF::SFA::Model::#{type}").create(values)
 
         vr.account = authorizer.account
-        vr.provided_by = base_resource
-        vr.save
+        # vr.provided_by = base_resource
+        # vr.save
 
-        base_resource.provides << vr
-        base_resource.save
+        base_resource.add_child(vr)
+        # base_resource.provides << vr
+        # base_resource.save
 
         return vr
       end
@@ -75,11 +78,11 @@ module OMF::SFA::AM
     #
     def release_resource(resource, authorizer)
       debug "release_resource: resource-> '#{resource.to_json}'"
-      unless resource.is_a? OMF::SFA::Resource::OResource
-        raise "Expected OResource but got '#{resource.inspect}'"
+      unless resource.is_a? OMF::SFA::Model::Resource
+        raise "Expected Resource but got '#{resource.inspect}'"
       end
 
-      base = resource.provided_by
+      base = resource.parent
 
       unless resource.leases.empty?
         base.leases.each do |l|
@@ -92,10 +95,8 @@ module OMF::SFA::AM
             end
           end
         end
-        msg = resource.leases.first.component_leases.destroy!
-        raise "Failed to destroy component_leases" unless msg
       end
-      resource = resource.destroy!
+      resource = resource.destroy
       raise "Failed to destroy resource" unless resource
       resource
     end
@@ -110,7 +111,7 @@ module OMF::SFA::AM
       # Basic Component provides itself(clones) so many times as the accepted leases on it.
       debug "lease_component: lease:'#{lease.name}' to component:'#{component.name}'"
 
-      base = component.provided_by
+      base = component.parent
       base.leases.each do |l|
         if (lease.valid_from.utc >= l.valid_until.utc || lease.valid_until.utc <= l.valid_from.utc)
           #all ok, do nothing
@@ -121,10 +122,10 @@ module OMF::SFA::AM
         end
       end
       lease.status = "accepted"
-      base.leases << lease
-      base.save
-      component.leases << lease
-      component.save
+      base.add_lease(lease)
+      # base.save
+      component.add_lease(lease)
+      # component.save
       #@am_liaison.enable_lease(lease, component)
       return true
     end
@@ -151,7 +152,7 @@ module OMF::SFA::AM
     # Resolve an unbound query.
     #
     # @param [Hash] a hash containing the query.
-    # @return [Hash] a 
+    # @return [Hash] a
     #
     def resolve_query(query, am_manager, authorizer)
       debug "resolve_query: #{query}"
@@ -168,14 +169,10 @@ module OMF::SFA::AM
     end
 
     def initialize(opts = {})
-      @nil_account = OMF::SFA::Resource::Account.first_or_create({:name => '__default__'}, {:valid_until => Time.now + 1E10})
-
-      if @nil_account.project.nil?
-        user = OMF::SFA::Resource::User.first_or_create({:name => 'root', :urn => "urn:publicid:IDN+#{OMF::SFA::Resource::Constants.default_domain}+user+root", :account => @nil_account})
-        project = OMF::SFA::Resource::Project.first_or_create({:name => '__default__project__', :account => @nil_account})
-        project.add_user(user)
-        user.save
-        project.save
+      @nil_account = OMF::SFA::Model::Account.find_or_create(:name => '__default__') do |a|
+        a.valid_until = Time.now + 1E10
+        user = OMF::SFA::Model::User.find_or_create({:name => 'root', :urn => "urn:publicid:IDN+#{OMF::SFA::Model::Constants.default_domain}+user+root"})
+        user.add_account(a)
       end
 
       if (mopts = opts[:mapping_submodule]) && (opts[:mapping_submodule][:require]) && (opts[:mapping_submodule][:constructor])

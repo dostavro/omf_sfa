@@ -103,12 +103,12 @@ module OMF::SFA::AM::RPC
         resources.concat(@manager.find_all_components_for_account(authorizer.account, authorizer))
         # resources = @manager.find_all_resources_for_account(authorizer.account, authorizer)
 
-        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'manifest').to_xml
+        res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'manifest').to_xml
       else
         resources = @manager.find_all_leases(nil, ["pending", "accepted", "active"], authorizer)
         resources.concat(@manager.find_all_components_for_account(@manager._get_nil_account, authorizer))
 
-        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'advertisement').to_xml
+        res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'advertisement').to_xml
       end
       # TODO: implement the "available_only" option
 
@@ -163,7 +163,7 @@ module OMF::SFA::AM::RPC
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
 
       users.each do |user|
-        gurn = OMF::SFA::Resource::GURN.parse(user["urn"])
+        gurn = OMF::SFA::Model::GURN.parse(user["urn"])
         u = @manager.find_or_create_user({urn: gurn.urn}, user["keys"])
 
         unless u.keys.empty?
@@ -171,7 +171,7 @@ module OMF::SFA::AM::RPC
         end
       end
 
-      res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
+      res = OMF::SFA::Model::Component.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
