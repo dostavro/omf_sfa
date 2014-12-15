@@ -1,7 +1,6 @@
-require 'models/component'
-# require 'models/node'
-require 'models/ip'
-require 'models/link'
+require 'omf-sfa/models/component'
+require 'omf-sfa/models/ip'
+require 'omf-sfa/models/link'
 
 module OMF::SFA::Model
   class Interface < Component

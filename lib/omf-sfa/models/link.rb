@@ -1,4 +1,4 @@
-require 'models/component'
+require 'omf-sfa/models/component'
 
 module OMF::SFA::Model
   class Link < Component

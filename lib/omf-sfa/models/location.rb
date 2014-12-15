@@ -1,4 +1,4 @@
-require 'models/resource'
+require 'omf-sfa/models/resource'
 
 module OMF::SFA::Model
   class Location < Resource

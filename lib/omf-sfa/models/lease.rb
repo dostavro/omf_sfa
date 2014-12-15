@@ -1,5 +1,5 @@
-require 'models/resource'
-require 'models/component'
+require 'omf-sfa/models/resource'
+require 'omf-sfa/models/component'
 
 module OMF::SFA::Model
   class Lease < Resource

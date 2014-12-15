@@ -1,5 +1,5 @@
-require 'models/component'
-require 'models/cmc'
+require 'omf-sfa/models/component'
+require 'omf-sfa/models/cmc'
 
 module OMF::SFA::Model
   class Node < Component

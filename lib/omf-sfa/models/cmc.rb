@@ -1,6 +1,6 @@
-require 'models/component'
-require 'models/node'
-require 'models/ip'
+require 'omf-sfa/models/component'
+require 'omf-sfa/models/node'
+require 'omf-sfa/models/ip'
 
 module OMF::SFA::Model
   class Cmc < Component
