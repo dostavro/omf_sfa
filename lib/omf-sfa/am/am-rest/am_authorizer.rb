@@ -145,15 +145,15 @@ module OMF::SFA::AM::Rest
       else
         super()
         # @account = am_manager.find_account({name: account}, self) if account
-        @account = OMF::SFA::Resource::Account.first({name: account}) if account
-        @account = @user.get_first_account if @account.nil?
+        @account = OMF::SFA::Model::Account.first({name: account}) if account
+        @account = @user.accounts.first if @account.nil?
 
         if @account.closed?
           raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{@account.name}' is closed.")
         end
 
-        @project = @account.project
-        unless @user.has_nil_account?(am_manager) || @project.users.include?(@user)
+        # @project = @account.project
+        unless @user.has_nil_account?(am_manager) || @account.users.include?(@user)
           raise OMF::SFA::AM::InsufficientPrivilegesException.new("The user '#{@user.name}' does not belong to the account '#{account}'")
         end
 

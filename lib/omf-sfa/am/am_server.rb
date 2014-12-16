@@ -1,11 +1,12 @@
-require 'rubygems'
+# require 'rubygems'
 require 'rack'
 require 'rack/showexceptions'
 require 'thin'
-require 'dm-migrations'
+# require 'dm-migrations'
 require 'omf_common/lobject'
 require 'omf_common/load_yaml'
-require 'omf-sfa/resource'
+require 'sequel'
+# require 'omf-sfa/resource'
 
 require 'omf-sfa/am/am_runner'
 require 'omf-sfa/am/am_manager'
@@ -24,9 +25,7 @@ module OMF::SFA::AM
 
     @@rpc = @@config[:endpoints].select { |v| v[:type] == 'xmlrpc' }.first
     @@xmpp = @@config[:endpoints].select { |v| v[:type] == 'xmpp' }.first
-    @@db = @@config[:database]
 
-    OMF::SFA::Resource::Constants.default_domain = @@config[:domain]
 
     def self.rpc_config
       @@rpc
@@ -34,9 +33,6 @@ module OMF::SFA::AM
 
     def self.xmpp_config
       @@xmpp
-    end
-    def self.db_config
-      @@db
     end
 
     def init_logger
@@ -73,26 +69,16 @@ module OMF::SFA::AM
     end
 
     def init_data_mapper(options)
-      #@logger = OMF::Common::Loggable::_logger('am_server')
-      #OMF::Common::Loggable.debug "options: #{options}"
       debug "options: #{options}"
 
       # Configure the data store
       #
-      DataMapper::Logger.new(options[:dm_log] || $stdout, :info)
-      #DataMapper::Logger.new($stdout, :info)
-
-      #DataMapper.setup(:default, config[:data_mapper] || {:adapter => 'yaml', :path => '/tmp/am_test2'})
-      DataMapper.setup(:default, options[:dm_db])
-
-      require 'omf-sfa/resource'
-      DataMapper::Model.raise_on_save_failure = true
-      DataMapper.finalize
-
-      # require  'dm-migrations'
-      # DataMapper.auto_migrate!
-
-      #DataMapper.auto_upgrade! if options[:dm_auto_upgrade]
+      # Sequel.connect('postgres://user:password@localhost/my_db')
+      require 'sequel'
+      Sequel.connect(options[:database])
+      # puts 'requiring models'
+      require 'omf-sfa/models' # Make sure Sequel has been connected to a db before loading the models
+      OMF::SFA::Model::Constants.default_domain = @@config[:domain]
     end
 
 
@@ -109,7 +95,7 @@ module OMF::SFA::AM
 
       require 'omf-sfa/resource/account'
       #account = am.find_or_create_account(:name => 'foo')
-      account = OMF::SFA::Resource::Account.create(:name => 'root')
+      account = OMF::SFA::Model::Account.create(:name => 'root')
 
       require 'omf-sfa/resource/link'
       require 'omf-sfa/resource/node'
@@ -124,7 +110,7 @@ module OMF::SFA::AM
       r = []
 #       r << l = OMF::SFA::Resource::Link.create(:name => 'l')
 #       r << OMF::SFA::Resource::Channel.create(:name => '1', :frequency => "2.412GHZ")
-      lease = OMF::SFA::Resource::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000)
+      lease = OMF::SFA::Model::Lease.create(:account => account, :name => 'l1', :valid_from => Time.now, :valid_until => Time.now + 36000)
 #       2.times do |i|
 #         r << n = OMF::SFA::Resource::Node.create(:name => "node#{i}", :urn => OMF::SFA::Resource::GURN.create("node#{i}", :type => 'node'))
 #         ifr = OMF::SFA::Resource::Interface.create(name: "node#{i}:if0", node: n, channel: l)
@@ -134,14 +120,16 @@ module OMF::SFA::AM
 #         n.leases << lease
 #       end
 #       r.last.leases << OMF::SFA::Resource::Lease.create(:account => account, :name => 'l2', :valid_from => Time.now + 3600, :valid_until => Time.now + 7200)
-      r << n = OMF::SFA::Resource::Node.create(:name => "node1", :urn => OMF::SFA::Resource::GURN.create("node1", :type => 'node'))
-      ip1 = OMF::SFA::Resource::Ip.create(address: "10.0.0.1", netmask: "255.255.255.0", ip_type: "ipv4")
-      ifr1 = OMF::SFA::Resource::Interface.create(role: "control_network", name: "node1:if0", mac: "00-03-1d-0d-4b-96", node: n, ip: ip1)
-      ip2 = OMF::SFA::Resource::Ip.create(address: "10.0.0.101", netmask: "255.255.255.0", ip_type: "ipv4")
-      ifr2 = OMF::SFA::Resource::Interface.create(role: "cm_network", name: "node1:if1", mac: "09:A2:DA:0D:F1:01", node: n, ip: ip2)
+      r << n = OMF::SFA::Model::Node.create(:name => "node1", :urn => OMF::SFA::Model::GURN.create("node1", :type => 'node'))
+      ip1 = OMF::SFA::Model::Ip.create(address: "10.0.0.1", netmask: "255.255.255.0", ip_type: "ipv4")
+      ifr1 = OMF::SFA::Model::Interface.create(role: "control_network", name: "node1:if0", mac: "00-03-1d-0d-4b-96", node: n)
+      ifr1.add_ip(ip1)
+      ip2 = OMF::SFA::Model::Ip.create(address: "10.0.0.101", netmask: "255.255.255.0", ip_type: "ipv4")
+      ifr2 = OMF::SFA::Model::Interface.create(role: "cm_network", name: "node1:if1", mac: "09:A2:DA:0D:F1:01", node: n)
+      ifr2.add_ip(ip2)
       n.interfaces << ifr1
       n.interfaces << ifr2
-      n.leases << lease
+      n.add_lease(lease)
       am.manage_resources(r)
     end
 
@@ -167,10 +155,8 @@ module OMF::SFA::AM
         :pre_parse => lambda do |p, options|
           p.on("--test-load-am", "Load an AM configuration for testing") do |n| options[:load_test_am] = true end
           p.separator ""
-          p.separator "Datamapper options:"
-          p.on("--dm-db URL", "Datamapper database [#{options[:dm_db]}]") do |u| options[:dm_db] = u end
-          p.on("--dm-log FILE", "Datamapper log file [#{options[:dm_log]}]") do |n| options[:dm_log] = n end
-          p.on("--dm-auto-upgrade", "Run Datamapper's auto upgrade") do |n| options[:dm_auto_upgrade] = true end
+          p.separator "Database options:"
+          p.on("--database URL", "Database's URL [#{options[:database]}]") do |u| options[:database] = u end
           p.separator ""
         end,
         :pre_run => lambda do |opts|
@@ -197,8 +183,7 @@ end # module
 #
 rpc = OMF::SFA::AM::AMServer.rpc_config
 xmpp = OMF::SFA::AM::AMServer.xmpp_config
-db = OMF::SFA::AM::AMServer.db_config
-db_desc = (db[:dbType] == :sqlite) ? "#{db[:dbType]}://#{db[:dbName]}" : "#{db[:dbType]}://#{db[:username]}:#{db[:password]}@#{db[:dbHostname]}/#{db[:dbName]}"
+
 opts = {
   :app_name => 'am_server',
   :port => rpc[:port] || 8001,
@@ -213,8 +198,7 @@ opts = {
   {
     :auth => xmpp[:auth],
   },
-  :dm_db => "#{db_desc}",
-  :dm_log => '/tmp/am_server-dm.log',
+  :database => "#{@@config[:database]}",
   :rackup => File.dirname(__FILE__) + '/config.ru',
 }
 if @@config[:mapping_submodule]

@@ -31,12 +31,12 @@ module OMF::SFA::AM::Rest
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
         descr = {}
-        descr.merge!({type: "OMF::SFA::Resource::#{resource_type}"}) unless resource_type.nil?  
+        # descr.merge!({type: "OMF::SFA::Resource::#{resource_type}"}) unless resource_type.nil?  
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
           # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          descr[:account] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
@@ -47,7 +47,7 @@ module OMF::SFA::AM::Rest
           end
         else
           # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          descr[:account] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
@@ -199,7 +199,9 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
+          # rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
+          rh = JSON.parse(resource.to_json(:include=>{:interfaces => {}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}))
+
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
@@ -229,7 +231,7 @@ module OMF::SFA::AM::Rest
       else
         type = resource_uri.singularize.camelize
         begin
-          eval("OMF::SFA::Resource::#{type}").class
+          eval("OMF::SFA::Model::#{type}").class
         rescue NameError => ex
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type '#{resource_uri}'."
         end
@@ -254,7 +256,7 @@ module OMF::SFA::AM::Rest
           res_descr = {}
           res_descr.merge!({uuid: res[:uuid]}) if res.has_key?(:uuid)
           res_descr.merge!({name: res[:name]}) if res.has_key?(:name)
-          descr << res_descr unless eval("OMF::SFA::Resource::#{type_to_create}").first(res_descr)
+          descr << res_descr unless eval("OMF::SFA::Model::#{type_to_create}").first(res_descr)
         end
         raise OMF::SFA::AM::Rest::BadRequestException.new "No resources described in description #{resource_descr} is valid. Maybe all the resources alreadt=y exist." if descr.empty?
       elsif resource_descr.kind_of? Hash
@@ -265,7 +267,7 @@ module OMF::SFA::AM::Rest
         if descr.empty?
           raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
         else
-          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Model::#{type_to_create}").first(descr)
         end
       end
 
@@ -316,13 +318,13 @@ module OMF::SFA::AM::Rest
         if resource_descr.kind_of? Array
           resource = []
           resource_descr.each do |res_desc|
-            res_desc = parse_resource_description(res_desc, type_to_create)
-            resource << eval("OMF::SFA::Resource::#{type_to_create}").create(res_desc)
+            # res_desc = parse_resource_description(res_desc, type_to_create)
+            resource << eval("OMF::SFA::Model::#{type_to_create}").create(res_desc)
             @am_manager.manage_resource(resource.last) if resource.last.account.nil?
           end
         elsif resource_descr.kind_of? Hash
-          resource_descr = parse_resource_description(resource_descr, type_to_create)
-          resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
+          # resource_descr = parse_resource_description(resource_descr, type_to_create)
+          resource = eval("OMF::SFA::Model::#{type_to_create}").create(resource_descr)
           @am_manager.manage_resource(resource) if resource.account.nil?
         end
       end
