@@ -10,10 +10,6 @@ module OMF::SFA::Model
     def active?
       return false unless self.closed_at.nil?
 
-      valid_until = self.valid_until
-      unless valid_until.kind_of? Time
-        valid_until = Time.parse(valid_until) # seem to not be returned as Time
-      end
       if Time.now > valid_until
         self.close()
         return false
@@ -28,11 +24,13 @@ module OMF::SFA::Model
     # Close account
     def close
       self.closed_at = Time.now
+      save
     end
 
     # Open account
     def open
       self.closed_at = nil
+      save
     end
 
     def before_save

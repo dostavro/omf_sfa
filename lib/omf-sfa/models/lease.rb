@@ -15,5 +15,12 @@ module OMF::SFA::Model
     sfa_class 'lease', :namespace => :ol, :can_be_referred => true
     sfa :valid_from, :attribute => true
     sfa :valid_until, :attribute => true
+
+    def before_save
+      self.status = 'pending' if self.status.nil?
+      # Get rid of the milliseconds
+      self.valid_from = Time.at(self.valid_from.to_i) unless valid_from.nil?
+      self.valid_until = Time.at(self.valid_until.to_i) unless valid_until.nil?
+    end
   end
 end

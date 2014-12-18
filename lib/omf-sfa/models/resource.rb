@@ -9,6 +9,7 @@ module OMF::SFA::Model
     nested_attributes :account
 
     # add before_save a urn check and set block
+    # save also the resource_type 'node, channel etc.'
 
     def to_json(options = {})
       values.reject! { |k, v| v.nil? }

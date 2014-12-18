@@ -121,15 +121,20 @@ Sequel.migration do
     create_table(:accounts) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
 
-      DateTime :created_at # see if there is an automatic way of gettting this through the db
+      DateTime :created_at
       DateTime :valid_until
       DateTime :closed_at
     end
 
     create_table(:users) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+    end
 
-      String :keys # see if there is an array for keeping multiple ssh keys
+    create_table(:keys) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+      foreign_key :user_id, :users, :on_delete => :cascade
+
+      String :ssh_key
     end
 
     create_table(:accounts_users) do
@@ -141,6 +146,7 @@ Sequel.migration do
 
   down do
     drop_table(:accounts_users)
+    drop_table(:keys)
     drop_table(:users)
     drop_table(:disk_images)
     drop_table(:sliver_types)
