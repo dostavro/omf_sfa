@@ -27,12 +27,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "daemons", "~> 1.0.9"
   s.add_runtime_dependency "log4r", "~> 1.1.10"
   s.add_runtime_dependency "maruku", "~> 0.6.0"
-  s.add_runtime_dependency "dm-core", "~> 1.2.0"
-  s.add_runtime_dependency "dm-types", "~> 1.2.1"
-  s.add_runtime_dependency "dm-validations", "~> 1.2.0"
-  s.add_runtime_dependency "dm-migrations", "~> 1.2.0"
-  s.add_runtime_dependency "dm-sqlite-adapter", "~> 1.2.0"
-  s.add_runtime_dependency "dm-postgres-adapter"
   s.add_runtime_dependency "uuid", "~> 2.3.5"
   s.add_runtime_dependency "json", "~> 1.7.7"
   s.add_runtime_dependency "blather", "~> 1.0.0"
@@ -47,4 +41,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "omf_rc", "~> 6.1.3"
   s.add_runtime_dependency "eventmachine", "~> 1.0.3"
   s.add_runtime_dependency "em-minitest-spec", "~> 1.1.1"
+  s.add_runtime_dependency "sequel", "~> 4.17.0"
 end
