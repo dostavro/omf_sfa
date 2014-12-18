@@ -15,5 +15,10 @@ module OMF::SFA::Model
     sfa_class 'lease', :namespace => :ol, :can_be_referred => true
     sfa :valid_from, :attribute => true
     sfa :valid_until, :attribute => true
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:components].concat(sup)
+    end
   end
 end

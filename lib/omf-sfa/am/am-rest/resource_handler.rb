@@ -36,18 +36,18 @@ module OMF::SFA::AM::Rest
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
           # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
           elsif resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
           else
-            resource =  @am_manager.find_all_resources(descr, authenticator)
+            resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
         else
           # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account if (resource_uri == 'nodes' || resource_uri == 'channels')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           resource = @am_manager.find_resource(descr, authenticator)
         end
       else
@@ -200,8 +200,10 @@ module OMF::SFA::AM::Rest
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
           # rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
-          rh = JSON.parse(resource.to_json(:include=>{:interfaces => {}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}))
-
+          # rh = JSON.parse(resource.to_json(:include => {:interfaces => {except: [:id, :account_id], include: {ips: {except: [:id, :account_id], include: {}}}}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}, :except => resource.exclude_from_json))
+          incl = resource.class.include_to_json
+          excl = resource.class.exclude_from_json
+          rh = JSON.parse(resource.to_json(:include => incl, :except => excl))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end

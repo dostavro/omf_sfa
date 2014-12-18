@@ -22,5 +22,14 @@ module OMF::SFA::Model
     sfa :component_manager_id, :attribute => true#, :prop_name => :component_manager_gurn # "urn:publicid:IDN+plc+authority+am"
     sfa :component_name, :attribute => true # "plane
     sfa :leases, :inline => true, :has_many => true
+
+    def self.exclude_from_json
+      sup = super
+      [:parent_id].concat(sup)
+    end
+
+    def self.include_nested_attributes_to_json
+      [:leases]
+    end
   end #Class
 end #OMF::SFA::Model

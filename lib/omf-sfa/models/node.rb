@@ -1,5 +1,6 @@
 require 'omf-sfa/models/component'
 require 'omf-sfa/models/cmc'
+require 'omf-sfa/models/sliver_type'
 
 module OMF::SFA::Model
   class Node < Component
@@ -21,5 +22,15 @@ module OMF::SFA::Model
     sfa :exclusive, :attribute => true
     sfa :location, :inline => true
     sfa :boot_state, :attribute => true
+
+    def self.exclude_from_json
+      sup = super
+      [:sliver_type_id, :cmc_id].concat(sup)
+    end
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:interfaces, :cpus, :cmc, :location, :sliver_type].concat(sup)
+    end
   end
 end

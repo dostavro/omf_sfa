@@ -40,5 +40,10 @@ module OMF::SFA::Model
       self.valid_until ||= Time.now + @@def_duration
       super
     end
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:users].concat(sup)
+    end
   end # Class
 end # Module
