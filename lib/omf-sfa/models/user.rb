@@ -2,7 +2,7 @@ require 'omf-sfa/models/resource'
 
 module OMF::SFA::Model
   class User < Resource
-    one_to_many :resources
+    one_to_many :keys
     many_to_many :accounts
 
     def has_nil_account?(am_manager)
