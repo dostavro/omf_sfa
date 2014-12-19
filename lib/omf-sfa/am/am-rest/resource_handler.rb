@@ -48,7 +48,8 @@ module OMF::SFA::AM::Rest
         else
           # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
-          resource = @am_manager.find_resource(descr, authenticator)
+          resource = @am_manager.find_resource(descr, resource_type, authenticator)
+          return show_resource(resource, opts)
         end
       else
         body, format = parse_body(opts)
@@ -83,7 +84,8 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
       debug "on_post: #{resource_uri} - #{opts[:req].env["REQUEST_PATH"]}"
-      if opts[:req].env["REQUEST_PATH"] == '/mapper' || opts[:req].env["REQUEST_PATH"] == '/mapper/'
+      path = opts[:req].env["REQUEST_PATH"]
+      if path == '/mapper' || path == '/mapper/'
         debug "Unbound request detected."
         body, format = parse_body(opts)
         authenticator = opts[:req].session[:authorizer]
@@ -216,7 +218,7 @@ module OMF::SFA::AM::Rest
     protected
 
     def parse_uri(resource_uri, opts)
-      params = opts[:req].params
+      params = opts[:req].params.symbolize_keys!
       params.delete("account")
 
       return ['mapper', params] if opts[:req].env["REQUEST_PATH"] == '/mapper'
