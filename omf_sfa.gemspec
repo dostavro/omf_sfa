@@ -42,4 +42,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "eventmachine", "~> 1.0.3"
   s.add_runtime_dependency "em-minitest-spec", "~> 1.1.1"
   s.add_runtime_dependency "sequel", "~> 4.17.0"
+  s.add_runtime_dependency "sqlite3", "~> 1.3.10"
 end
