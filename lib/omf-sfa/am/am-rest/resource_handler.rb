@@ -1,4 +1,3 @@
-require 'omf-sfa/resource'
 require 'omf-sfa/am/am-rest/rest_handler'
 require 'omf-sfa/am/am_manager'
 
