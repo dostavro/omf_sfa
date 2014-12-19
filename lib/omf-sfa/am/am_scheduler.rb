@@ -137,7 +137,7 @@ module OMF::SFA::AM
     # @param [Time] the ending point of the timeslot
     # @return [Boolean] true if it is available, false if it is not
     #
-    def resource_available?(resource, valid_from, valid_until)
+    def component_available?(resource, valid_from, valid_until)
       return resource.available unless resource.exclusive
       resource.leases.each do |l|
         if (valid_from.utc >= l.valid_until.utc || valid_until.utc < l.valid_from.utc)
