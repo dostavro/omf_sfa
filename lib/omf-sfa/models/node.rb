@@ -23,6 +23,10 @@ module OMF::SFA::Model
     sfa :location, :inline => true
     sfa :boot_state, :attribute => true
 
+    def before_save
+      self.available ||= true
+    end
+
     def self.exclude_from_json
       sup = super
       [:sliver_type_id, :cmc_id].concat(sup)
