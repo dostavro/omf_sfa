@@ -1,5 +1,7 @@
+require 'omf_common/lobject'
 require 'active_support/inflector'
 require 'uuid'
+require "uuidtools"
 
 module OMF::SFA::Model
 
@@ -15,8 +17,8 @@ module OMF::SFA::Model
 
     def before_save
       # self.resource_type ||= self.class.to_s.split('::')[-1].downcase
-      # self.uuid ||= UUIDTools::UUID.random_create
-      # self.urn ||= UUIDTools::UUID.random_create
+      self.uuid ||= UUIDTools::UUID.random_create
+      self.urn ||= GURN.create(name, :type => self.class.to_s.split('::')[-1].downcase).to_s
       super
     end
 
