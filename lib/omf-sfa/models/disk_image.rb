@@ -1,7 +1,7 @@
 require 'omf-sfa/models/resource'
 
 module OMF::SFA::Model
-  class Disk_image < Resource
+  class DiskImage < Resource
 
     one_to_many :sliver_types
 
@@ -12,5 +12,10 @@ module OMF::SFA::Model
     sfa :name, attribute: true
     sfa :os, attribute: true
     sfa :version, attribute: true
+
+    def self.exclude_from_json
+      sup = super
+      [:disk_image_id].concat(sup)
+    end
   end
 end

@@ -5,9 +5,9 @@ Sequel.migration do
       primary_key :id
       foreign_key :account_id, :accounts, :on_delete => :set_null
       String :name
-      String :resource_type
       String :urn
       String :uuid
+      String :type
     end
 
     create_table(:components) do

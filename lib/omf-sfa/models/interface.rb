@@ -18,5 +18,15 @@ module OMF::SFA::Model
     sfa :role, :attribute => true
     sfa :ip, :inline => true
     alias_method :ip, :ips
+
+    def self.exclude_from_json
+      sup = super
+      [:node_id, :link_id].concat(sup)
+    end
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:ips, :link].concat(sup)
+    end
   end
 end

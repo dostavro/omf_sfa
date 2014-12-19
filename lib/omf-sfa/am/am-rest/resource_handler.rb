@@ -35,7 +35,8 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id unless resource_uri == 'leases'
+          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
@@ -45,8 +46,10 @@ module OMF::SFA::AM::Rest
             resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
         else
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id unless resource_uri == 'leases'
-          resource = @am_manager.find_resource(descr, authenticator)
+          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
+          resource = @am_manager.find_resource(descr, resource_type, authenticator)
+          return show_resource(resource, opts)
         end
       else
         body, format = parse_body(opts)
@@ -81,7 +84,8 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
       debug "on_post: #{resource_uri} - #{opts[:req].env["REQUEST_PATH"]}"
-      if opts[:req].env["REQUEST_PATH"] == '/mapper' || opts[:req].env["REQUEST_PATH"] == '/mapper/'
+      path = opts[:req].env["REQUEST_PATH"]
+      if path == '/mapper' || path == '/mapper/'
         debug "Unbound request detected."
         body, format = parse_body(opts)
         authenticator = opts[:req].session[:authorizer]
@@ -178,7 +182,6 @@ module OMF::SFA::AM::Rest
       res = resources ? resource_to_json(resources, path, opts) : {response: "OK"}
       res[:about] = opts[:req].path
 
-
       ['application/json', JSON.pretty_generate({:resource_response => res}, :for_rest => true)]
     end
 
@@ -199,8 +202,10 @@ module OMF::SFA::AM::Rest
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
           # rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
-          rh = JSON.parse(resource.to_json(:include=>{:interfaces => {}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}))
-
+          # rh = JSON.parse(resource.to_json(:include => {:interfaces => {except: [:id, :account_id], include: {ips: {except: [:id, :account_id], include: {}}}}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}, :except => resource.exclude_from_json))
+          incl = resource.class.include_to_json
+          excl = resource.class.exclude_from_json
+          rh = JSON.parse(resource.to_json(:include => incl, :except => excl))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
@@ -213,7 +218,7 @@ module OMF::SFA::AM::Rest
     protected
 
     def parse_uri(resource_uri, opts)
-      params = opts[:req].params
+      params = opts[:req].params.symbolize_keys!
       params.delete("account")
 
       return ['mapper', params] if opts[:req].env["REQUEST_PATH"] == '/mapper'

@@ -16,5 +16,10 @@ module OMF::SFA::Model
     sfa :address, :attribute => true
     sfa :netmask, :attribute => true
     sfa :ip_type, :attribute => true
+
+    def self.exclude_from_json
+      sup = super
+      [:interface_id].concat(sup)
+    end
   end
 end

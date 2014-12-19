@@ -1,3 +1,7 @@
+require 'omf_common/lobject'
+require 'active_support/inflector'
+require 'uuid'
+require "uuidtools"
 
 module OMF::SFA::Model
 
@@ -11,6 +15,13 @@ module OMF::SFA::Model
     # add before_save a urn check and set block
     # save also the resource_type 'node, channel etc.'
 
+    def before_save
+      # self.resource_type ||= self.class.to_s.split('::')[-1].downcase
+      self.uuid ||= UUIDTools::UUID.random_create
+      self.urn ||= GURN.create(name, :type => self.class.to_s.split('::')[-1].downcase).to_s
+      super
+    end
+
     def to_json(options = {})
       values.reject! { |k, v| v.nil? }
       super(options)
@@ -20,8 +31,32 @@ module OMF::SFA::Model
       values.reject! { |k, v| v.nil? }
       super
     end
+
+    def self.exclude_from_json
+      [:id, :account_id]
+    end
+
+    def self.include_nested_attributes_to_json
+      [:account]
+    end
+
+    def self.include_to_json(incoming = [])
+      return {:account => {:only => [:uuid, :urn, :name]}} if self.instance_of? OMF::SFA::Model::Resource
+      out = {}
+      self.include_nested_attributes_to_json.each do |key|
+        next if incoming.include?(key)
+        next if key == :account && !self.instance_of?(OMF::SFA::Model::Lease)
+        next if self.instance_of? eval("OMF::SFA::Model::#{key.to_s.classify}")
+        out[key] = {}
+        out[key][:except] = eval("OMF::SFA::Model::#{key.to_s.classify}").exclude_from_json
+        out[key][:include] = eval("OMF::SFA::Model::#{key.to_s.classify}").include_to_json(incoming << key)
+      end
+      out
+    end
   end #Class
 end #OMF::SFA
+
+OMF::SFA::Model::Resource.plugin :class_table_inheritance, :key=>:type
 
 class Array
   def to_json(options = {})

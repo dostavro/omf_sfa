@@ -16,7 +16,12 @@ module OMF::SFA::Model
     sfa :valid_from, :attribute => true
     sfa :valid_until, :attribute => true
 
-    def before_save
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:components].concat(sup)
+    end
+
+	def before_save
       self.status = 'pending' if self.status.nil?
       # Get rid of the milliseconds
       self.valid_from = Time.at(self.valid_from.to_i) unless valid_from.nil?

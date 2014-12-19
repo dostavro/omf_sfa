@@ -22,6 +22,16 @@ class Resource < MiniTest::Test
     assert_instance_of OMF::SFA::Model::Resource, res
   end
 
+  def test_that_on_create_it_will_generate_urn
+    res = OMF::SFA::Model::Resource.create(name: 'resource1')
+    refute_nil res.urn
+  end
+
+  def test_that_on_create_it_will_generate_uuid
+    res = OMF::SFA::Model::Resource.create(name: 'resource1')
+    refute_nil res.uuid
+  end
+
   def test_that_can_delete_a_resource
     OMF::SFA::Model::Resource.create(name: 'resource1')
     res = OMF::SFA::Model::Resource.first(name: 'resource1')
@@ -54,7 +64,7 @@ class Resource < MiniTest::Test
     account = OMF::SFA::Model::Account.create(name: 'account1')
     res.account = account
 
-    assert_equal '{"id":1,"account_id":2,"name":"resource1","account":{"name":"account1"}}', res.to_json(:include=>{:account => {:only => :name}})
+    assert_equal '{"id":1,"account_id":2,"name":"resource1","urn":"urn:publicid:IDN+domain+resource+resource1","type":"OMF::SFA::Model::Resource","account":{"name":"account1"}}', res.to_json(:include=>{:account => {:only => :name}}, :except => [:uuid])
   end
 end # Class Resource
 

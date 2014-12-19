@@ -6,6 +6,5 @@ module OMF::SFA::Model
     sfa_class 'channel', :namespace => :ol
 
     sfa :frequency, :attribute => true
-    sfa :interfaces, :inline => true, :has_many => true
   end
 end
