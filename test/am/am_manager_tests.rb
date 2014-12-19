@@ -403,14 +403,6 @@ class AMManager < MiniTest::Test
     authorizer.verify
   end
 
-  def test_that_can_update_lease_from_rspec
-    skip
-  end
-
-  def test_that_can_update_leases_from_rspec
-    skip
-  end
-
   def test_that_can_return_a_resource_if_object_is_given
     authorizer = Minitest::Mock.new
     authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Node]
@@ -528,7 +520,6 @@ class AMManager < MiniTest::Test
   end
 
   def test_that_can_find_all_components
-    skip
     authorizer = Minitest::Mock.new
     component1 = OMF::SFA::Model::Component.create(name: 'component1')
     node1 = OMF::SFA::Model::Node.create(name: 'node1')
@@ -538,7 +529,7 @@ class AMManager < MiniTest::Test
     authorizer.expect :can_view_resource?, false, [OMF::SFA::Model::Component]
     components = @manager.find_all_components({type: 'OMF::SFA::Model::Node'}, authorizer)
     assert_equal 1, components.count
-    assert_equal node1.name, components.first.name
+    assert_instance_of OMF::SFA::Model::Node, components.first
 
     authorizer.verify
   end
@@ -558,15 +549,125 @@ class AMManager < MiniTest::Test
     end
   end
 
-  def test_that_can_create_a_resource
+  def test_that_can_raise_an_exception_if_create_resource_is_not_allowed
+    authorizer = Minitest::Mock.new
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      authorizer.expect :can_create_resource?, false, [{name: 'node1'}, 'node']
+      @manager.create_resource({name: 'node1'}, 'node', authorizer)
+    end
+    authorizer.verify
+  end
+
+  def test_that_can_create_a_managed_resource
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    @manager.stub :_get_nil_account, account do
+      authorizer.expect :can_create_resource?, true, [{name: 'node1'}, 'node']
+      resource = @manager.create_resource({name: 'node1'}, 'node', authorizer)
+      assert_equal account, resource.account
+      assert_equal 'node1', resource.name
+    end
+
+    authorizer.verify
+  end
+
+  def test_that_can_create_a_child_resource
     authorizer = Minitest::Mock.new
     @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    account = OMF::SFA::Model::Account.create(name: 'account1')
 
-    authorizer.expect :can_create_resource?, true, [{name: 'node1'}, 'node']
-    scheduler.expect :create_resource, true, [{name: 'node1'}, 'node', authorizer]
-    assert @manager.create_resource({name: 'node1'}, 'node', authorizer)
+    authorizer.expect :can_create_resource?, true, [{name: 'node1', account_id: account.id}, 'node']
+    scheduler.expect :create_child_resource, true, [{name: 'node1', account_id: account.id}, 'node', authorizer]
+    assert @manager.create_resource({name: 'node1', account_id: account.id}, 'node', authorizer)
+
 
     authorizer.verify
     scheduler.verify
   end
+
+  def test_that_can_find_or_create_resource_for_an_account
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    authorizer.expect :account, account
+
+    @manager.stub :find_or_create_resource, true do
+      assert @manager.find_or_create_resource_for_account({name: 'node1'}, 'node', authorizer)
+    end
+
+    authorizer.verify
+  end
+
+  def test_that_can_create_resources_from_rspec
+    skip
+  end
+
+  def test_that_can_release_a_resource
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    authorizer.expect :can_release_resource?, true, [node]
+    scheduler.expect :release_resource, true, [node]
+    assert @manager.release_resource(node, authorizer)
+
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_can_raise_an_exception_if_release_resource_is_not_allowed
+    authorizer = Minitest::Mock.new
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    authorizer.expect :can_release_resource?, false, [node]
+    
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.release_resource(node, authorizer)
+    end
+
+    authorizer.verify
+  end
+
+  def test_that_can_release_multiple_resources
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    node1 = OMF::SFA::Model::Node.create(name: 'node1')
+    node2 = OMF::SFA::Model::Node.create(name: 'node2')
+
+    authorizer.expect :can_release_resource?, true, [node1]
+    authorizer.expect :can_release_resource?, true, [node2]
+    scheduler.expect :release_resource, true, [node1]
+    scheduler.expect :release_resource, true, [node2]
+    assert @manager.release_resources([node1,node2], authorizer)
+
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_release_all_components_for_account
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    node = OMF::SFA::Model::Node.create(name: 'node1', account: account)
+    OMF::SFA::Model::Node.create(name: 'node2')
+
+    authorizer.expect :can_view_resource?, true, [node]
+    authorizer.expect :can_release_resource?, true, [node]
+    scheduler.expect :release_resource, true, [node]
+    assert @manager.release_all_components_for_account(account, authorizer)
+
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_can_update_lease_from_rspec
+    skip
+  end
+
+  def test_that_can_update_leases_from_rspec
+    skip
+  end
+
 end # Class AMManager
