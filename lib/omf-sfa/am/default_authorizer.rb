@@ -36,6 +36,7 @@ module OMF::SFA::AM
         unless @permissions[m]
           raise InsufficientPrivilegesException.new
         end
+        true
       end
     end
 
