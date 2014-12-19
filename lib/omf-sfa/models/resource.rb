@@ -18,6 +18,7 @@ module OMF::SFA::Model
     def before_save
       # self.resource_type ||= self.class.to_s.split('::')[-1].downcase
       self.uuid ||= UUIDTools::UUID.random_create
+      name = self.name ? self.name : self.uuid
       self.urn ||= GURN.create(name, :type => self.class.to_s.split('::')[-1].downcase).to_s
       super
     end
