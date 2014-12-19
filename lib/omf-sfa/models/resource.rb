@@ -1,4 +1,5 @@
 require 'active_support/inflector'
+require 'uuid'
 
 module OMF::SFA::Model
 
@@ -11,6 +12,13 @@ module OMF::SFA::Model
 
     # add before_save a urn check and set block
     # save also the resource_type 'node, channel etc.'
+
+    def before_save
+      # self.resource_type ||= self.class.to_s.split('::')[-1].downcase
+      # self.uuid ||= UUIDTools::UUID.random_create
+      # self.urn ||= UUIDTools::UUID.random_create
+      super
+    end
 
     def to_json(options = {})
       values.reject! { |k, v| v.nil? }
@@ -45,6 +53,8 @@ module OMF::SFA::Model
     end
   end #Class
 end #OMF::SFA
+
+OMF::SFA::Model::Resource.plugin :class_table_inheritance, :key=>:type
 
 class Array
   def to_json(options = {})
