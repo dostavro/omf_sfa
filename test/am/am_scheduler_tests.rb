@@ -67,4 +67,74 @@ class AMScheduler < MiniTest::Test
     assert_equal lease.reload, parent.leases.first
     assert_equal 'cancelled', OMF::SFA::Model::Lease.first(name: 'lease1').status
   end
+
+  def test_tha_can_lease_a_component_1
+    account1 = OMF::SFA::Model::Account.create(name: 'account1')
+    account2 = OMF::SFA::Model::Account.create(name: 'account2')
+    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
+    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
+    t1 = Time.now
+    t2 = t1 + 100
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+
+    assert @scheduler.lease_component(lease, child)
+    lease.reload
+    assert_equal lease, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.first
+    assert_equal lease, OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases.first
+  end
+
+  def test_tha_can_lease_a_component_2
+    account1 = OMF::SFA::Model::Account.create(name: 'account1')
+    account2 = OMF::SFA::Model::Account.create(name: 'account2')
+    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
+    
+    t1 = '2014-12-23T15:00:00+02:00'
+    t2 = '2014-12-23T17:00:00+02:00'
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+    lease1.add_component(parent)
+
+    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
+    lease2 = OMF::SFA::Model::Lease.create(name: 'lease2', valid_from: '2014-12-23T18:00:00+02:00', valid_until: '2014-12-23T19:00:00+02:00')
+
+    assert @scheduler.lease_component(lease2, child)
+    lease2.reload
+    assert_equal lease2, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.last
+    assert_equal lease2, OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases.last
+  end
+
+  def test_that_cannot_lease_a_component_that_is_already_leased_1
+    account1 = OMF::SFA::Model::Account.create(name: 'account1')
+    account2 = OMF::SFA::Model::Account.create(name: 'account2')
+    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
+    
+    t1 = '2014-12-23T15:00:00+02:00'
+    t2 = '2014-12-23T17:00:00+02:00'
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+    lease1.add_component(parent)
+
+    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
+    lease2 = OMF::SFA::Model::Lease.create(name: 'lease2', valid_from: '2014-12-23T16:00:00+02:00', valid_until: '2014-12-23T17:00:00+02:00')
+
+    refute @scheduler.lease_component(lease2, child)
+    assert_equal 1, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.count
+    assert_empty OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases
+  end
+
+  def test_that_cannot_lease_a_component_that_is_already_leased_2
+    account1 = OMF::SFA::Model::Account.create(name: 'account1')
+    account2 = OMF::SFA::Model::Account.create(name: 'account2')
+    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
+    
+    t1 = '2014-12-23T15:00:00+02:00'
+    t2 = '2014-12-23T17:00:00+02:00'
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+    lease1.add_component(parent)
+
+    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
+    lease2 = OMF::SFA::Model::Lease.create(name: 'lease2', valid_from: '2014-12-23T14:00:00+02:00', valid_until: '2014-12-23T18:00:00+02:00')
+
+    refute @scheduler.lease_component(lease2, child)
+    assert_equal 1, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.count
+    assert_empty OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases
+  end
 end

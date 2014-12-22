@@ -82,43 +82,33 @@ module OMF::SFA::AM
       debug "lease_component: lease:'#{lease.name}' to component:'#{component.name}'"
 
       parent = component.parent
-      # leases = parent.leases.where{lease.valid_from >= }
 
-      base.leases.each do |l|
-        if (lease.valid_from.utc >= l.valid_until.utc || lease.valid_until.utc <= l.valid_from.utc)
-          #all ok, do nothing
-        elsif (lease.valid_from.utc <= l.valid_from.utc && lease.valid_until.utc > l.valid_from.utc)#overlapping time
-          raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
-        elsif (lease.valid_from.utc >= l.valid_from.utc && lease.valid_from.utc <= l.valid_until.utc)#overlapping time
-          raise UnavailableResourceException.new "Cannot lease '#{component.name}', because it is unavailable for the requested time."
-        end
+      if component_available?(component, lease.valid_from, lease.valid_until)
+        lease.status = "accepted"
+        parent.add_lease(lease)   
+        component.add_lease(lease)
+
+        true
+      else
+        false
       end
-      lease.status = "accepted"
-      base.add_lease(lease)
-      # base.save
-      component.add_lease(lease)
-      # component.save
-      #@am_liaison.enable_lease(lease, component)
-      return true
     end
 
-    # Check if a resource is available in a specific timeslot or not.
+    # Check if a component is available in a specific timeslot or not.
     #
-    # @param [OMF::SFA::OResource] the resource
+    # @param [OMF::SFA::Component] the component
     # @param [Time] the starting point of the timeslot
     # @param [Time] the ending point of the timeslot
     # @return [Boolean] true if it is available, false if it is not
     #
-    def component_available?(resource, valid_from, valid_until)
-      return resource.available unless resource.exclusive
-      resource.leases.each do |l|
-        if (valid_from.utc >= l.valid_until.utc || valid_until.utc < l.valid_from.utc)
-          next
-        else
-          return false
-        end
-      end
-      true
+    def component_available?(component, start_time, end_time)
+      return component.available unless component.exclusive
+
+      parent = component.parent
+      leases = OMF::SFA::Model::Lease.where(components: [parent]){((valid_from >= start_time) & (valid_from <= end_time)) |
+                                                                  ((valid_from <= start_time) & (valid_until >= start_time))}
+
+      leases.empty?
     end
 
     # Resolve an unbound query.
