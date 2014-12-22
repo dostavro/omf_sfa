@@ -334,8 +334,9 @@ module OMF::SFA::AM::Rest
         @scheduler = @am_manager.get_scheduler
         components.each do |comp|
           puts comp.inspect
-          c = @scheduler.create_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, {}, authorizer)
-          @scheduler.lease_component(resource, c)
+          # c = @scheduler.create_child_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, authorizer)
+          c = @am_manager.create_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, authorizer)
+          @scheduler.lease_component(lease, c)
         end
 
         # res_descr = {name: resource_descr[:name]}
