@@ -25,6 +25,7 @@ module OMF::SFA::Model
 
     def before_save
       self.available ||= true
+      super
     end
 
     def self.exclude_from_json
