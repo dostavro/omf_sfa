@@ -271,7 +271,7 @@ class AMManager < MiniTest::Test
 
   def test_that_can_create_a_lease_if_it_doesnt_exist
     authorizer = Minitest::Mock.new
-    authorizer.expect :can_create_resource?, true
+    authorizer.expect :can_create_resource?, true, [{name: 'lease1'}, 'lease']
 
     lease = @manager.find_or_create_lease({name: 'lease1'}, authorizer)
     assert_instance_of OMF::SFA::Model::Lease, lease
@@ -282,7 +282,7 @@ class AMManager < MiniTest::Test
 
   def test_that_can_raise_an_exception_if_create_lease_is_not_allowed
     authorizer = Minitest::Mock.new
-    authorizer.expect :can_create_resource?, false
+    authorizer.expect :can_create_resource?, false, [{name: 'lease1'}, 'lease']
 
     assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
       @manager.find_or_create_lease({name: 'lease1'}, authorizer)
