@@ -253,7 +253,7 @@ module OMF::SFA::AM
         return find_lease(lease_descr, authorizer)
       rescue UnavailableResourceException
       end
-      raise InsufficientPrivilegesException unless authorizer.can_create_resource?
+      raise InsufficientPrivilegesException unless authorizer.can_create_resource?(lease_descr, 'lease')
       lease = OMF::SFA::Model::Lease.create(lease_descr)
 
       raise UnavailableResourceException.new "Cannot create '#{lease_descr.inspect}'" unless lease
