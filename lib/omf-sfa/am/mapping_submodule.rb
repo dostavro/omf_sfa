@@ -3,10 +3,11 @@
 # You should find a copy of the License in LICENSE.TXT or at http://opensource.org/licenses/MIT.
 # By downloading or using this software you accept the terms and the liability disclaimer in the License.
 require 'time'
+require 'omf_common/lobject'
 
 DEFAULT_DURATION = 3600
 
-class MappingSubmodule
+class MappingSubmodule < OMF::Common::LObject
   
   class UnknownTypeException < Exception; end
 
@@ -15,7 +16,7 @@ class MappingSubmodule
   # @param [Hash] Options that come to the initialization of am_scheduler are also passed here.
   #  
   def initialize(opts = {})
-    puts "MappingSubmodule INIT: opts #{opts}"
+    debug "MappingSubmodule INIT: opts #{opts}"
   end
 
   # Resolves an unbound query
