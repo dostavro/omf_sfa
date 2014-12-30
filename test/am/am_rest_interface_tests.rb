@@ -408,8 +408,10 @@ class AMRestInterface < MiniTest::Test
     assert_equal type, "application/json"
     assert_instance_of String, json
 
-    resp = JSON.parse(json)["resource_response"]["response"]
-    assert_equal resp, 'OK'
+    resp = JSON.parse(json)["resource_response"]["resource"]
+    assert_equal resp["status"], 'accepted'
+    assert_equal resp["valid_from"], "2014-06-24 18:00:00 +0300"
+    assert_equal resp["valid_until"], "2014-06-24 19:00:00 +0300"
 
     # # check if it is in the db
     l = OMF::SFA::Model::Lease.first

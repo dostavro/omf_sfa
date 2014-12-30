@@ -314,6 +314,7 @@ module OMF::SFA::AM::Rest
         res_descr[:valid_until] = resource_descr[:valid_until]
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Given account account does not exist." if ac.nil?
         res_descr[:account_id] = ac.id
         #TODO here create the lease
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
@@ -333,12 +334,11 @@ module OMF::SFA::AM::Rest
 
         @scheduler = @am_manager.get_scheduler
         components.each do |comp|
-          puts comp.inspect
           # c = @scheduler.create_child_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, authorizer)
-          c = @am_manager.create_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, authorizer)
+          c = @am_manager.create_resource({uuid: comp.uuid, account_id: ac.id}, comp[:type].to_s.split('::').last, authorizer)
           @scheduler.lease_component(lease, c)
         end
-
+        resource = lease
         # res_descr = {name: resource_descr[:name]}
         # if comps = resource_descr[:components]
         #   resource_descr.tap { |hs| hs.delete(:components) }
