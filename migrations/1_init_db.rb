@@ -16,6 +16,7 @@ Sequel.migration do
       String :domain
       TrueClass :available
       String :status
+      TrueClass :exclusive, :default => true
     end
 
     create_table(:nodes) do
@@ -23,7 +24,6 @@ Sequel.migration do
       foreign_key :sliver_type_id, :sliver_types, :on_delete => :set_null
       foreign_key :cmc_id, :on_delete => :set_null
 
-      TrueClass :exclusive, :default => true
       String :hardware_type
       String :hostname
       String :disk
