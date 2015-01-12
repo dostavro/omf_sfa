@@ -366,7 +366,7 @@ module OMF::SFA::AM
       else
         raise FormatException.new "Unknown resource description type '#{resource_descr.class}' (#{resource_descr})"
       end
-      unless resources
+      unless resources.empty?
         raise UnknownResourceException.new "Resource '#{resource_descr.inspect}' is not available or doesn't exist"
       end
 
