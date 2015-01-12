@@ -13,5 +13,12 @@ module OMF::SFA::Model
       sup = super
       [:accounts].concat(sup)
     end
+
+    def add_key(key)
+      if key.kind_of? String
+        key = OMF::SFA::Model::Key.create({ssh_key: key})
+      end 
+      super(key)
+    end
   end
 end
