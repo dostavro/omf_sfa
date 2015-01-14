@@ -64,7 +64,8 @@ class AMRestInterface < MiniTest::Test
   end
 
   def test_it_can_list_resources
-    r = OMF::SFA::Model::Node.create({:name => 'r1', :account => @scheduler.get_nil_account})
+    r = OMF::SFA::Model::Node.create({:name => 'r1'})
+    @manager.manage_resource(r)
 
     authorizer = MiniTest::Mock.new
     authorizer.expect(:can_view_resource?, true, [Object])
@@ -408,15 +409,15 @@ class AMRestInterface < MiniTest::Test
 
     resp = JSON.parse(json)["resource_response"]["resource"]
     assert_equal resp["status"], 'accepted'
-    assert_equal resp["valid_from"], "2014-06-24 18:00:00 +0300"
-    assert_equal resp["valid_until"], "2014-06-24 19:00:00 +0300"
+    assert_equal resp["valid_from"], Time.parse(time1).utc.to_s
+    assert_equal resp["valid_until"], Time.parse(time2).utc.to_s
     assert_equal resp["components"].size, 2
 
     # # check if it is in the db
     l = OMF::SFA::Model::Lease.first
     assert_equal l[:name], "l1"
-    assert_equal l[:valid_from], Time.parse(time1)
-    assert_equal l[:valid_until], Time.parse(time2)
+    assert_equal l[:valid_from], Time.parse(time1).utc.to_s
+    assert_equal l[:valid_until], Time.parse(time2).utc.to_s
     assert_equal l.components.first.uuid, r.uuid
     refute_nil l.components[1].uuid
     # refute_equal l.components[0].uuid, l.components[1].uuid
@@ -502,7 +503,7 @@ class AMRestInterface < MiniTest::Test
     lease = JSON.parse(json)["resource_response"]["resource"]
     assert_instance_of Hash, lease
     assert_equal lease["name"], "l1"
-    assert_equal lease["valid_from"], (t1 + 50).to_s
+    assert_equal lease["valid_from"], (t1 + 50).utc.to_s
     
     # # check if it is in the db
     l = OMF::SFA::Model::Lease.first
