@@ -108,7 +108,7 @@ module OMF::SFA::AM
       leases = OMF::SFA::Model::Lease.where(components: [parent]){((valid_from >= start_time) & (valid_from <= end_time)) |
                                                                   ((valid_from <= start_time) & (valid_until >= start_time))}
 
-      leases.empty?
+      leases.nil? || leases.empty?
     end
 
     # Resolve an unbound query.
