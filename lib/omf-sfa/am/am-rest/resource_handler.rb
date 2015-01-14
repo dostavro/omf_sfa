@@ -314,6 +314,7 @@ module OMF::SFA::AM::Rest
         res_descr[:valid_until] = resource_descr[:valid_until]
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
         res_descr[:account_id] = ac.id
         #TODO here create the lease
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
