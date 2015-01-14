@@ -162,13 +162,9 @@ module OMF::SFA::AM::RPC
             raise OMF::SFA::AM::InsufficientPrivilegesException.new("You don't have the privilege to enable a closed account")
           end
         end
+        @account.add_user(@user)
         @account.save
-
-        @project = @account.project
-        @project.add_user(@user)
       end
-
     end
-
   end
 end
