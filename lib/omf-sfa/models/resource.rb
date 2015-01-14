@@ -70,3 +70,10 @@ class Hash
     JSON.generate(self)
   end
 end
+
+class Time
+  def to_json(options = {})
+    self.utc
+    super
+  end
+end
