@@ -103,6 +103,7 @@ module OMF::SFA::AM
     #
     def component_available?(component, start_time, end_time)
       return component.available unless component.exclusive
+      return true if OMF::SFA::Model::Lease.all.empty?
 
       parent = component.parent
       leases = OMF::SFA::Model::Lease.where(components: [parent]){((valid_from >= start_time) & (valid_from <= end_time)) |

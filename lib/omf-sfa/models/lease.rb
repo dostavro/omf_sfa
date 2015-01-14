@@ -22,6 +22,7 @@ module OMF::SFA::Model
     end
 
 	def before_save
+      super
       self.status = 'pending' if self.status.nil?
       # Get rid of the milliseconds
       self.valid_from = Time.at(self.valid_from.to_i) unless valid_from.nil?

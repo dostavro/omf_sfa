@@ -366,7 +366,7 @@ module OMF::SFA::AM
       else
         raise FormatException.new "Unknown resource description type '#{resource_descr.class}' (#{resource_descr})"
       end
-      unless resources
+      unless resources.empty?
         raise UnknownResourceException.new "Resource '#{resource_descr.inspect}' is not available or doesn't exist"
       end
 
@@ -502,7 +502,7 @@ module OMF::SFA::AM
         resource = eval("OMF::SFA::Model::#{type_to_create.classify}").create(resource_descr)
         resource = manage_resource(resource)
       else
-        resource = @scheduler.create_child_resource(resource_descr, type_to_create, authorizer)
+        resource = @scheduler.create_child_resource(resource_descr, type_to_create)
       end
 
       raise UnknownResourceException.new "Resource '#{resource_descr.inspect}' cannot be created" unless resource
