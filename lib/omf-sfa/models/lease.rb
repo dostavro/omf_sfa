@@ -22,11 +22,13 @@ module OMF::SFA::Model
     end
 
 	def before_save
-      super
       self.status = 'pending' if self.status.nil?
+      self.valid_until = Time.parse(self.valid_until) if self.valid_until.kind_of? String
+      self.valid_from = Time.parse(self.valid_from) if self.valid_from.kind_of? String
       # Get rid of the milliseconds
       self.valid_from = Time.at(self.valid_from.to_i) unless valid_from.nil?
       self.valid_until = Time.at(self.valid_until.to_i) unless valid_until.nil?
+      super
     end
   end
 end
