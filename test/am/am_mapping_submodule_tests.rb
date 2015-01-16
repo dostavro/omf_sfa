@@ -407,7 +407,7 @@ class AMScheduler < MiniTest::Test
     
     manager = OMF::SFA::AM::AMManager.new(@scheduler)
 
-    assert_raises OMF::SFA::AM::UnavailableResourceException do
+    assert_raises OMF::SFA::AM::UnknownResourceException do
       ans = @scheduler.resolve_query(q, manager, authorizer)
     end
 
@@ -457,7 +457,7 @@ class AMScheduler < MiniTest::Test
     
     manager = OMF::SFA::AM::AMManager.new(@scheduler)
 
-    assert_raises OMF::SFA::AM::UnavailableResourceException do
+    assert_raises OMF::SFA::AM::UnknownResourceException do
       ans = @scheduler.resolve_query(q, manager, authorizer)   
     end
 

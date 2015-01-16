@@ -52,22 +52,6 @@ class AMScheduler < MiniTest::Test
     assert_empty OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).children
   end
 
-  def test_that_can_release_a_resource_with_leases
-    account1 = OMF::SFA::Model::Account.create(name: 'account1')
-    account2 = OMF::SFA::Model::Account.create(name: 'account2')
-    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
-    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
-    t1 = Time.now
-    t2 = t1 + 100
-    lease = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
-    lease.add_component(parent)
-    lease.add_component(child)
-
-    assert @scheduler.release_resource(child)
-    assert_equal lease.reload, parent.leases.first
-    assert_equal 'cancelled', OMF::SFA::Model::Lease.first(name: 'lease1').status
-  end
-
   def test_tha_can_lease_a_component_1
     account1 = OMF::SFA::Model::Account.create(name: 'account1')
     account2 = OMF::SFA::Model::Account.create(name: 'account2')
@@ -109,7 +93,7 @@ class AMScheduler < MiniTest::Test
     
     t1 = '2014-12-23T15:00:00+02:00'
     t2 = '2014-12-23T17:00:00+02:00'
-    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2, status: 'accepted')
     lease1.add_component(parent)
 
     child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
@@ -127,7 +111,7 @@ class AMScheduler < MiniTest::Test
     
     t1 = '2014-12-23T15:00:00+02:00'
     t2 = '2014-12-23T17:00:00+02:00'
-    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2)
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2, status: 'accepted')
     lease1.add_component(parent)
 
     child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)

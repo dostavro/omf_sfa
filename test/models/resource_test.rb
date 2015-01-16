@@ -66,5 +66,16 @@ class Resource < MiniTest::Test
 
     assert_equal '{"id":1,"account_id":2,"name":"resource1","urn":"urn:publicid:IDN+domain+resource+resource1","type":"OMF::SFA::Model::Resource","account":{"name":"account1"}}', res.to_json(:include=>{:account => {:only => :name}}, :except => [:uuid])
   end
+
+  def test_that_a_resource_can_be_cloned
+    res = OMF::SFA::Model::Resource.create(name: 'resource1')
+
+    clone = res.clone
+    reses = OMF::SFA::Model::Resource.all
+
+    assert_equal reses.count, 2
+    assert_equal clone.name, res.name
+    refute_equal clone.uuid, res.uuid
+  end
 end # Class Resource
 
