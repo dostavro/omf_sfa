@@ -329,7 +329,6 @@ module OMF::SFA::AM::Rest
         ac = OMF::SFA::Model::Account.first(ac_desc)
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
         res_descr[:account_id] = ac.id
-        #TODO here create the lease
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
 
         comps = resource_descr[:components] || resource_descr[:components_attributes]
@@ -347,8 +346,7 @@ module OMF::SFA::AM::Rest
 
         @scheduler = @am_manager.get_scheduler
         components.each do |comp|
-          c = @scheduler.create_child_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last)
-          # c = @am_manager.create_resource({uuid: comp.uuid, account_id: ac.id}, comp[:type].to_s.split('::').last, authorizer)
+          c = @scheduler.create_child_resource({uuid: comp.uuid, account_id: ac.id}, comp[:type].to_s.split('::').last)
           @scheduler.lease_component(lease, c)
         end
         resource = lease

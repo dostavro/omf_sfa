@@ -20,9 +20,8 @@ module OMF::SFA::AM
     # and assign it to the user who asked for it (conceptually a physical resource even though it is exclusive,
     # is never given to the user but instead we provide him a clone of the resource).
     #
-    # @param [Hash] resource_descr contains the properties of the new resource
+    # @param [Hash] resource_descr contains the properties of the new resource. Must contain the account_id.
     # @param [String] The type of the resource we want to create
-    # @param [Authorizer] Defines context for authorization decisions
     # @return [Resource] Returns the created resource
     #
     def create_child_resource(resource_descr, type_to_create)
@@ -39,10 +38,14 @@ module OMF::SFA::AM
         raise UnknownResourceException.new "Resource '#{desc.inspect}' is not available or doesn't exist"
       end
 
-      child = eval("OMF::SFA::Model::#{type}").create(resource_descr)
+      child = parent.clone 
+
+      ac = OMF::SFA::Model::Account[resource_descr[:account_id]] #search with id
+      child.account = ac
+      child.save
       parent.add_child(child)
 
-      return child
+      child
     end
 
     # Releases/destroys the given resource

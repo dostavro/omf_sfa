@@ -37,16 +37,14 @@ module OMF::SFA::Model
       clone = self.class.new
       self.values.each do |key, val|
         next if key == :uuid || key == :id
+        next if val == nil
         desc = {}
         desc[key] = val
         clone.set(desc)
       end
 
-      # clone.uuid = UUIDTools::UUID.random_create
       clone.save
-      p self
-      p clone
-      return clone
+      clone
     end
 
     def self.exclude_from_json
