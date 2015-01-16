@@ -6,5 +6,20 @@ module OMF::SFA::Model
     sfa_class 'channel', :namespace => :ol
 
     sfa :frequency, :attribute => true
+
+    def before_save
+      self.available ||= true
+      super
+    end
+
+    def self.exclude_from_json
+      sup = super
+      [:sliver_type_id, :cmc_id].concat(sup)
+    end
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:leases].concat(sup)
+    end
   end
 end

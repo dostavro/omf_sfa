@@ -33,6 +33,22 @@ module OMF::SFA::Model
       super
     end
 
+    def clone
+      clone = self.class.new
+      self.values.each do |key, val|
+        next if key == :uuid || key == :id
+        desc = {}
+        desc[key] = val
+        clone.set(desc)
+      end
+
+      # clone.uuid = UUIDTools::UUID.random_create
+      clone.save
+      p self
+      p clone
+      return clone
+    end
+
     def self.exclude_from_json
       [:id, :account_id]
     end
@@ -46,8 +62,8 @@ module OMF::SFA::Model
       out = {}
       self.include_nested_attributes_to_json.each do |key|
         next if incoming.include?(key)
-        next if key == :account && !self.instance_of?(OMF::SFA::Model::Lease)
-        next if self.instance_of? eval("OMF::SFA::Model::#{key.to_s.classify}")
+        next if key == :account && self.name != 'OMF::SFA::Model::Lease'
+        next if self.name == "OMF::SFA::Model::#{key.to_s.classify}"
         out[key] = {}
         out[key][:except] = eval("OMF::SFA::Model::#{key.to_s.classify}").exclude_from_json
         out[key][:include] = eval("OMF::SFA::Model::#{key.to_s.classify}").include_to_json(incoming << key)
@@ -73,7 +89,6 @@ end
 
 class Time
   def to_json(options = {})
-    self.utc
     super
   end
 end

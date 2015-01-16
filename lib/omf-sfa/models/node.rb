@@ -35,7 +35,7 @@ module OMF::SFA::Model
 
     def self.include_nested_attributes_to_json
       sup = super
-      [:interfaces, :cpus, :cmc, :location, :sliver_type].concat(sup)
+      [:interfaces, :cpus, :cmc, :location, :sliver_type, :leases].concat(sup)
     end
   end
 end

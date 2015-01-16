@@ -27,9 +27,5 @@ module OMF::SFA::Model
       sup = super
       [:parent_id].concat(sup)
     end
-
-    def self.include_nested_attributes_to_json
-      [:leases]
-    end
   end #Class
 end #OMF::SFA::Model
