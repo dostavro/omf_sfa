@@ -26,7 +26,7 @@ module OMF::SFA::AM
     # @return [Resource] Returns the created resource
     #
     def create_child_resource(resource_descr, type_to_create)
-      debug "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}'"
+      debug "create_child_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}'"
 
       desc = resource_descr.dup
       desc[:account_id] = get_nil_account.id
@@ -56,15 +56,15 @@ module OMF::SFA::AM
         raise "Expected Resource but got '#{resource.inspect}'"
       end
 
-      resource.leases.each do |l|
-        time = Time.now
-        if (l.valid_until.utc <= time.utc)
-          l.status = "past"
-        else
-          l.status = "cancelled"
-        end
-        l.save
-      end
+      # resource.leases.each do |l|
+      #   time = Time.now
+      #   if (l.valid_until.utc <= time.utc)
+      #     l.status = "past"
+      #   else
+      #     l.status = "cancelled"
+      #   end
+      #   l.save
+      # end
 
       resource = resource.destroy
       raise "Failed to destroy resource" unless resource
@@ -87,6 +87,7 @@ module OMF::SFA::AM
         lease.status = "accepted"
         parent.add_lease(lease)   
         component.add_lease(lease)
+        lease.save
 
         true
       else
@@ -106,7 +107,7 @@ module OMF::SFA::AM
       return true if OMF::SFA::Model::Lease.all.empty?
 
       parent = component.parent
-      leases = OMF::SFA::Model::Lease.where(components: [parent]){((valid_from >= start_time) & (valid_from <= end_time)) |
+      leases = OMF::SFA::Model::Lease.where(components: [parent], status: ['active', 'accepted']){((valid_from >= start_time) & (valid_from <= end_time)) |
                                                                   ((valid_from <= start_time) & (valid_until >= start_time))}
 
       leases.nil? || leases.empty?

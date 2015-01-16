@@ -649,21 +649,31 @@ module OMF::SFA::AM
         # to attach them to a resource because the scheduler denied it.
         if clean_state
           # Now free any leases owned by this account but not contained in +leases+
-          all_leases = Set.new
+          # all_leases = Set.new(leases.values)
           #leases = descr_el.xpath('//ol:lease', 'ol' => OL_NAMESPACE).collect do |l|
           #  update_leases_from_rspec(leases, authorizer)
           #end.compact
 
-          leases.each_value {|l| l.all_resources(all_leases)}
-          unused = find_all_leases(authorizer.account, authorizer).to_set - all_leases
+          # leases.each_value {|l| l.all_resources(all_leases)}
+          all_leases = find_all_leases(authorizer.account, authorizer)
+          leases_values = leases.values
+          unused = all_leases.delete_if do |l|
+            out = leases_values.select {|res| res.id == l.id}
+            !out.empty?
+          end
+          # unused = find_all_leases(authorizer.account, authorizer).to_set - all_leases
           unused.each do |u|
             release_lease(u, authorizer)
           end
           # Now free any resources owned by this account but not contained in +resources+
-          rspec_resources = Set.new
-          resources.each {|r| r.all_resources(rspec_resources)}
+          # rspec_resources = Set.new(resources)
+          # resources.each {|r| r.all_resources(rspec_resources)}
           all_components = find_all_components_for_account(authorizer.account, authorizer)
-          unused = all_components.to_set - rspec_resources
+          unused = all_components.delete_if do |comp|
+            out = resources.select {|res| res.id == comp.id}
+            !out.empty?
+          end
+
           release_resources(unused, authorizer)
         end
         return resources
@@ -689,8 +699,8 @@ module OMF::SFA::AM
         #else
         #  resource_descr = {:name => comp_gurn.short_name}
         #end
-        resource_descr = {:urn => comp_gurn}
-        resource = find_or_create_resource_for_account(resource_descr, comp_gurn.type, {}, authorizer)
+        resource_descr = {:urn => comp_gurn.to_s}
+        resource = find_or_create_resource_for_account(resource_descr, comp_gurn.type, authorizer)
         unless resource
           raise UnknownResourceException.new "Resource '#{resource_el.to_s}' is not available or doesn't exist"
         end
@@ -713,33 +723,33 @@ module OMF::SFA::AM
         lease_id = lease_el['id_ref'] || lease_el['client_id']
         lease = leases[lease_id]
 
-        unless lease.nil? || lease.components.first(:uuid => resource.uuid)
+        unless lease.nil? || lease.components.include?(resource)#lease.components.first(:uuid => resource.uuid)
           @scheduler.lease_component(lease, resource)
         end
       end
 
-      if resource.group?
-        members = resource_el.children.collect do |el|
-          if el.kind_of?(Nokogiri::XML::Element)
-            # ignore any text elements
-            update_resource_from_rspec(el, clean_state, authorizer)
-          end
-        end.compact
-        debug "update_resource_from_rspec: Creating members '#{members}' for group '#{resource}'"
+      # if resource.group?
+      #   members = resource_el.children.collect do |el|
+      #     if el.kind_of?(Nokogiri::XML::Element)
+      #       # ignore any text elements
+      #       update_resource_from_rspec(el, clean_state, authorizer)
+      #     end
+      #   end.compact
+      #   debug "update_resource_from_rspec: Creating members '#{members}' for group '#{resource}'"
 
-        if clean_state
-          resource.members = members
-        else
-          resource.add_members(members)
-        end
-      else
-        if clean_state
-          # Set state to what's described in +resource_el+ ONLY
-          resource.create_from_xml(resource_el, authorizer)
-        else
-          resource.update_from_xml(resource_el, authorizer)
-        end
-      end
+      #   if clean_state
+      #     resource.members = members
+      #   else
+      #     resource.add_members(members)
+      #   end
+      # else
+      #   if clean_state
+      #     # Set state to what's described in +resource_el+ ONLY
+      #     resource.create_from_xml(resource_el, authorizer)
+      #   else
+      #     resource.update_from_xml(resource_el, authorizer)
+      #   end
+      # end
       resource.save
       resource
 
@@ -801,7 +811,7 @@ module OMF::SFA::AM
           return { lease_el[:id] => lease }
         end
       rescue UnavailableResourceException
-        lease_descr = {account: authorizer.account}
+        lease_descr = {account_id: authorizer.account.id, valid_from: lease_el[:valid_from], valid_until: lease_el[:valid_until]}
         lease = find_or_create_lease(lease_descr, authorizer)
         lease.client_id = lease_el[:client_id]
         return { (lease_el[:client_id] || lease_el[:id]) => lease }
