@@ -20,13 +20,12 @@ module OMF::SFA::AM
     # and assign it to the user who asked for it (conceptually a physical resource even though it is exclusive,
     # is never given to the user but instead we provide him a clone of the resource).
     #
-    # @param [Hash] resource_descr contains the properties of the new resource
+    # @param [Hash] resource_descr contains the properties of the new resource. Must contain the account_id.
     # @param [String] The type of the resource we want to create
-    # @param [Authorizer] Defines context for authorization decisions
     # @return [Resource] Returns the created resource
     #
     def create_child_resource(resource_descr, type_to_create)
-      debug "create_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}'"
+      debug "create_child_resource: resource_descr:'#{resource_descr}' type_to_create:'#{type_to_create}'"
 
       desc = resource_descr.dup
       desc[:account_id] = get_nil_account.id
@@ -39,10 +38,14 @@ module OMF::SFA::AM
         raise UnknownResourceException.new "Resource '#{desc.inspect}' is not available or doesn't exist"
       end
 
-      child = eval("OMF::SFA::Model::#{type}").create(resource_descr)
+      child = parent.clone 
+
+      ac = OMF::SFA::Model::Account[resource_descr[:account_id]] #search with id
+      child.account = ac
+      child.save
       parent.add_child(child)
 
-      return child
+      child
     end
 
     # Releases/destroys the given resource
@@ -56,15 +59,15 @@ module OMF::SFA::AM
         raise "Expected Resource but got '#{resource.inspect}'"
       end
 
-      resource.leases.each do |l|
-        time = Time.now
-        if (l.valid_until.utc <= time.utc)
-          l.status = "past"
-        else
-          l.status = "cancelled"
-        end
-        l.save
-      end
+      # resource.leases.each do |l|
+      #   time = Time.now
+      #   if (l.valid_until.utc <= time.utc)
+      #     l.status = "past"
+      #   else
+      #     l.status = "cancelled"
+      #   end
+      #   l.save
+      # end
 
       resource = resource.destroy
       raise "Failed to destroy resource" unless resource
@@ -87,6 +90,7 @@ module OMF::SFA::AM
         lease.status = "accepted"
         parent.add_lease(lease)   
         component.add_lease(lease)
+        lease.save
 
         true
       else
@@ -103,12 +107,13 @@ module OMF::SFA::AM
     #
     def component_available?(component, start_time, end_time)
       return component.available unless component.exclusive
+      return true if OMF::SFA::Model::Lease.all.empty?
 
       parent = component.parent
-      leases = OMF::SFA::Model::Lease.where(components: [parent]){((valid_from >= start_time) & (valid_from <= end_time)) |
+      leases = OMF::SFA::Model::Lease.where(components: [parent], status: ['active', 'accepted']){((valid_from >= start_time) & (valid_from <= end_time)) |
                                                                   ((valid_from <= start_time) & (valid_until >= start_time))}
 
-      leases.empty?
+      leases.nil? || leases.empty?
     end
 
     # Resolve an unbound query.

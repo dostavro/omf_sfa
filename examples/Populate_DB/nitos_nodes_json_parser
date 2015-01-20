@@ -7,6 +7,9 @@ require 'json'
 
 OUT_FILE = 'nitos_nodes_out.json'
 BASE_CMC_IP = '10.1.0'
+OUTDOOR_DOMAIN = 'omf:nitos.outdoor'
+INDOOR_DOMAIN = 'omf:nitos.indoor'
+OFFICE_DOMAIN = 'omf:nitos.office'
 BASE_URN = 'urn:publicid:IDN+omf:nitos+node+'
 
 infile = ARGV[0]
@@ -17,16 +20,18 @@ json = JSON.parse(File.read(infile))
               name: "",
               hostname: "",
               urn: "",
-              interfaces: [
+              interfaces_attributes: [
                 {
                   name: "",
                   role: "control",
                   mac: "",
-                  ip: {
-                    address: "",
-                    netmask: "255.255.255.0",
-                    ip_type: "ipv4"
-                  }
+                  ips_attributes: [
+                    {
+                      address: "",
+                      netmask: "255.255.255.0",
+                      ip_type: "ipv4"
+                    }
+                  ]
                 },
                 {
                   name: "",
@@ -34,16 +39,77 @@ json = JSON.parse(File.read(infile))
                   mac: ""
                 }
               ],
-              cmc: {
+              cmc_attributes: {
                 name: "",
                 mac: "09:A2:DA:0D:F0:00",
-                ip: {
+                ip_attributes: {
                   address: "",
                   netmask: "255.255.255.0",
                   ip_type: "ipv4"
                 }
               }
             }
+
+@diskless_info =  {
+                    hardware_type: "PC-Diskless",
+                    cpus_attributes: [
+                      {
+                        cpu_type: "VIA Esther processor 1000MHz",
+                        cores: 1,
+                        threads: 1,
+                        cache_l1: "32 KB",
+                        cache_l2: "0 MB"
+                      }
+                    ],
+                    ram: "0.5 GB",
+                    ram_type: "DIMM",
+                    hd_capacity: "59.6263 GB"
+                  }
+@orbit_info =  {
+                  hardware_type: "PC-Orbit",
+                  cpus_attributes: [
+                    {
+                      cpu_type: "AMD Geode LX800 @ 500 MHz",
+                      cores: 1,
+                      threads: 1,
+                      cache_l1: "0 KB",
+                      cache_l2: "0 MB"
+                    }
+                  ],
+                  ram: "256 MB",
+                  ram_type: "DDR DRAM",
+                  hd_capacity: "59.6263 GB"
+                }
+@grid_info =  {
+                hardware_type: "PC-Grid",
+                cpus_attributes: [
+                  {
+                    cpu_type: "Intel(R) Core(TM)2 Duo CPU P8400 @ 2.26GHz",
+                    cores: 2,
+                    threads: 2,
+                    cache_l1: "32 KB",
+                    cache_l2: "3 MB"
+                  }
+                ],
+                ram: "1.8905 GB",
+                ram_type: "DIMM Synchronous",
+                hd_capacity: "59.6263 GB"
+              }
+@icarus_info =  {
+                  hardware_type: "PC-Icarus",
+                  cpus_attributes: [
+                    {
+                      cpu_type: "Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz",
+                      cores: 4,
+                      threads: 8,
+                      cache_l1: "32 KB",
+                      cache_l2: "8 MB"
+                    }
+                  ],
+                  ram: "4 GB",
+                  ram_type: "DIMM DDR3 Synchronous 1600 MHz",
+                  hd_capacity: "111 GB"
+                }
 
 
 #adds i to the last element of the mac address
@@ -74,19 +140,41 @@ def match_node_to_res(node, i)
   n[:name] = node['hostname']
   n[:hostname] = node['hostname']
   n[:urn] = "#{BASE_URN}#{node['hostname']}"
-  n[:interfaces].each do |interface|
+  n[:interfaces_attributes].each do |interface|
     if interface[:role] == "control"
       interface[:name] = node['hostname'] + ":if0"
-      interface[:ip][:address] = node['control_ip']
+      interface[:ips_attributes].first[:address] = node['control_ip']
       interface[:mac] = node['control_mac']
     elsif interface[:role] == "experimental"
       interface[:name] = node['hostname'] + ":if1"
       interface[:mac] = calc_mac(node['control_mac'])
     end
   end
-  n[:cmc][:name] = node['hostname'] + ":cm"
-  n[:cmc][:mac] = calc_cmc_mac(n[:cmc][:mac], i)
-  n[:cmc][:ip][:address] = calc_cmc_ip(node['control_ip'])
+  n[:cmc_attributes][:name] = node['hostname'] + ":cm"
+  n[:cmc_attributes][:mac] = calc_cmc_mac(n[:cmc_attributes][:mac], i)
+  n[:cmc_attributes][:ip_attributes][:address] = calc_cmc_ip(node['control_ip'])
+
+  if i >= 2 && i <= 9
+    domain = OUTDOOR_DOMAIN
+    additional_info = Marshal.load(Marshal.dump(@orbit_info))
+  elsif i == 1 || i == 10 || (i >= 14 && i <= 35)
+    domain = OUTDOOR_DOMAIN
+    additional_info = Marshal.load(Marshal.dump(@grid_info))
+  elsif i >= 36 && i <= 40
+    domain = OFFICE_DOMAIN
+    additional_info = Marshal.load(Marshal.dump(@diskless_info))
+  elsif i >= 41 && i <= 49
+    domain = OFFICE_DOMAIN
+    additional_info = Marshal.load(Marshal.dump(@icarus_info))
+  elsif i >= 50 && i <= 85
+    domain = INDOOR_DOMAIN
+    additional_info = Marshal.load(Marshal.dump(@icarus_info)) 
+  else
+    return n
+  end
+  n[:domain] = domain
+  n[:urn] = n[:urn].sub('omf:nitos', domain)
+  n.merge!(additional_info)
   n
 end
 
@@ -95,7 +183,7 @@ end
 #
 # exit
 res = []
-json.each_with_index do |node|
+json.each do |node|
   i = node['id']
   puts "#{i}: '#{node}'"
   tmp = {}

@@ -371,7 +371,7 @@ class AMManager < MiniTest::Test
   def test_that_can_release_a_lease
     authorizer = Minitest::Mock.new
     t = Time.now
-    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100)
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100, status: 'accepted')
     node = OMF::SFA::Model::Node.create(name: 'node1')
     node_child = OMF::SFA::Model::Node.create(name: 'child_node1', parent: node)
     node.add_lease(lease)
@@ -579,7 +579,7 @@ class AMManager < MiniTest::Test
     account = OMF::SFA::Model::Account.create(name: 'account1')
 
     authorizer.expect :can_create_resource?, true, [{name: 'node1', account_id: account.id}, 'node']
-    scheduler.expect :create_child_resource, true, [{name: 'node1', account_id: account.id}, 'node', authorizer]
+    scheduler.expect :create_child_resource, true, [{name: 'node1', account_id: account.id}, 'node']
     assert @manager.create_resource({name: 'node1', account_id: account.id}, 'node', authorizer)
 
 

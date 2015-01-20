@@ -71,7 +71,20 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the updated resource.
     def on_put(resource_uri, opts)
       debug "on_put: #{resource_uri}"
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
+      path = opts[:req].env["REQUEST_PATH"]
+      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if path == '/mapper'
+      if path == '/resources/users' || path == '/resources/users/'
+        resource_type, resource_params = parse_uri(resource_uri, opts)
+        if resource_params.include?(:add_key)
+          user_desc = {}
+          user_desc[:uuid] = resource_params[:uuid] if resource_params[:uuid]
+          user_desc[:name] = resource_params[:name] if resource_params[:name]
+          raise OMF::SFA::AM::Rest::BadRequestException.new "uuid or name parameter is mandatory." unless  user_desc[:uuid] || user_desc[:uuid]
+          authenticator = opts[:req].session[:authorizer]
+          response = add_key_on_user(resource_params[:add_key], user_desc, authenticator)
+          return ['application/json', JSON.pretty_generate({:resource_response => response}, :for_rest => true)]
+        end
+      end
       resource = update_resource(resource_uri, true, opts)
       show_resource(resource, opts)
     end
@@ -314,8 +327,8 @@ module OMF::SFA::AM::Rest
         res_descr[:valid_until] = resource_descr[:valid_until]
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
         res_descr[:account_id] = ac.id
-        #TODO here create the lease
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
 
         comps = resource_descr[:components] || resource_descr[:components_attributes]
@@ -333,11 +346,10 @@ module OMF::SFA::AM::Rest
 
         @scheduler = @am_manager.get_scheduler
         components.each do |comp|
-          puts comp.inspect
-          c = @scheduler.create_resource({uuid: comp.uuid}, comp[:type].to_s.split('::').last, {}, authorizer)
-          @scheduler.lease_component(resource, c)
+          c = @scheduler.create_child_resource({uuid: comp.uuid, account_id: ac.id}, comp[:type].to_s.split('::').last)
+          @scheduler.lease_component(lease, c)
         end
-
+        resource = lease
         # res_descr = {name: resource_descr[:name]}
         # if comps = resource_descr[:components]
         #   resource_descr.tap { |hs| hs.delete(:components) }
@@ -475,5 +487,22 @@ module OMF::SFA::AM::Rest
       resource_descr
     end
 
+    # Add an ssh key to an existing user
+    #
+    # @param [String] the ssh key
+    # @param [Hash] the user_description
+    # @param [Authorizer] Defines context for authorization decisions
+    # @return [Hash] Description of the output of the request
+    # @raise [UnknownResourceException] if no resource can be created
+    #
+    def add_key_on_user(key, user_desc, authorizer)
+      debug "add_key_on_user: #{key} - #{user_desc}"
+      user = @am_manager.find_all_resources(user_desc, 'user', authorizer)
+      raise OMF::SFA::AM::Rest::UnknownResourceException.new "User with description '#{user_desc}' doesn't exist" if user.empty?
+      user = user.first
+      authorizer.can_modify_resource?(user, 'user')
+      user.add_key(key)
+      {response: "OK"}
+    end
   end # ResourceHandler
 end # module
