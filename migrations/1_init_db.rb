@@ -3,12 +3,23 @@ Sequel.migration do
   up do
     create_table :resources do
       primary_key :id
-      foreign_key :account_id, :accounts, :on_delete => :set_null
       String :name
       String :urn
       String :uuid
       String :type
     end
+
+	create_table(:accounts) do
+		foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+
+		DateTime :created_at
+		DateTime :valid_until
+		DateTime :closed_at
+	end
+
+	alter_table(:resources) do
+	  add_foreign_key :account_id, :accounts, :on_delete => :set_null
+	end
 
     create_table(:components) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade 
@@ -17,6 +28,68 @@ Sequel.migration do
       TrueClass :available
       String :status
       TrueClass :exclusive, :default => true
+    end
+
+    create_table(:disk_images) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+
+      String :os
+      String :version
+    end
+
+    create_table(:sliver_types) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+      foreign_key :disk_image_id, :disk_images, :on_delete => :set_null
+    end
+
+	create_table(:links) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+
+      String :link_type
+    end
+
+    create_table(:interfaces) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+      foreign_key :link_id, :links, :on_delete => :set_null
+
+      String :role
+      String :mac
+      String :description
+    end
+
+	create_table(:ips) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+      foreign_key :interface_id, :interfaces, :on_delete => :cascade
+
+      String :address
+      String :netmask
+      String :ip_type
+    end
+
+	create_table(:cmcs) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+      foreign_key :ip_id, :ips, :on_delete => :set_null
+
+      String :mac
+    end
+
+    create_table(:cpus) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+
+      String :cpu_type
+      Integer :cores
+      Integer :threads
+      String :cache_l1
+      String :cache_l2
+    end
+
+    create_table(:locations) do
+      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+
+      String :country
+      String :city
+      Integer :longitude
+      Integer :latitude
     end
 
     create_table(:nodes) do
@@ -34,61 +107,21 @@ Sequel.migration do
       Integer :available_ram # percentage of available ram
       String :boot_state
     end
+		
+	alter_table(:interfaces) do
+	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
+	end
 
-    create_table(:interfaces) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :node_id, :nodes, :on_delete => :cascade # If the node is deleted, delete also the interface
-      foreign_key :link_id, :links, :on_delete => :set_null
+	alter_table(:locations) do
+	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
+	end
 
-      String :role
-      String :mac
-      String :description
-    end
+	alter_table(:cpus) do
+	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
+	end
 
-    create_table(:links) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
 
-      String :link_type
-    end
-
-    create_table(:ips) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :interface_id, :interfaces, :on_delete => :cascade
-
-      String :address
-      String :netmask
-      String :ip_type
-    end
-
-    create_table(:cmcs) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :ip_id, :ips, :on_delete => :set_null
-
-      String :mac
-    end
-
-    create_table(:cpus) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :node_id, :nodes, :on_delete => :cascade
-
-      String :cpu_type
-      Integer :cores
-      Integer :threads
-      String :cache_l1
-      String :cache_l2
-    end
-
-    create_table(:locations) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :node_id, :nodes, :on_delete => :cascade
-
-      String :country
-      String :city
-      Integer :longitude
-      Integer :latitude
-    end
-
-    create_table(:leases) do
+	create_table(:leases) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
       DateTime :valid_from
       DateTime :valid_until
@@ -100,30 +133,10 @@ Sequel.migration do
       String :frequency
     end
 
-    create_table(:sliver_types) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-      foreign_key :disk_image_id, :disk_images, :on_delete => :set_null
-    end
-
-    create_table(:disk_images) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-
-      String :os
-      String :version
-    end
-
     create_table(:components_leases) do
       foreign_key :component_id, :components, :on_delete => :cascade
       foreign_key :lease_id, :leases, :on_delete => :cascade
       primary_key [:component_id, :lease_id]
-    end
-
-    create_table(:accounts) do
-      foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
-
-      DateTime :created_at
-      DateTime :valid_until
-      DateTime :closed_at
     end
 
     create_table(:users) do
@@ -148,20 +161,14 @@ Sequel.migration do
     drop_table(:accounts_users)
     drop_table(:keys)
     drop_table(:users)
-    drop_table(:disk_images)
-    drop_table(:sliver_types)
-    drop_table(:channels)
-    drop_table(:locations)
-    drop_table(:cpus)
-    drop_table(:cmcs)
-    drop_table(:ips)
+    drop_table(:locations, :cpus, :cmcs, :ips, :interfaces, :nodes, :sliver_types, :disk_images)
+	drop_table(:channels)
     drop_table(:links)
-    drop_table(:interfaces)
     drop_table(:components_leases)
     drop_table(:leases)
-    drop_table(:nodes)
     drop_table(:components)
+	drop_column(:resources, :account_id)
     drop_table(:accounts)
-    drop_table(:resources)
+	drop_table(:resources)
   end
 end
