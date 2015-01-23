@@ -48,7 +48,7 @@ module OMF::SFA::Model
     end
 
     def self.exclude_from_json
-      [:id, :account_id]
+      [:id, :account_id, :type]
     end
 
     def self.include_nested_attributes_to_json
