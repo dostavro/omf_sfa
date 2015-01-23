@@ -63,6 +63,10 @@
     "name":"13",
     "frequency":"2.472GHz",
     "urn":"urn:publicid:IDN+omf:nitos+channel+13"
+  },{
+    "name":"36",
+    "frequency":"5.180GHz",
+    "urn":"urn:publicid:IDN+omf:nitos+channel+36"
   },
   {
     "name":"40",
