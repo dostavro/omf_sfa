@@ -92,6 +92,26 @@ module OMF::SFA::AM::RPC
       true
     end
 
+    def create_account_name_from_urn(urn)
+      gurn = OMF::SFA::Model::GURN.create(urn, :type => "OMF::SFA::Resource::Account")
+      domain = gurn.domain.sub(":", '.')
+      acc_name = "#{domain}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      domain = gurn.domain
+      authority = domain.split(":").first.split(".").first
+      subauthority = domain.split(":").last
+      acc_name = "#{authority}.#{subauthority}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      acc_name = "#{authority}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      acc_name = gurn.short_name
+      return acc_name if acc_name.size <= 32
+      raise OMF::SFA::AM::FormatException.new "Slice urn is too long, account '#{acc_name}' cannot be generated."
+    end
+
     protected
 
     def initialize(account_urn, user_cert, credentials, am_manager, user)
@@ -150,11 +170,7 @@ module OMF::SFA::AM::RPC
           raise OMF::SFA::AM::InsufficientPrivilegesException.new "Slice urn mismatch in XML call and credentials"
         end
 
-        gurn = OMF::SFA::Resource::GURN.create(account_urn, :type => "OMF::SFA::Resource::Account")
-        domain = gurn.domain.sub(":", '.')
-        acc_name = "#{domain}.#{gurn.short_name}"
-        raise OMF::SFA::AM::FormatException.new "Slice urn is too long, account '#{acc_name}' cannot be generated." if acc_name.size > 32
-        # acc_name = "#{gurn.domain.sub!(":", '_').sub!(".", '_')}.#{gurn.short_name}"
+        acc_name = create_account_name_from_urn(account_urn)
 
         @account = am_manager.find_or_create_account({:urn => account_urn, :name => acc_name}, self)
         @account.valid_until = @user_cred.valid_until
