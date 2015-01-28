@@ -242,7 +242,7 @@ module OMF::SFA::Model
           else
             prop_el = res_el.add_child(Nokogiri::XML::Element.new(prop_name, res_el.document))
           end
-          if !value.kind_of?(String) && value.kind_of?(Enumerable)
+          if !value.kind_of?(String) && value.kind_of?(Enumerable) && !value.kind_of?(Nokogiri::XML::Element)
             value.each do |v|
               if v.respond_to?(:to_sfa_xml)
                 v.to_sfa_xml(prop_el, obj2id, opts)
@@ -254,6 +254,8 @@ module OMF::SFA::Model
           else
             if value.respond_to?(:to_sfa_xml)
               value.to_sfa_xml(prop_el, obj2id, opts)
+            elsif value.kind_of?(Nokogiri::XML::Element)
+              prop_el.add_child(value)
             else
               prop_el.content = value.to_s
             end
