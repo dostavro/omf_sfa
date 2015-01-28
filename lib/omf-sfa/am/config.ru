@@ -26,8 +26,18 @@ opts = OMF::Common::Thin::Runner.instance.options
 puts opts
 
 am_mgr = opts[:am][:manager]
-am_liaison = OMF::SFA::AM::AMLiaison.new
-am_mgr.liaison = am_liaison
+am_liaison = nil
+if opts[:am_liaison]
+  require opts[:am_liaison][:require]
+  puts "#{opts[:am_liaison].inspect}"
+  am_liaison = eval(opts[:am_liaison][:constructor]).new
+  am_mgr.liaison = am_liaison
+else
+  require 'omf-sfa/am/default_am_liaison'
+  am_liaison = OMF::SFA::AM::DefaultAMLiaison.new
+  am_mgr.liaison = am_liaison
+end
+# am_liaison = OMF::SFA::AM::AMLiaison.new
 am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opts[:xmpp]})
 
 

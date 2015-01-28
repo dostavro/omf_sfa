@@ -9,17 +9,17 @@ Sequel.migration do
       String :type
     end
 
-	create_table(:accounts) do
-		foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
+  	create_table(:accounts) do
+  		foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
 
-		DateTime :created_at
-		DateTime :valid_until
-		DateTime :closed_at
-	end
+  		DateTime :created_at
+  		DateTime :valid_until
+  		DateTime :closed_at
+  	end
 
-	alter_table(:resources) do
-	  add_foreign_key :account_id, :accounts, :on_delete => :set_null
-	end
+  	alter_table(:resources) do
+  	  add_foreign_key :account_id, :accounts, :on_delete => :set_null
+  	end
 
     create_table(:components) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade 
@@ -42,7 +42,7 @@ Sequel.migration do
       foreign_key :disk_image_id, :disk_images, :on_delete => :set_null
     end
 
-	create_table(:links) do
+    create_table(:links) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
 
       String :link_type
@@ -57,7 +57,7 @@ Sequel.migration do
       String :description
     end
 
-	create_table(:ips) do
+    create_table(:ips) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
       foreign_key :interface_id, :interfaces, :on_delete => :cascade
 
@@ -66,7 +66,7 @@ Sequel.migration do
       String :ip_type
     end
 
-	create_table(:cmcs) do
+    create_table(:cmcs) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
       foreign_key :ip_id, :ips, :on_delete => :set_null
 
@@ -108,20 +108,20 @@ Sequel.migration do
       String :boot_state
     end
 		
-	alter_table(:interfaces) do
-	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
-	end
+    alter_table(:interfaces) do
+      add_foreign_key :node_id, :nodes, :on_delete => :cascade
+    end
 
-	alter_table(:locations) do
-	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
-	end
+    alter_table(:locations) do
+      add_foreign_key :node_id, :nodes, :on_delete => :cascade
+    end
 
-	alter_table(:cpus) do
-	  add_foreign_key :node_id, :nodes, :on_delete => :cascade
-	end
+    alter_table(:cpus) do
+      add_foreign_key :node_id, :nodes, :on_delete => :cascade
+    end
 
 
-	create_table(:leases) do
+    create_table(:leases) do
       foreign_key :id, :resources, :primary_key => true, :on_delete => :cascade
       DateTime :valid_from
       DateTime :valid_until
@@ -162,13 +162,13 @@ Sequel.migration do
     drop_table(:keys)
     drop_table(:users)
     drop_table(:locations, :cpus, :cmcs, :ips, :interfaces, :nodes, :sliver_types, :disk_images)
-	drop_table(:channels)
+    drop_table(:channels)
     drop_table(:links)
     drop_table(:components_leases)
     drop_table(:leases)
     drop_table(:components)
-	drop_column(:resources, :account_id)
+    drop_column(:resources, :account_id)
     drop_table(:accounts)
-	drop_table(:resources)
+    drop_table(:resources)
   end
 end

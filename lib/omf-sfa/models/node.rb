@@ -22,6 +22,15 @@ module OMF::SFA::Model
     sfa :exclusive, :attribute => true
     sfa :location, :inline => true
     sfa :boot_state, :attribute => true
+    sfa :monitored, :attribute => true
+    sfa :services
+
+    def services
+      return nil if self.account.id == OMF::SFA::Model::Account.where(name: '__default__').first.id
+      gateway = self.parent.gateway
+      el = "<login authentication=\"ssh-keys\" hostname=\"#{gateway}\" port=\"22\" username=\"#{self.account.name}\"/>"
+      Nokogiri::XML(el).child
+    end
 
     def before_save
       self.available ||= true
