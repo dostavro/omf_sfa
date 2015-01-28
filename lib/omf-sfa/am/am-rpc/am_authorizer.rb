@@ -94,7 +94,7 @@ module OMF::SFA::AM::RPC
 
     def create_account_name_from_urn(urn)
       gurn = OMF::SFA::Model::GURN.create(urn, :type => "OMF::SFA::Resource::Account")
-      domain = gurn.domain.sub(":", '.')
+      domain = gurn.domain.gsub(":", '.')
       acc_name = "#{domain}.#{gurn.short_name}"
       return acc_name if acc_name.size <= 32
 

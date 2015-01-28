@@ -105,6 +105,15 @@ module OMF::SFA::AM
     def configure_keys(keys, account)
       debug "configure_keys: keys:'#{keys.inspect}', account:'#{account.inspect}'"
 
+      new_keys = []   
+      keys.each do |k|
+        if k.kind_of?(OMF::SFA::Model::Key)
+          new_keys << k.ssh_key
+        elsif k.kind_of?(String)
+          new_keys << k
+        end
+      end
+
       OmfCommon.comm.subscribe('user_factory') do |user_rc|
         unless user_rc.error?
 
@@ -114,7 +123,7 @@ module OMF::SFA::AM
 
               u.on_subscribed do
 
-                u.configure(auth_keys: keys) do |reply|
+                u.configure(auth_keys: new_keys) do |reply|
                   if reply.success?
                     release_proxy(user_rc, u)
                   else
