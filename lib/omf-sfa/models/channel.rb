@@ -4,8 +4,8 @@ module OMF::SFA::Model
   class Channel < Component
 
     sfa_class 'channel', :namespace => :ol
-
     sfa :frequency, :attribute => true
+    sfa :client_id, :attribute => true
 
     def before_save
       self.available ||= true
