@@ -714,6 +714,7 @@ module OMF::SFA::AM
       end
 
       resource.client_id = resource_el['client_id']
+      resource.save
 
       leases_el = resource_el.xpath('child::ol:lease_ref|child::ol:lease', 'ol' => OL_NAMESPACE)
       leases_el.each do |lease_el|
@@ -814,6 +815,7 @@ module OMF::SFA::AM
         lease_descr = {account_id: authorizer.account.id, valid_from: lease_el[:valid_from], valid_until: lease_el[:valid_until]}
         lease = find_or_create_lease(lease_descr, authorizer)
         lease.client_id = lease_el[:client_id]
+        lease.save
         return { (lease_el[:client_id] || lease_el[:id]) => lease }
       end
     end

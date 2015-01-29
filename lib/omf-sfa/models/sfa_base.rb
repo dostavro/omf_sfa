@@ -156,7 +156,7 @@ module OMF::SFA::Model
 
     module InstanceMethods
 
-      attr_accessor :client_id
+      # attr_accessor :client_id
 
       def to_sfa_xml(parent, obj2id, opts)
         defs = self.class.sfa_defs()
@@ -177,9 +177,9 @@ module OMF::SFA::Model
           new_element.set_attribute('id', id) if defs['component_id'].nil?
         end
 
-        if opts[:type].downcase.eql?('manifest') && self.client_id
-          new_element.set_attribute('client_id', self.client_id)
-        end
+        # if opts[:type].downcase.eql?('manifest') && self.client_id
+        #   new_element.set_attribute('client_id', self.client_id)
+        # end
 
         defs.keys.sort.each do |key|
 

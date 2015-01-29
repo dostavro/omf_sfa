@@ -15,6 +15,7 @@ module OMF::SFA::Model
     nested_attributes :interfaces, :cpus, :cmc, :location, :sliver_type
 
     sfa_class 'node'
+    sfa :client_id, :attribute => true
     sfa :hardware_type, :attr_value => 'name'
     sfa :available, :attr_value => 'now'  # <available now="true">
     sfa :sliver_type, :inline => true
