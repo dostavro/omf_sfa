@@ -169,7 +169,8 @@ module OMF::SFA::AM
       account = find_account(account_descr, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_close_account?(account)
 
-      release_all_components_for_account(account, authorizer)
+      #release_all_components_for_account(account, authorizer)
+      release_all_leases_for_account(account, authorizer)
 
       account.close
 
@@ -313,6 +314,27 @@ module OMF::SFA::AM
 
       lease.valid_until <= Time.now ? lease.status = "past" : lease.status = "cancelled"
       lease.save
+    end
+
+    # Release an array of leases.
+    #
+    # @param [Array<Lease>] Leases to release
+    # @param [Authorizer] Authorization context
+    def release_leases(leases, authorizer)
+      leases.each do |l|
+        release_lease(l, authorizer)
+      end
+    end
+
+    # This method finds all the leases of the specific account and
+    # releases them.
+    #
+    # @param [Account] Account who owns the leases
+    # @param [Authorizer] Authorization context
+    #
+    def release_all_leases_for_account(account, authorizer)
+      leases = find_all_leases(account, ['accepted', 'active'], authorizer)
+      release_leases(leases, authorizer)
     end
 
 

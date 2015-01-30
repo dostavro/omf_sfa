@@ -42,6 +42,7 @@ module OMF::SFA::AM
 
       ac = OMF::SFA::Model::Account[resource_descr[:account_id]] #search with id
       child.account = ac
+      child.status = "unknown"
       child.save
       parent.add_child(child)
 

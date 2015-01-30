@@ -31,5 +31,11 @@ module OMF::SFA::Model
       self.valid_until = Time.at(self.valid_until.to_i) unless valid_until.nil?
       super
     end
+
+    def active?
+      return false if self.status == 'cancelled' || self.status == 'past'
+      t_now = Time.now
+      t_now >= self.valid_from && t_now < self.valid_until
+    end
   end
 end
