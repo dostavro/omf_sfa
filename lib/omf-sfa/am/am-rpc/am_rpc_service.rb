@@ -221,6 +221,7 @@ module OMF::SFA::AM::RPC
       status['omf_expires_at'] = authorizer.account.valid_until.utc.strftime('%Y%m%d%H%M%SZ')
 
       resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
+      leases = @manager.find_all_leases(authorizer.account, ['accepted', 'active'], authorizer)
       # # only list independent resources
       # resources = resources.select {|r| r.independent_component?}
 
@@ -229,7 +230,7 @@ module OMF::SFA::AM::RPC
         #status['geni_urn'] = "urn:publicid:IDN+omf:nitos+sliver+accdsw"
 
         # Any of the following configuring, ready, failed, and unknown
-        status['geni_status'] = 'unknown'
+        status['geni_status'] = 'ready'
 
         status['geni_resources'] = resources.collect do |r|
           {
@@ -238,6 +239,16 @@ module OMF::SFA::AM::RPC
             'geni_error' => '',
           }
         end
+
+        geni_leases = leases.collect do |l|
+          l_status = l.active? ? "ready" : "configuring"
+          {
+            'geni_urn'=> l.urn,
+            'geni_status' => l_status,
+            'geni_error' => '',
+          }
+        end
+        status['geni_resources'] += geni_leases unless geni_leases.empty?
         @return_struct[:value] = status
       else
         @return_struct[:code][:geni_code] = 12 # SEARCH FAILED
@@ -250,7 +261,6 @@ module OMF::SFA::AM::RPC
         @return_struct[:value] = status
         return @return_struct
       end
-
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:output] = ''
