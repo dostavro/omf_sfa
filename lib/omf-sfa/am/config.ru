@@ -84,10 +84,10 @@ map "/mapper" do
           :login_url => (REQUIRE_LOGIN ? '/login' : nil),
           :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
           :am_manager => am_mgr
-  require 'omf-sfa/am/am-rest/resource_handler'
+  require 'omf-sfa/am/am-rest/mapping_handler'
   # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
   # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
-  run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
+  run OMF::SFA::AM::Rest::MappingHandler.new(opts[:am][:manager], opts)
 end
 
 if REQUIRE_LOGIN

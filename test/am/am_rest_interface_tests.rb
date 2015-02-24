@@ -46,9 +46,6 @@ class AMRestInterface < MiniTest::Test
     # opts[:req].expect(:params, [])
     2.times {opts[:req].expect(:session, {authorizer: authorizer})}
     8.times {opts[:req].expect(:path, "/resources")}
-    4.times {opts[:req].expect(:env, {"REQUEST_PATH" => "/resources"})}
-    1.times {opts[:req].expect(:body, '{}')}
-    2.times {opts[:req].expect(:content_type, 'application/json')}
     opts[:account] = @scheduler.get_nil_account
 
     type, json = @rest.on_get('', opts)
@@ -583,34 +580,176 @@ class AMRestInterface < MiniTest::Test
     authorizer.verify
   end
 
-  def test_it_can_add_an_ssh_key_to_an_user
-    c = OMF::SFA::Model::User.create({:name => 'username1'})
+  def test_it_can_list_an_association_between_two_existing_resources
+    user = OMF::SFA::Model::User.create({:name => 'testUser'})
+    acc = OMF::SFA::Model::Account.create({:name => 'testAccount'})
+    user.add_account(acc)
+
     opts = {}
+    opts[:source_resource_uri] = "users"
+    opts[:source_resource_uuid] = user.uuid
+    opts[:target_resource_uri] = "accounts"
     opts[:req] = MiniTest::Mock.new
-    opts[:req].expect(:params, {add_key: "the_ssh_key", uuid: c.uuid})
-    # 2.times {opts[:req].expect(:path, "/resources/users")}
-    # 2.times {opts[:req].expect(:content_type, 'application/json')}
-    2.times {opts[:req].expect(:env, {"REQUEST_PATH" => "/resources/users"})}
+    opts[:req].expect(:params, {})
+    4.times {opts[:req].expect(:path, "/resources/users/#{user.uuid}/accounts")}
 
     authorizer = MiniTest::Mock.new
-    authorizer.expect(:can_view_resource?, true, [Object])
-    authorizer.expect(:can_modify_resource?, true, [Object, Object])
+    2.times {authorizer.expect(:can_view_resource?, true, [Object])}
     1.times {opts[:req].expect(:session, {authorizer: authorizer})}
 
-    type, json = @rest.on_put('users', opts)
+    require 'omf-sfa/am/am-rest/resource_association_handler'
+    rest = OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@manager)
+    type, json = rest.on_get('accounts', opts)
     assert_instance_of String, type
     assert_equal type, "application/json"
     assert_instance_of String, json
 
-    resp = JSON.parse(json)["resource_response"]["response"]
-    assert_equal resp, "OK"
+    res = JSON.parse(json)["resource_response"]["resources"]
+    res = res.first
+    assert_instance_of Hash, res
+    assert_equal res["name"], "testAccount"
+    assert_equal res["users"].first["name"], "testUser"
 
-    # # check if it is in the db
-    u = OMF::SFA::Model::User.first
-    assert_instance_of OMF::SFA::Model::User, c
-    assert_equal c.keys.first.ssh_key, "the_ssh_key"
+    # check if it is in the db
+    a = OMF::SFA::Model::Account.where(uuid: acc.uuid).first
+    assert_instance_of OMF::SFA::Model::Account, a
+    assert_equal a.name, 'testAccount'
+    assert_equal a.users.first.name, 'testUser'
 
     opts[:req].verify
     authorizer.verify
+  end
+
+  def test_it_can_create_an_association_between_two_existing_resources
+    user = OMF::SFA::Model::User.create({:name => 'testUser'})
+    acc = OMF::SFA::Model::Account.create({:name => 'testAccount'})
+
+    opts = {}
+    opts[:source_resource_uri] = "users"
+    opts[:source_resource_uuid] = user.uuid
+    opts[:target_resource_uri] = "accounts"
+    opts[:req] = MiniTest::Mock.new
+    opts[:req].expect(:params, {})
+    4.times {opts[:req].expect(:path, "/resources/users/#{user.uuid}/accounts")}
+    1.times {opts[:req].expect(:body, "{\"uuid\":\"#{acc.uuid}\"}")}
+    2.times {opts[:req].expect(:content_type, 'application/json')}
+
+    authorizer = MiniTest::Mock.new
+    1.times {authorizer.expect(:can_modify_resource?, true, [Object, Object])}
+    2.times {authorizer.expect(:can_view_resource?, true, [Object])}
+    1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    require 'omf-sfa/am/am-rest/resource_association_handler'
+    rest = OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@manager)
+    type, json = rest.on_put('accounts', opts)
+    assert_instance_of String, type
+    assert_equal type, "application/json"
+    assert_instance_of String, json
+
+    res = JSON.parse(json)["resource_response"]["resource"]
+    assert_instance_of Hash, res
+    assert_equal res["name"], "testUser"
+    assert_equal res["accounts"].first["name"], "testAccount"
+
+    # check if it is in the db
+    a = OMF::SFA::Model::Account.where(uuid: acc.uuid).first
+    assert_instance_of OMF::SFA::Model::Account, a
+    assert_equal a.name, 'testAccount'
+    assert_equal a.users.first.name, 'testUser'
+
+    opts[:req].verify
+    authorizer.verify
+  end
+
+  def test_it_can_delete_an_association_between_two_existing_resources_1_yyy
+    user = OMF::SFA::Model::User.create({:name => 'testUser'})
+    acc = OMF::SFA::Model::Account.create({:name => 'testAccount'})
+    user.add_account(acc)
+
+    puts user.accounts.inspect
+
+    user.remove_account(acc.id)
+
+    puts user.accounts.inspect
+
+    # opts = {}
+    # opts[:source_resource_uri] = "users"
+    # opts[:source_resource_uuid] = user.uuid
+    # opts[:target_resource_uri] = "accounts"
+    # opts[:req] = MiniTest::Mock.new
+    # opts[:req].expect(:params, {})
+    # 4.times {opts[:req].expect(:path, "/resources/users/#{user.uuid}/accounts")}
+    # 1.times {opts[:req].expect(:body, "{\"uuid\":\"#{acc.uuid}\"}")}
+    # 2.times {opts[:req].expect(:content_type, 'application/json')}
+
+    # authorizer = MiniTest::Mock.new
+    # 1.times {authorizer.expect(:can_modify_resource?, true, [Object, Object])}
+    # 2.times {authorizer.expect(:can_view_resource?, true, [Object])}
+    # 1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    # require 'omf-sfa/am/am-rest/resource_association_handler'
+    # rest = OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@manager)
+    # type, json = rest.on_delete('accounts', opts)
+    # assert_instance_of String, type
+    # assert_equal type, "application/json"
+    # assert_instance_of String, json
+
+    # res = JSON.parse(json)["resource_response"]["resource"]
+    # assert_instance_of Hash, res
+    # assert_equal res["name"], "testUser"
+    # assert_equal res["accounts"], []
+
+    # # check if it is in the db
+    # a = OMF::SFA::Model::Account.where(uuid: acc.uuid).first
+    # assert_instance_of OMF::SFA::Model::Account, a
+    # assert_equal a.name, 'testAccount'
+    # assert_equal a.users, []
+
+    # opts[:req].verify
+    # authorizer.verify
+  end
+
+  def test_it_can_delete_an_association_between_two_existing_resources_2_xxx
+    node = OMF::SFA::Model::Node.create({:name => 'testNode'})
+    cpu = OMF::SFA::Model::Cpu.create({:name => 'testCPU'})
+    node.add_cpu(cpu)
+
+    node.remove_cpu(cpu.id)
+
+    # opts = {}
+    # opts[:source_resource_uri] = "nodes"
+    # opts[:source_resource_uuid] = node.uuid
+    # opts[:target_resource_uri] = "cpus"
+    # opts[:req] = MiniTest::Mock.new
+    # opts[:req].expect(:params, {})
+    # 4.times {opts[:req].expect(:path, "/resources/nodes/#{node.uuid}/cpus")}
+    # 1.times {opts[:req].expect(:body, "{\"uuid\":\"#{cpu.uuid}\"}")}
+    # 2.times {opts[:req].expect(:content_type, 'application/json')}
+
+    # authorizer = MiniTest::Mock.new
+    # 1.times {authorizer.expect(:can_modify_resource?, true, [Object, Object])}
+    # 2.times {authorizer.expect(:can_view_resource?, true, [Object])}
+    # 1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    # require 'omf-sfa/am/am-rest/resource_association_handler'
+    # rest = OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@manager)
+    # type, json = rest.on_delete("/resources/nodes/#{node.uuid}/cpus", opts)
+    # assert_instance_of String, type
+    # assert_equal type, "application/json"
+    # assert_instance_of String, json
+
+    # res = JSON.parse(json)["resource_response"]["resource"]
+    # assert_instance_of Hash, res
+    # assert_equal res["name"], "testNode"
+    # assert_equal res["cpus"], []
+
+    # # check if it is in the db
+    # a = OMF::SFA::Model::Node.where(uuid: node.uuid).first
+    # assert_instance_of OMF::SFA::Model::Node, a
+    # assert_equal a.name, 'testNode'
+    # assert_equal a.cpus, []
+
+    # opts[:req].verify
+    # authorizer.verify
   end
 end # Class AMManager
