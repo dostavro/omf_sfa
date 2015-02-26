@@ -48,9 +48,12 @@ module OMF::SFA::AM::Rest
       target_resource = @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
       
       if source_resource.class.method_defined?("add_#{target_type.singularize}")
+        raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type).include?(target_resource)
         source_resource.send("add_#{target_type.singularize}", target_resource)
         show_resource(source_resource, opts)
       elsif source_resource.class.method_defined?("#{target_type.singularize}=")
+        # it is not necessary to check if it is associated
+        # raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type.singularize).include?(target_resource)
         source_resource.send("#{target_type.singularize}=", target_resource)
         show_resource(source_resource, opts)
       else
@@ -114,6 +117,7 @@ module OMF::SFA::AM::Rest
       source_uuid = opts[:source_resource_uuid]
 
       target_type = opts[:target_resource_uri]
+      #TODO some manipulation on special case target types. Like the one in the resourceHandler's parse_uri method
       begin
         eval("OMF::SFA::Model::#{opts[:target_resource_uri].singularize.camelize}").class
       rescue NameError => ex
