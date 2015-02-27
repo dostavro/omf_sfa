@@ -99,7 +99,9 @@ Also copy the am certificate to trusted_roots folder.
 
 	$ cp am.pem /root/.omf/trusted_roots 
 
-Hint: you can use the following command in order to inspect a certificate in a human readable way.
+Hint: In case you get an error that the certificates are not proper, it might mean that they are out of date, thus you need to recreate
+all the certificates. You can use the following command in order to inspect a certificate in a human readable way and determine
+what is wrong with it.
 
     $ openssl x509 -in root.pem -text
 

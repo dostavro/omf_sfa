@@ -5,6 +5,9 @@ module OMF::SFA::Model
     one_to_many :resources
     many_to_many :users
 
+    plugin :nested_attributes
+    nested_attributes :users, :resources
+
     @@def_duration = 100 * 86400 # 100 days
 
     def active?
