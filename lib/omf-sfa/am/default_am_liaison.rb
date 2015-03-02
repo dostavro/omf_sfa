@@ -17,9 +17,11 @@ module OMF::SFA::AM
     @leases = {}
 
     def initialize
+      @config = OMF::Common::YAML.load('am_liaison_conf', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:am_liaison]
+ 
       EM.next_tick do
         OmfCommon.comm.on_connected do |comm|
-          puts "#{self.class}: AMLiaison ready."
+          puts "#{self.class}: AMLiaison ready with opts: #{@config.inspect}."
         end
       end
     end
@@ -54,6 +56,10 @@ module OMF::SFA::AM
 
     def release_resource(resource, new_res, lease, component)
       warn "Am liason: release_resource: Not implemented."
+    end
+
+    def start_resource_monitoring(resource, lease, oml_uri=nil)
+      warn "Am liason: start_resource_monitoring: Not implemented."
     end
   end # DefaultAMLiaison
 end # OMF::SFA::AM

@@ -98,6 +98,11 @@ module OMF::SFA::AM::Rest
         body = req.body
         raise EmptyBodyException.new if body.nil?
         (body = body.string) if body.is_a? StringIO
+        if body.is_a? Tempfile
+          tmp = body
+          body = body.read
+          tmp.rewind
+        end
         raise EmptyBodyException.new if body.empty?
 
         content_type = req.content_type

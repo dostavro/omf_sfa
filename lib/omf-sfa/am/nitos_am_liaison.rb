@@ -1,6 +1,9 @@
 require 'omf_common'
 require 'omf-sfa/am/am_manager'
 require 'omf-sfa/am/default_am_liaison'
+require "net/https"
+require "uri"
+require 'json'
 
 
 module OMF::SFA::AM
@@ -202,6 +205,90 @@ module OMF::SFA::AM
       end
     end
 
+
+    # It will start a monitoring job to nagios api for the given resource and lease
+    #
+    # @param [Resource] target resource for monitoring
+    # @param [Lease] lease Contains the lease information "valid_from" and
+    #                 "valid_until"
+    # @param [String] oml_uri contains the uri for the oml server, if nil get default value from the config file.
+    #
+    def start_resource_monitoring(resource, lease, oml_uri=nil)
+      return false if resource.nil? || lease.nil?
+      nagios_url = @config[:nagios_url] || 'http://10.64.86.230:4567'
+      oml_uri ||= @config[:default_oml_url]
+      oml_domain = "monitoring_#{lease.account.name}_#{resource.name}"
+      debug "start_resource_monitoring: resource: #{resource.inspect} lease: #{lease.inspect} oml_uri: #{oml_uri}"
+      start_at = lease[:valid_from]
+      interval = 10
+      duration = lease[:valid_until] - lease[:valid_from]
+
+      services = []
+
+      checkhostalive = {name: "checkhostalive"}
+      checkhostalive['uri'] = oml_uri
+      checkhostalive['domain'] = oml_domain
+      checkhostalive['metrics'] = ["plugin_output", "long_plugin_output"]
+      checkhostalive['interval'] = interval
+      checkhostalive['duration'] = duration
+      checkhostalive['start_at'] = start_at
+      services << checkhostalive
+
+      # cpuusage = {name: "Cpu_Usage"}
+      # cpuusage['uri'] = oml_uri
+      # cpuusage['domain'] = oml_domain
+      # cpuusage['metrics'] = ["plugin_output", "long_plugin_output"]
+      # cpuusage['interval'] = interval
+      # cpuusage['duration'] = duration
+      # cpuusage['start_at'] = start_at
+      # services << cpuusage
+
+      # memory = {name: "Memory"}
+      # memory['uri'] = oml_uri
+      # memory['domain'] = oml_domain
+      # memory['metrics'] = ["plugin_output", "long_plugin_output"]
+      # memory['interval'] = interval
+      # memory['duration'] = duration
+      # memory['start_at'] = start_at
+      # services << memory
+
+      # iftraffic = {name: "Interface_traffic"}
+      # iftraffic['uri'] = oml_uri
+      # iftraffic['domain'] = oml_domain
+      # iftraffic['metrics'] = ["plugin_output", "long_plugin_output"]
+      # iftraffic['interval'] = interval
+      # iftraffic['duration'] = duration
+      # iftraffic['start_at'] = start_at
+      # services << iftraffic
+
+
+      services.each do |s|
+        debug "Starting monitoring service: #{s[:name]}"
+        url = "#{nagios_url}/hosts/#{resource.name}/services/#{s[:name]}/monitoring"
+        s.delete(:name)
+
+        debug "url: #{url} - data: #{s.inspect}"
+        uri = URI.parse(url)
+        http = Net::HTTP.new(uri.host, uri.port)
+        request = Net::HTTP::Post.new(uri.request_uri)
+        request.body = s.to_json
+        begin
+          out = http.request(request)
+        rescue Errno::ECONNREFUSED
+          debug "connection to #{url} refused."
+          return false
+        end
+        debug "output: #{out.body.inspect}"
+      end
+
+      unless resource.monitoring
+        mon = {}
+        mon[:oml_url] = oml_uri
+        mon[:domain] = oml_domain
+        resource.monitoring = mon
+      end
+      true
+    end
 
     #def release_lease(resource)
 

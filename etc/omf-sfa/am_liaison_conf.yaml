@@ -1,0 +1,4 @@
+
+am_liaison:
+  nagios_url: http://10.64.86.230:4567
+  default_oml_url: tcp:nitlab.inf.uth.gr:3003
