@@ -25,11 +25,20 @@ module OMF::SFA::Model
     sfa :boot_state, :attribute => true
     sfa :monitored, :attribute => true
     sfa :services
+    sfa :monitoring
 
     def services
       return nil if self.account.id == OMF::SFA::Model::Account.where(name: '__default__').first.id
       gateway = self.parent.gateway
       el = "<login authentication=\"ssh-keys\" hostname=\"#{gateway}\" port=\"22\" username=\"#{self.account.name}\"/>"
+      Nokogiri::XML(el).child
+    end
+
+    attr_accessor :monitoring
+
+    def monitoring
+      return nil unless @monitoring
+      el = "<oml_info oml_url=\"#{@monitoring[:oml_url]}\" domain=\"#{@monitoring[:domain]}\">"
       Nokogiri::XML(el).child
     end
 

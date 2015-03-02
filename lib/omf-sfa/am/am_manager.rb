@@ -748,6 +748,12 @@ module OMF::SFA::AM
 
         unless lease.nil? || lease.components.include?(resource)#lease.components.first(:uuid => resource.uuid)
           @scheduler.lease_component(lease, resource)
+
+          monitoring_el = resource_el.xpath('//xmlns:monitoring')
+          unless monitoring_el.empty?
+            oml_url = monitoring_el.first.xpath('//xmlns:oml_server').first['url']
+            @liaison.start_resource_monitoring(resource, lease, oml_url)
+          end
         end
       end
 
