@@ -5,6 +5,9 @@ module OMF::SFA::Model
     one_to_many :keys
     many_to_many :accounts
 
+    plugin :nested_attributes
+    nested_attributes :accounts, :keys
+
     def has_nil_account?(am_manager)
       self.accounts.include?(am_manager.get_scheduler.get_nil_account)
     end

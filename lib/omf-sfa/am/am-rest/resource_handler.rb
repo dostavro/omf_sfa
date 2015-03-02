@@ -1,5 +1,6 @@
 require 'omf-sfa/am/am-rest/rest_handler'
 require 'omf-sfa/am/am_manager'
+require 'uuid'
 
 module OMF::SFA::AM::Rest
 
@@ -14,8 +15,19 @@ module OMF::SFA::AM::Rest
     def find_handler(path, opts)
       #opts[:account] = @am_manager.get_default_account
       opts[:resource_uri] = path.join('/')
-      debug "find_handler: path: '#{path}' opts: '#{opts.inspect}'"
-      self
+      if path.size == 0 || path.size == 1
+        debug "find_handler: path: '#{path}' opts: '#{opts.inspect}'"
+        return self
+      elsif path.size == 3 #/resources/type1/UUID/type2
+        opts[:source_resource_uri] = path[0]
+        opts[:source_resource_uuid] = path[1]
+        opts[:target_resource_uri] = path[2]
+        raise OMF::SFA::AM::Rest::BadRequestException.new "'#{opts[:source_resource_uuid]}' is not a valid UUID." unless UUID.validate(opts[:source_resource_uuid])
+        require 'omf-sfa/am/am-rest/resource_association_handler'
+        return OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@am_manager, opts)
+      else
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+      end
     end
 
     # List a resource
@@ -26,7 +38,6 @@ module OMF::SFA::AM::Rest
     def on_get(resource_uri, opts)
       debug "on_get: #{resource_uri}"
       authenticator = opts[:req].session[:authorizer]
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
         descr = {}
@@ -34,7 +45,6 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
@@ -45,20 +55,13 @@ module OMF::SFA::AM::Rest
             resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
         else
-          # descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
           descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           resource = @am_manager.find_resource(descr, resource_type, authenticator)
           return show_resource(resource, opts)
         end
       else
-        body, format = parse_body(opts)
-        debug "body: #{body.inspect}, format: #{format.inspect}"
-        unless body.empty?
-          resp = resolve_unbound_request(body, format, authenticator)
-          return resp
-        else
-          resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
-        end
+        debug "list all resources."
+        resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
       end
       raise UnknownResourceException, "No resources matching the request." if resource.empty?
       show_resource(resource, opts)
@@ -71,20 +74,6 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the updated resource.
     def on_put(resource_uri, opts)
       debug "on_put: #{resource_uri}"
-      path = opts[:req].env["REQUEST_PATH"]
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if path == '/mapper'
-      if path == '/resources/users' || path == '/resources/users/'
-        resource_type, resource_params = parse_uri(resource_uri, opts)
-        if resource_params.include?(:add_key)
-          user_desc = {}
-          user_desc[:uuid] = resource_params[:uuid] if resource_params[:uuid]
-          user_desc[:name] = resource_params[:name] if resource_params[:name]
-          raise OMF::SFA::AM::Rest::BadRequestException.new "uuid or name parameter is mandatory." unless  user_desc[:uuid] || user_desc[:uuid]
-          authenticator = opts[:req].session[:authorizer]
-          response = add_key_on_user(resource_params[:add_key], user_desc, authenticator)
-          return ['application/json', JSON.pretty_generate({:resource_response => response}, :for_rest => true)]
-        end
-      end
       resource = update_resource(resource_uri, true, opts)
       show_resource(resource, opts)
     end
@@ -95,15 +84,7 @@ module OMF::SFA::AM::Rest
     # @param [Hash] options of the request
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
-      debug "on_post: #{resource_uri} - #{opts[:req].env["REQUEST_PATH"]}"
-      path = opts[:req].env["REQUEST_PATH"]
-      if path == '/mapper' || path == '/mapper/'
-        debug "Unbound request detected."
-        body, format = parse_body(opts)
-        authenticator = opts[:req].session[:authorizer]
-        resp = resolve_unbound_request(body, format, authenticator)
-        return resp
-      end
+      debug "on_post: #{resource_uri}"
       resource = update_resource(resource_uri, false, opts)
       show_resource(resource, opts)
     end
@@ -115,7 +96,6 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_delete(resource_uri, opts)
       debug "on_delete: #{resource_uri}"
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       delete_resource(resource_uri, opts)
       show_resource(nil, opts)
     end
@@ -433,22 +413,6 @@ module OMF::SFA::AM::Rest
       resource
     end
 
-    def resolve_unbound_request(body, format, authenticator)
-      if format == :json
-        begin
-          resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
-          debug "response: #{resource}, #{resource.class}"
-          return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
-        rescue OMF::SFA::AM::UnavailableResourceException
-          raise UnknownResourceException, "There are no available resources matching the request."
-        rescue MappingSubmodule::UnknownTypeException
-          raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
-        end
-      else
-        raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
-      end
-    end
-
     # Before create a new resource, parse the resource description and alternate existing resources.
     #
     # @param [Hash] Resource Description
@@ -485,24 +449,6 @@ module OMF::SFA::AM::Rest
         end
       end
       resource_descr
-    end
-
-    # Add an ssh key to an existing user
-    #
-    # @param [String] the ssh key
-    # @param [Hash] the user_description
-    # @param [Authorizer] Defines context for authorization decisions
-    # @return [Hash] Description of the output of the request
-    # @raise [UnknownResourceException] if no resource can be created
-    #
-    def add_key_on_user(key, user_desc, authorizer)
-      debug "add_key_on_user: #{key} - #{user_desc}"
-      user = @am_manager.find_all_resources(user_desc, 'user', authorizer)
-      raise OMF::SFA::AM::Rest::UnknownResourceException.new "User with description '#{user_desc}' doesn't exist" if user.empty?
-      user = user.first
-      authorizer.can_modify_resource?(user, 'user')
-      user.add_key(key)
-      {response: "OK"}
     end
   end # ResourceHandler
 end # module
