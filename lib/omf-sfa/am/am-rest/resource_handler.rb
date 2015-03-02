@@ -219,7 +219,7 @@ module OMF::SFA::AM::Rest
       when "cmc"
         type = "ChasisManagerCard"
       when "wimax"
-        type = "WimaxBase"
+        type = "WimaxBaseStation"
       when "lte"
         type = "LteBase"
       when "openflow"
