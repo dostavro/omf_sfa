@@ -10,5 +10,11 @@ module OMF::SFA::Model
     # oproperty :mode, String
 
     sfa_class 'wimax_base_station', :can_be_referred => true, :expose_id => false
+
+
+    def self.include_nested_attributes_to_json
+      sup = super
+      [:leases].concat(sup)
+    end
   end
 end
