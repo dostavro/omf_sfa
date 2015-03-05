@@ -43,7 +43,7 @@ module OMF::SFA::Model
     end
 
     def before_save
-      self.available ||= true
+      self.available = true if self.available.nil?
       super
     end
 
