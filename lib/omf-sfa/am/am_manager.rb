@@ -270,6 +270,7 @@ module OMF::SFA::AM
     # @return [Lease] The requested leases
     #
     def find_all_leases(account = nil, status = ['pending', 'accepted', 'active', 'past', 'cancelled'], authorizer)
+      debug "find_all_leases: account: #{account.inspect} status: #{status}"
       if account.nil?
         leases = OMF::SFA::Model::Lease.where(status: status)
       else
