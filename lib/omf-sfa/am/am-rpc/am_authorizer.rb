@@ -173,11 +173,11 @@ module OMF::SFA::AM::RPC
         acc_name = create_account_name_from_urn(account_urn)
 
         @account = am_manager.find_or_create_account({:urn => account_urn, :name => acc_name}, self)
-        if @account.valid_until != @user_cred.valid_until
+        # if @account.valid_until != @user_cred.valid_until
           # @account.valid_until = @user_cred.valid_until
           debug "Renewing account '#{@account.name}' until '#{@user_cred.valid_until}'"
           am_manager.renew_account_until(@account, @user_cred.valid_until, self)
-        end
+        # end
         if @account.closed?
           if @permissions[:can_create_account?]
             @account.closed_at = nil
