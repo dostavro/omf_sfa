@@ -112,7 +112,7 @@ module OMF::SFA::AM
 
       parent = component.account == get_nil_account() ? component : component.parent
 
-      leases = OMF::SFA::Model::Lease.where(components: [parent], status: ['active', 'accepted']){((valid_from >= start_time) & (valid_from <= end_time)) | ((valid_from <= start_time) & (valid_until >= start_time))}
+      leases = OMF::SFA::Model::Lease.where(components: [parent], status: ['active', 'accepted']){((valid_from >= start_time) & (valid_from < end_time)) | ((valid_from <= start_time) & (valid_until > start_time))}
 
       leases.nil? || leases.empty?
     end
