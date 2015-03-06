@@ -101,14 +101,16 @@ module OMF::SFA::AM::Rest
         #return [200 ,{'Content-Type' => 'application/json'}, JSON.pretty_generate(body)]
         return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body]
       rescue RackException => rex
+        debug rex.to_s
+        debug rex.backtrace.join("\n")
         return rex.reply
       rescue OMF::SFA::AM::InsufficientPrivilegesException => iex
         debug iex.to_s
-        # debug iex.backtrace.join("\n")
+        debug iex.backtrace.join("\n")
         return RackException.new(401, iex.to_s).reply
       rescue OMF::SFA::AM::AMManagerException => mex
         debug mex.to_s
-        # debug mex.backtrace.join("\n")
+        debug mex.backtrace.join("\n")
         return RackException.new(400, mex.to_s).reply
       rescue ArgumentError => aex
         debug aex.to_s

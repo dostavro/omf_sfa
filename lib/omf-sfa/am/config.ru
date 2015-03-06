@@ -26,8 +26,18 @@ opts = OMF::Common::Thin::Runner.instance.options
 puts opts
 
 am_mgr = opts[:am][:manager]
-am_liaison = OMF::SFA::AM::AMLiaison.new
-am_mgr.liaison = am_liaison
+am_liaison = nil
+if opts[:am_liaison]
+  require opts[:am_liaison][:require]
+  puts "#{opts[:am_liaison].inspect}"
+  am_liaison = eval(opts[:am_liaison][:constructor]).new
+  am_mgr.liaison = am_liaison
+else
+  require 'omf-sfa/am/default_am_liaison'
+  am_liaison = OMF::SFA::AM::DefaultAMLiaison.new
+  am_mgr.liaison = am_liaison
+end
+# am_liaison = OMF::SFA::AM::AMLiaison.new
 am_controller = OMF::SFA::AM::XMPP::AMController.new({manager: am_mgr, xmpp: opts[:xmpp]})
 
 
@@ -74,10 +84,10 @@ map "/mapper" do
           :login_url => (REQUIRE_LOGIN ? '/login' : nil),
           :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
           :am_manager => am_mgr
-  require 'omf-sfa/am/am-rest/resource_handler'
+  require 'omf-sfa/am/am-rest/mapping_handler'
   # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
   # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
-  run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts)
+  run OMF::SFA::AM::Rest::MappingHandler.new(opts[:am][:manager], opts)
 end
 
 if REQUIRE_LOGIN

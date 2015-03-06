@@ -1,676 +1,673 @@
 require 'rubygems'
-gem 'minitest' # ensures you're using the gem, and not the built in MT
+gem 'minitest' # ensures you are using the gem, not the built in MT
 require 'minitest/autorun'
 require 'minitest/pride'
+require 'sequel'
 require 'omf-sfa/am/am_manager'
-require 'dm-migrations'
 require 'omf_common/load_yaml'
-require 'active_support/inflector'
 
-include OMF::SFA::AM
+db = Sequel.sqlite # In Memory database
+Sequel.extension :migration
+Sequel::Migrator.run(db, "./migrations") # Migrating to latest
+require 'omf-sfa/models'
 
-def init_dm
-  # setup database
-  DataMapper::Logger.new($stdout, :info)
+OMF::Common::Loggable.init_log('am_manager', { :searchPath => File.join(File.dirname(__FILE__), 'am_manager') })
+::Log4r::Logger.global.level = ::Log4r::OFF
 
-  DataMapper.setup(:default, 'sqlite::memory:')
-  #DataMapper.setup(:default, 'sqlite:///tmp/am_test.db')
-  DataMapper::Model.raise_on_save_failure = true
-  DataMapper.finalize
-
-  DataMapper.auto_migrate!
-end
-
-def init_logger
-  OMF::Common::Loggable.init_log 'am_manager', :searchPath => File.join(File.dirname(__FILE__), 'am_manager')
-  @config = OMF::Common::YAML.load('omf-sfa-am', :path => [File.dirname(__FILE__) + '/../../etc/omf-sfa'])[:omf_sfa_am]
-end
-
-describe AMManager do
-
-  init_logger
-
-  init_dm
-
-  before do
-    DataMapper.auto_migrate! # reset database
+# Must use this class as the base class for your tests
+class AMManager < MiniTest::Test
+  def run(*args, &block)
+    result = nil
+    Sequel::Model.db.transaction(:rollback=>:always, :auto_savepoint=>true){result = super}
+    result
   end
 
-  let (:scheduler) do
-    scheduler = Class.new do
-      def self.get_nil_account
-        nil
-      end
-      def self.create_resource(resource_descr, type_to_create, oproperties, auth)
-        resource_descr[:resource_type] = type_to_create
-        resource_descr[:account] = auth.account
-        type = type_to_create.camelize
-        resource = eval("OMF::SFA::Resource::#{type}").create(resource_descr)
-        if type_to_create.eql?('Lease')
-          resource.valid_from = oproperties[:valid_from]
-          resource.valid_until = oproperties[:valid_until]
-          resource.save
-        end
-        return resource
-      end
-      def self.release_resource(resource, authorizer)
-        resource.destroy
-      end
-    end
-    scheduler
+  def before_setup
+    @manager = OMF::SFA::AM::AMManager.new(nil)
   end
 
-  let (:manager) { AMManager.new(scheduler) }
-
-  describe 'instance' do
-    it 'can create an AM Manager' do
-      manager
-    end
-
-    it 'can manage a resource' do
-      r = OMF::SFA::Resource::OResource.create(:name => 'r')
-      manager.manage_resource(r)
+  def test_that_can_manage_a_resource
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    
+    @manager.stub :_get_nil_account, account do
+      res = OMF::SFA::Model::Node.create(name: 'node1')
+      @manager.manage_resource(res)
+      assert_equal account, OMF::SFA::Model::Node.first(name: 'node1').account
     end
   end
 
-  describe 'account' do
+  def test_that_can_manage_multiple_resources
+    account = OMF::SFA::Model::Account.create(name: 'account1')
 
-    before do
-      @auth = MiniTest::Mock.new
-      DataMapper.auto_migrate! # reset database
+    @manager.stub :_get_nil_account, account do
+      node1 = OMF::SFA::Model::Node.create(name: 'node1')
+      node2 = OMF::SFA::Model::Node.create(name: 'node2')
+      @manager.manage_resources([node1, node2])
+      assert_equal account, OMF::SFA::Model::Node.first(name: 'node1').account
+      assert_equal account, OMF::SFA::Model::Node.first(name: 'node2').account
+    end
+  end
+
+  def test_that_can_find_an_existing_account_instead_of_creating
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    @manager.stub :find_account, account do
+
+      a = @manager.find_or_create_account(nil, nil)
+      assert_same a, account
+      assert_equal 1, OMF::SFA::Model::Account.count
+    end
+  end
+
+  def test_that_can_create_an_account_if_it_doesnt_exist
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_create_account?, true
+    @manager.liaison = Minitest::Mock.new
+    @manager.liaison.expect :create_account, true, [OMF::SFA::Model::Account]
+
+    account = @manager.find_or_create_account({name: 'account1'}, authorizer)
+    assert_instance_of OMF::SFA::Model::Account, account
+    assert_equal account.name, 'account1'
+
+    authorizer.verify
+    @manager.liaison.verify
+  end
+
+  def test_that_can_raise_an_exception_if_create_account_is_not_allowed
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_create_account?, false
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.find_or_create_account({name: 'account1'}, authorizer)
     end
 
-    it 'can create account' do
-      @auth.expect(:can_create_account?, true)
+    authorizer.verify
+  end
 
-      manager.liaison = MiniTest::Mock.new
-      manager.liaison.expect(:create_account, true, [OMF::SFA::Resource::Account])
+  def test_that_can_find_an_existing_account
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_account?, true, [OMF::SFA::Model::Account]
+    account = OMF::SFA::Model::Account.create(name: 'account1')
 
-      account = manager.find_or_create_account({:name => 'a'}, @auth)
-      account.must_be_instance_of(OMF::SFA::Resource::Account)
+    a = @manager.find_account({name: 'account1'}, authorizer)
+    assert_equal account, a
 
-      manager.liaison.verify
-      @auth.verify
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_no_account_exists
+    assert_raises OMF::SFA::AM::UnavailableResourceException do
+      @manager.find_account({name: 'account1'}, nil)
+    end
+  end
+
+  def test_that_can_raise_an_exception_if_view_account_is_not_allowed
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_account?, false, [OMF::SFA::Model::Account]
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.find_account({name: 'account1'}, authorizer)
     end
 
-    it 'can find created account' do
-      a1 = OMF::SFA::Resource::Account.create(name: 'a')
+    authorizer.verify
+  end
 
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      a2 = manager.find_or_create_account({:name => 'a'}, @auth)
-      a1.must_equal a2
+  def test_that_can_return_all_accounts_except_the_default
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_account?, true, [OMF::SFA::Model::Account]
+    account = OMF::SFA::Model::Account.create(name: '__default__')
+    a1 = OMF::SFA::Model::Account.create(name: 'account1')
 
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      a3 = manager.find_account({:name => 'a'}, @auth)
-      a1.must_equal a3
+    accounts = @manager.find_all_accounts(authorizer)
+    assert_equal [a1], accounts
 
-      @auth.verify
+    authorizer.verify
+  end
+
+  def test_that_wont_return_unauthorized_accounts
+    authorizer = Minitest::Mock.new
+    a1 = OMF::SFA::Model::Account.create(name: 'account1')
+    a2 = OMF::SFA::Model::Account.create(name: 'account2')
+    authorizer.expect :can_view_account?, false, [a1]
+    authorizer.expect :can_view_account?, true, [a2]
+
+    accounts = @manager.find_all_accounts(authorizer)
+    assert_equal [a2], accounts
+
+    authorizer.verify
+  end
+
+  def test_that_can_renew_a_given_account
+    authorizer = Minitest::Mock.new
+    @manager.liaison = Minitest::Mock.new
+    @manager.liaison.expect :create_account, true, [OMF::SFA::Model::Account]
+    t1 = Time.now
+    t2 = Time.now
+    account = OMF::SFA::Model::Account.create(name: 'account1', valid_until: t1)
+    authorizer.expect :can_renew_account?, true, [account, t2]
+
+    @manager.renew_account_until(account, t2, authorizer)
+    assert_equal t2.to_i, OMF::SFA::Model::Account.first(name: 'account1').valid_until.to_i
+
+    authorizer.verify
+    @manager.liaison.verify
+  end
+
+  def test_that_can_raise_an_exception_if_renew_account_is_not_allowed
+    authorizer = Minitest::Mock.new
+    t1 = Time.now
+    t2 = Time.now
+    account = OMF::SFA::Model::Account.create(name: 'account1', valid_until: t1)
+    authorizer.expect :can_renew_account?, false, [account, t2]
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.renew_account_until(account, t2, authorizer)
     end
 
-    it 'throws exception when looking for non-exisiting account' do
-      lambda do
-        manager.find_account({:name => 'a'}, @auth)
-      end.must_raise(UnavailableResourceException)
-    end
+    authorizer.verify
+  end
 
-    it 'can request all accounts visible to a user' do
-      manager.find_all_accounts(@auth).must_be_empty
+  def test_that_can_close_an_account
+    authorizer = Minitest::Mock.new
+    @manager.liaison = Minitest::Mock.new
+    @manager.liaison.expect :close_account, true, [OMF::SFA::Model::Account]
 
-      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
+    account = OMF::SFA::Model::Account.create(name: 'account1')
 
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      manager.find_all_accounts(@auth).must_equal [a1]
-
-      a2 = OMF::SFA::Resource::Account.create(name: 'a2')
-
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-
-      manager.find_all_accounts(@auth).must_equal [a1, a2]
-
-      @auth.verify
-
-      def @auth.can_view_account?(account)
-        raise InsufficientPrivilegesException
+    @manager.stub :find_account, account do
+      @manager.stub :release_all_components_for_account, true do
+        authorizer.expect :can_close_account?, true, [account]
+        @manager.close_account(account, authorizer)
+        assert OMF::SFA::Model::Account.first(name: 'account1').closed?
       end
-      manager.find_all_accounts(@auth).must_be_empty
     end
 
-    it 'can request accounts which are active' do
-      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
+    authorizer.verify
+    @manager.liaison.verify
+  end
 
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      a2 = manager.find_active_account({:name => 'a1'}, @auth)
-      a2.wont_be_nil
+  def test_that_can_raise_an_exception_if_close_account_is_not_allowed
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
 
-      # Expire account
-      a2.valid_until = Time.now - 100
-      a2.save
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      lambda do
-        manager.find_active_account({:name => 'a1'}, @auth)
-      end.must_raise(UnavailableResourceException)
-
-      @auth.verify
-    end
-
-    it 'can renew accounts' do
-      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
-
-      time = Time.now + 100
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      @auth.expect(:can_renew_account?, true, [a1, time])
-      a2 = manager.renew_account_until({:name => 'a1'}, time, @auth)
-
-      # we convert the time to INT in order to round up fractional seconds
-      # more info: http://stackoverflow.com/questions/8763050/how-to-compare-time-in-ruby
-      time1 = Time.at(a2.valid_until.to_i)
-      time2 = Time.at(time.to_i)
-      time1.must_equal time2
-
-      @auth.verify
-    end
-
-    it 'can close account and release its resources' do
-      manager.liaison = MiniTest::Mock.new
-
-      a1 = OMF::SFA::Resource::Account.create(name: 'a1')
-
-      OMF::SFA::Resource::Node.create(account: a1)
-
-      @auth.expect(:can_view_account?, true, [OMF::SFA::Resource::Account])
-      @auth.expect(:can_close_account?, true, [a1])
-
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
-      manager.liaison.expect(:close_account, true, [a1])
-      a2 = manager.close_account({:name => 'a1'}, @auth)
-      a2.reload
-      a2.active?.must_equal false
-      a2.closed?.must_equal true
-
-      OMF::SFA::Resource::Node.first(account: a1).must_be_nil
-
-      manager.liaison.verify
-      @auth.verify
-    end
-  end #account
-
-  describe 'users' do
-
-    before do
-      DataMapper.auto_migrate! # reset database
-    end
-
-    it 'can create a user' do
-      u = manager.find_or_create_user({:urn => 'urn:publicid:IDN+topdomain:subdomain+user+pi'}, [])
-      u.must_be_instance_of(OMF::SFA::Resource::User)
-    end
-
-    it 'can find an already created user' do
-      user_descr = {:name => 'pi'}
-      u1 = OMF::SFA::Resource::User.create(user_descr)
-      u2 = manager.find_or_create_user(user_descr, [])
-      u1.must_equal u2
-
-      u2 = manager.find_user(user_descr)
-      u1.must_equal u2
-    end
-
-    it 'throws an exception when looking for a non existing user' do
-      lambda do
-        manager.find_user({:urn => 'urn:publicid:IDN+topdomain:subdomain+user+pi'})
-      end.must_raise(UnavailableResourceException)
-    end
-
-  end #users
-
-  describe 'lease' do
-
-    lease_oproperties = {:valid_from => Time.now, :valid_until => Time.now + 100}
-
-    before do
-      @auth = MiniTest::Mock.new
-      DataMapper.auto_migrate! # reset database
-      @account = OMF::SFA::Resource::Account.first_or_create(:name => 'a1')
-    end
-
-    it 'can create lease' do
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      @auth.expect(:account, @account)
-      lease = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, @auth)
-      lease.must_be_instance_of(OMF::SFA::Resource::Lease)
-
-      @auth.verify
-    end
-
-    it 'can find created lease' do
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      @auth.expect(:account, @account)
-      a1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, @auth)
-
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      a2 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, @auth)
-      a1.must_equal a2
-
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      a3 = manager.find_lease({:name => 'l1'}, {}, @auth)
-      a1.must_equal a3
-
-      @auth.verify
-    end
-
-    it 'throws exception when looking for non-exisiting lease' do
-      lambda do
-        manager.find_lease({:name => 'l1'}, {}, @auth)
-      end.must_raise(UnavailableResourceException)
-    end
-
-    it "can request all user's leases" do
-      OMF::SFA::Resource::Lease.create({:name => "another_user's_lease"})
-
-      @auth.expect(:can_view_account?, true, [@account])
-      a1 = manager.find_or_create_account({:name => 'a1'}, @auth)
-
-      @auth.expect(:account, a1)
-
-      manager.find_all_leases(a1, @auth).must_be_empty
-
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      l1 = manager.find_or_create_lease({:name => 'l1', :account => a1}, lease_oproperties, @auth)
-
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      manager.find_all_leases(a1, @auth).must_equal [l1]
-
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      @auth.expect(:account, a1)
-      l2 = manager.find_or_create_lease({:name => 'l2', :account => a1}, lease_oproperties, @auth)
-
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      manager.find_all_leases(a1, @auth).must_equal [l1, l2]
-
-      def @auth.can_view_lease?(lease)
-        raise InsufficientPrivilegesException
+    @manager.stub :find_account, account do
+      authorizer.expect :can_close_account?, false, [account]
+      assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+        @manager.close_account(account, authorizer)
       end
-      manager.find_all_leases(a1, @auth).must_be_empty
-
-      @auth.verify
     end
 
-    it 'can modify leases' do
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      @auth.expect(:account, @account)
-      l1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, @auth)
-      @auth.verify
+    authorizer.verify
+  end
 
-      valid_from = Time.now + 1000
-      valid_until = valid_from + 1000
-      @auth.expect(:can_modify_lease?, true, [l1])
-      l2 = manager.modify_lease({:valid_from => valid_from, :valid_until => valid_until}, l1, @auth)
+  def test_that_can_find_an_existing_user_and_change_its_keys
+    user = OMF::SFA::Model::User.create(name: 'user1')
+    user.add_key(OMF::SFA::Model::Key.create(name: 'key1'))
 
-      l2.must_equal l1.reload
-
-      # more info on comparing time objects here: http://stackoverflow.com/questions/8763050/how-to-compare-time-in-ruby
-      time1 = Time.at(l2.valid_from.to_i)
-      time1.must_equal Time.at(valid_from.to_i)
-
-      time1 = Time.at(l2.valid_until.to_i)
-      time1.must_equal Time.at(valid_until.to_i)
-
-      @auth.verify
+    @manager.stub :find_user, user do
+      u = @manager.find_or_create_user(user, ['key'])
+      assert_equal u, OMF::SFA::Model::User.first(name: 'user1')
     end
 
-    it 'can release a lease' do
-      @auth.expect(:can_create_resource?, true, [Hash, 'Lease'])
-      @auth.expect(:account, @account)
-      l1 = manager.find_or_create_lease({:name => 'l1'}, lease_oproperties, @auth)
+    assert_equal 'key', OMF::SFA::Model::User.first(name: 'user1').keys.first.ssh_key
+    assert_equal 1, OMF::SFA::Model::Key.count
+  end
 
-      @auth.expect(:can_release_lease?, true, [l1])
-      manager.release_lease(l1, @auth)
+  def test_that_can_create_a_user_if_it_doesnt_exist
+    user = @manager.find_or_create_user({name: 'user1'}, ['key1'])
 
-      l1.reload
-      l1.cancelled?.must_equal true
+    assert_instance_of OMF::SFA::Model::User, user
+    assert_equal 'user1', user.name
+    assert_equal 'key1', OMF::SFA::Model::User.first.keys.first.ssh_key
+  end
 
-      @auth.verify
+  def test_that_can_find_an_existing_user
+    @manager.find_or_create_user({name: 'user1'})
+    
+    user = @manager.find_user(name: 'user1')
+    assert_instance_of OMF::SFA::Model::User, user
+    assert_equal 'user1', user.name
+  end
+
+  def test_that_can_raise_an_exception_if_no_user_is_found
+    assert_raises OMF::SFA::AM::UnavailableResourceException do
+      @manager.find_user({name: 'user1'})
+    end
+  end
+
+  def test_that_can_find_an_existing_lease
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_lease?, true, [OMF::SFA::Model::Lease]
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1')
+
+    l = @manager.find_lease({name: 'lease1'}, authorizer)
+    assert_equal lease, l
+
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_view_lease_is_not_allowed
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_lease?, false, [OMF::SFA::Model::Lease]
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1')
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.find_lease({name: 'lease1'}, authorizer)
+    end
+    
+    authorizer.verify
+  end
+
+  def test_that_can_find_an_existing_lease_instead_of_creating
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1')
+
+    @manager.stub :find_lease, lease do
+      l = @manager.find_or_create_lease({name: 'lease1'}, nil)
+      assert_same lease, l
+      assert_equal 1, OMF::SFA::Model::Lease.count
+    end
+  end
+
+  def test_that_can_create_a_lease_if_it_doesnt_exist
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_create_resource?, true, [{name: 'lease1'}, 'lease']
+
+    lease = @manager.find_or_create_lease({name: 'lease1'}, authorizer)
+    assert_instance_of OMF::SFA::Model::Lease, lease
+    assert_equal 'lease1', lease.name
+
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_create_lease_is_not_allowed
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_create_resource?, false, [{name: 'lease1'}, 'lease']
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.find_or_create_lease({name: 'lease1'}, authorizer)
     end
 
-    it 'can find all leases' do
-      OMF::SFA::Resource::Lease.create({:name => "lease_name"})
+    authorizer.verify
+  end
 
-      @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease])
-      r = manager.find_all_leases(@auth)
+  def test_that_can_find_all_leases
+    authorizer = Minitest::Mock.new
+    l1 = OMF::SFA::Model::Lease.create(name: 'lease1')
+    l2 = OMF::SFA::Model::Lease.create(name: 'lease2')
+    2.times { authorizer.expect :can_view_lease?, true, [OMF::SFA::Model::Lease]}
 
-      r.first.must_be_instance_of(OMF::SFA::Resource::Lease)
-      r.first.name.must_equal("lease_name")
+    leases = @manager.find_all_leases(authorizer)
+    assert_equal [l1, l2], leases
 
-      @auth.verify
+    authorizer.verify
+  end
+
+  def test_that_can_return_only_authorized_leases
+    authorizer = Minitest::Mock.new
+    l1 = OMF::SFA::Model::Lease.create(name: 'lease1')
+    l2 = OMF::SFA::Model::Lease.create(name: 'lease2')
+    authorizer.expect :can_view_lease?, true, [l1]
+    authorizer.expect :can_view_lease?, false, [l2]
+
+    leases = @manager.find_all_leases(authorizer)
+    assert_equal [l1], leases
+
+    authorizer.verify
+  end
+
+  def test_that_can_filter_leases_by_their_status
+    authorizer = Minitest::Mock.new
+    l1 = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted')
+    l2 = OMF::SFA::Model::Lease.create(name: 'lease2', status: 'active')
+    OMF::SFA::Model::Lease.create(name: 'lease3', status: 'past')
+    2.times { authorizer.expect :can_view_lease?, true, [OMF::SFA::Model::Lease] }
+
+    leases = @manager.find_all_leases(nil, ['accepted', 'active'], authorizer)
+    assert_equal [l1, l2], leases
+
+    authorizer.verify
+  end
+
+  def test_that_can_filter_leases_by_their_account
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    l1 = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', account: account)
+    l2 = OMF::SFA::Model::Lease.create(name: 'lease2', status: 'active')
+    OMF::SFA::Model::Lease.create(name: 'lease3', status: 'past')
+    2.times { authorizer.expect :can_view_lease?, true, [OMF::SFA::Model::Lease] }
+
+    leases = @manager.find_all_leases(account, ['accepted', 'active'], authorizer)
+    assert_equal [l1], leases
+
+    authorizer.verify
+  end
+
+  def test_that_can_modify_a_lease
+    authorizer = Minitest::Mock.new
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted')
+
+    authorizer.expect :can_modify_lease?, true, [OMF::SFA::Model::Lease]
+    l1 = @manager.modify_lease({status: 'past'}, lease, authorizer)
+
+    assert_equal OMF::SFA::Model::Lease.find(name: 'lease1').status, l1.status
+
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_modify_lease_is_not_allowed
+    authorizer = Minitest::Mock.new
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted')
+
+    authorizer.expect :can_modify_lease?, false, [OMF::SFA::Model::Lease]
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.modify_lease({status: 'past'}, lease, authorizer)
     end
 
-    it 'can find leases based on their status' do
-      l1 = OMF::SFA::Resource::Lease.create({:name => "lease1", :status => "past"})
-      l2 = OMF::SFA::Resource::Lease.create({:name => "lease2", :status => "pending"})
-      l3 = OMF::SFA::Resource::Lease.create({:name => "lease3", :status => "accepted"})
-      l4 = OMF::SFA::Resource::Lease.create({:name => "lease4", :status => "cancelled"})
-      l5 = OMF::SFA::Resource::Lease.create({:name => "lease5", :status => "active"})
+    authorizer.verify
+  end
 
-      3.times { @auth.expect(:can_view_lease?, true, [OMF::SFA::Resource::Lease]) }
-      r = manager.find_all_leases(nil, ["pending", "accepted", "active"], @auth)
+  def test_that_can_release_a_lease
+    authorizer = Minitest::Mock.new
+    t = Time.now
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100, status: 'accepted')
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+    node_child = OMF::SFA::Model::Node.create(name: 'child_node1', parent: node)
+    node.add_lease(lease)
+    node_child.add_lease(lease)
 
-      r.must_include(l2)
-      r.must_include(l3)
-      r.must_include(l5)
+    authorizer.expect :can_release_lease?, true, [OMF::SFA::Model::Lease]
+    l1 = @manager.release_lease(lease, authorizer)
+    l2 = OMF::SFA::Model::Lease.first(name: 'lease1')
 
-      @auth.verify
+    assert_equal l2, l1
+    assert_equal 'cancelled', l2.status
+    assert_equal 1, l2.components.count
+    assert_equal 'node1', l2.components.first.name
+    assert_equal 1, OMF::SFA::Model::Node.count
+    assert OMF::SFA::Model::Node.first(name: 'node1')
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_release_lease_is_not_allowed
+    authorizer = Minitest::Mock.new
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted')
+
+    authorizer.expect :can_release_lease?, false, [OMF::SFA::Model::Lease]
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.release_lease(lease, authorizer)
     end
 
-  end #lease
+    authorizer.verify
+  end
 
-  describe 'resource' do
+  def test_that_can_return_a_resource_if_object_is_given
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Node]
+    node = OMF::SFA::Model::Node.create(name: 'node1')
 
-    before do
-      @auth = Minitest::Mock.new
-      DataMapper.auto_migrate! # reset database
-      @account = OMF::SFA::Resource::Account.create(:name => 'a')
+    n = @manager.find_resource(node, 'node', authorizer)
+    assert_equal node, n
+
+    authorizer.verify
+  end
+
+  def test_that_can_find_a_resource_by_its_description
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Node]
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    n = @manager.find_resource({name: 'node1'}, 'node', authorizer)
+    assert_equal node, n
+
+    authorizer.verify
+  end
+
+  def test_that_can_raise_an_exception_if_view_resource_is_not_allowed
+    authorizer = Minitest::Mock.new
+    authorizer.expect :can_view_resource?, false, [OMF::SFA::Model::Node]
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.find_resource({name: 'node1'}, 'node', authorizer)
     end
 
-    it 'finds single resource belonging to anyone through its name (Hash)' do
-      r1 = OMF::SFA::Resource::OResource.create(:name => 'r1')
-      manager.manage_resources([r1])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_resource({:name => 'r1'}, @auth)
-      r.must_be_instance_of(OMF::SFA::Resource::OResource)
+    authorizer.verify
+  end
 
-      @auth.verify
+  def test_that_can_find_resources_by_their_description
+    authorizer = Minitest::Mock.new
+    2.times { authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Node] }
+    node1 = OMF::SFA::Model::Node.create(name: 'node1', hardware_type: 'grid')
+    node2 = OMF::SFA::Model::Node.create(name: 'node2', hardware_type: 'grid')
+    node3 = OMF::SFA::Model::Node.create(name: 'node3', hardware_type: 'other')
+
+    nodes = @manager.find_all_resources({hardware_type: 'grid'}, 'node', authorizer)
+    assert_equal [node1, node2], nodes
+
+    authorizer.verify
+  end
+
+  def test_that_can_return_only_authorized_resources
+    authorizer = Minitest::Mock.new
+    node1 = OMF::SFA::Model::Node.create(name: 'node1', hardware_type: 'grid')
+    node2 = OMF::SFA::Model::Node.create(name: 'node2', hardware_type: 'grid')
+    node3 = OMF::SFA::Model::Node.create(name: 'node3', hardware_type: 'other')
+    authorizer.expect :can_view_resource?, true, [node1]
+    authorizer.expect :can_view_resource?, false, [node2]
+
+
+    nodes = @manager.find_all_resources({hardware_type: 'grid'}, 'node', authorizer)
+    assert_equal [node1], nodes
+
+    authorizer.verify
+  end
+
+  def test_that_can_find_all_available_components_in_a_timeslot
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    node1 = OMF::SFA::Model::Node.create(hardware_type: 'grid', account: account)
+    node2 = OMF::SFA::Model::Node.create(hardware_type: 'grid', account: account)
+    node3 = OMF::SFA::Model::Node.create(hardware_type: 'grid')
+
+    2.times { authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Node] }
+    scheduler.expect :component_available?, true, [node1, nil, nil]
+    scheduler.expect :component_available?, false, [node2, nil, nil]
+
+    @manager.stub :_get_nil_account, account do
+      components = @manager.find_all_available_components({hardware_type: 'grid'}, 'node', nil, nil, authorizer)
+      assert_equal [node1], components
+    end
+    
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_can_find_all_resources_for_account
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    node1 = OMF::SFA::Model::Node.create(name: 'node1', domain: 'domain1', account: account)
+    node2 = OMF::SFA::Model::Node.create(name: 'node2', account: account)
+    node3 = OMF::SFA::Model::Node.create(name: 'node3')
+
+    authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Resource]
+    authorizer.expect :can_view_resource?, false, [OMF::SFA::Model::Resource]
+    resources = @manager.find_all_resources_for_account(account, authorizer)
+    assert_equal 1, resources.count
+    assert_equal node1.name, resources.first.name
+
+    authorizer.verify
+  end
+
+  def test_that_can_find_all_components_for_account
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    node1 = OMF::SFA::Model::Node.create(name: 'node1', domain: 'domain1', account: account)
+    node2 = OMF::SFA::Model::Node.create(name: 'node2', account: account)
+    node3 = OMF::SFA::Model::Node.create(name: 'node3')
+
+    authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Component]
+    authorizer.expect :can_view_resource?, false, [OMF::SFA::Model::Component]
+    components = @manager.find_all_components_for_account(account, authorizer)
+    assert_equal 1, components.count
+    assert_equal node1.name, components.first.name
+
+    authorizer.verify
+  end
+
+  def test_that_can_find_all_components
+    authorizer = Minitest::Mock.new
+    component1 = OMF::SFA::Model::Component.create(name: 'component1')
+    node1 = OMF::SFA::Model::Node.create(name: 'node1')
+    node2 = OMF::SFA::Model::Node.create(name: 'node2')
+
+    authorizer.expect :can_view_resource?, true, [OMF::SFA::Model::Component]
+    authorizer.expect :can_view_resource?, false, [OMF::SFA::Model::Component]
+    components = @manager.find_all_components({type: 'OMF::SFA::Model::Node'}, authorizer)
+    assert_equal 1, components.count
+    assert_instance_of OMF::SFA::Model::Node, components.first
+
+    authorizer.verify
+  end
+
+  def test_that_can_find_a_resource_instead_of_creating_a_new_one
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    @manager.stub :find_resource, node do
+      resource = @manager.find_or_create_resource({name: 'node1'}, nil, nil)
+      assert_equal node, resource
+    end
+  end
+
+  def test_that_can_create_a_resource_if_it_does_not_exist
+    @manager.stub :create_resource, true do
+      assert @manager.find_or_create_resource({name: 'node1'}, 'node', nil)
+    end
+  end
+
+  def test_that_can_raise_an_exception_if_create_resource_is_not_allowed
+    authorizer = Minitest::Mock.new
+
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      authorizer.expect :can_create_resource?, false, [{name: 'node1'}, 'node']
+      @manager.create_resource({name: 'node1'}, 'node', authorizer)
+    end
+    authorizer.verify
+  end
+
+  def test_that_can_create_a_managed_resource
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    @manager.stub :_get_nil_account, account do
+      authorizer.expect :can_create_resource?, true, [{name: 'node1'}, 'node']
+      resource = @manager.create_resource({name: 'node1'}, 'node', authorizer)
+      assert_equal account, resource.account
+      assert_equal 'node1', resource.name
     end
 
-    it 'finds single resource belonging to anyone through its name (String)' do
-      r1 = OMF::SFA::Resource::OResource.create(:name =>'r1')
-      manager.manage_resources([r1])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_resource('r1', @auth)
-      r.must_be_instance_of(OMF::SFA::Resource::OResource)
+    authorizer.verify
+  end
 
-      @auth.verify
+  def test_that_can_create_a_child_resource
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    authorizer.expect :can_create_resource?, true, [{name: 'node1', account_id: account.id}, 'node']
+    scheduler.expect :create_child_resource, true, [{name: 'node1', account_id: account.id}, 'node']
+    assert @manager.create_resource({name: 'node1', account_id: account.id}, 'node', authorizer)
+
+
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_can_find_or_create_resource_for_an_account
+    authorizer = Minitest::Mock.new
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+
+    authorizer.expect :account, account
+
+    @manager.stub :find_or_create_resource, true do
+      assert @manager.find_or_create_resource_for_account({name: 'node1'}, 'node', authorizer)
     end
 
-    it 'finds a resource through its instance' do
-      r1 = OMF::SFA::Resource::Node.create(:name => 'r1')
-      manager.manage_resources([r1])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-      r = manager.find_resource(r1, @auth)
-      r.must_be_instance_of(OMF::SFA::Resource::Node)
+    authorizer.verify
+  end
 
-      @auth.verify
+  def test_that_can_create_resources_from_rspec
+    skip
+  end
+
+  def test_that_can_release_a_resource
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    authorizer.expect :can_release_resource?, true, [node]
+    scheduler.expect :release_resource, true, [node]
+    assert @manager.release_resource(node, authorizer)
+
+    authorizer.verify
+    scheduler.verify
+  end
+
+  def test_that_can_raise_an_exception_if_release_resource_is_not_allowed
+    authorizer = Minitest::Mock.new
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+
+    authorizer.expect :can_release_resource?, false, [node]
+    
+    assert_raises OMF::SFA::AM::InsufficientPrivilegesException do
+      @manager.release_resource(node, authorizer)
     end
 
-    it 'finds a resource through its uuid' do
-      r1 = OMF::SFA::Resource::OResource.create(:uuid => '759ae077-2fda-4d02-8921-ab0235a09920')
-      manager.manage_resources([r1])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_resource('759ae077-2fda-4d02-8921-ab0235a09920', @auth)
-      r.must_be_instance_of(OMF::SFA::Resource::OResource)
+    authorizer.verify
+  end
 
-      @auth.verify
-    end
+  def test_that_can_release_multiple_resources
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    node1 = OMF::SFA::Model::Node.create(name: 'node1')
+    node2 = OMF::SFA::Model::Node.create(name: 'node2')
 
-    it 'throws an exception for unknown resource description' do
-      lambda do
-        manager.find_resource(nil, @auth)
-      end.must_raise(FormatException)
-    end
+    authorizer.expect :can_release_resource?, true, [node1]
+    authorizer.expect :can_release_resource?, true, [node2]
+    scheduler.expect :release_resource, true, [node1]
+    scheduler.expect :release_resource, true, [node2]
+    assert @manager.release_resources([node1,node2], authorizer)
 
-    it 'throws an exception when looking for a non existing resource' do
-      lambda do
-        manager.find_resource('r1', @auth)
-      end.must_raise(UnknownResourceException)
-    end
+    authorizer.verify
+    scheduler.verify
+  end
 
-    it 'throws an exception when is not privileged to view the resource' do
-      authorizerr = Minitest::Mock.new
-      r1 = OMF::SFA::Resource::OResource.create(:name =>'r1')
-      manager.manage_resources([r1])
+  def test_that_release_all_components_for_account
+    authorizer = Minitest::Mock.new
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    account = OMF::SFA::Model::Account.create(name: 'account1')
+    node = OMF::SFA::Model::Node.create(name: 'node1', account: account)
+    OMF::SFA::Model::Node.create(name: 'node2')
 
-      def authorizerr.can_view_resource?(*args)
-        raise InsufficientPrivilegesException.new
-      end
+    authorizer.expect :can_view_resource?, true, [node]
+    authorizer.expect :can_release_resource?, true, [node]
+    scheduler.expect :release_resource, true, [node]
+    assert @manager.release_all_components_for_account(account, authorizer)
 
-      lambda do
-        manager.find_resource('r1', authorizerr)
-      end.must_raise(InsufficientPrivilegesException)
-    end
+    authorizer.verify
+    scheduler.verify
+  end
 
-    it 'finds single resource belonging to an account' do
-      r1 = OMF::SFA::Resource::OResource.create(:name => 'r1')
-      manager.manage_resources([r1])
+  def test_that_can_update_lease_from_rspec
+    skip
+  end
 
-      @auth.expect(:account, @account)
-      lambda do
-        manager.find_resource_for_account({:name => 'r1'}, @auth)
-      end.must_raise(UnknownResourceException)
+  def test_that_can_update_leases_from_rspec
+    skip
+  end
 
-      # now, assign it to this account
-      r1.account = @account
-      r1.save
-      @auth.expect(:account, @account)
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_resource_for_account({:name => 'r1'}, @auth)
-      r.must_equal r1
-
-      @auth.verify
-    end
-
-    it 'will find all the resources of an account' do
-      r1 = OMF::SFA::Resource::OResource.create({:name => 'r1', :account => @account})
-      r2 = OMF::SFA::Resource::OResource.create({:name => 'r2', :account => @account})
-      r3 = OMF::SFA::Resource::OResource.create({:name => 'r3'})
-
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_all_resources_for_account(@account, @auth)
-      r.must_equal [r1, r2]
-
-      @auth.verify
-    end
-
-    it 'will find all the components of an account' do
-      r1 = OMF::SFA::Resource::OComponent.create({:name => 'r1', :account => @account})
-      r2 = OMF::SFA::Resource::Node.create({:name => 'r2', :account => @account})
-      r3 = OMF::SFA::Resource::OResource.create({:name => 'r3', :account => @account})
-      r4 = OMF::SFA::Resource::OComponent.create({:name => 'r4'})
-
-      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
-      r = manager.find_all_components_for_account(@account, @auth)
-      r.must_equal [r1, r2]
-
-      @auth.verify
-    end
-
-    it 'will create a resource' do
-      resource_descr = {:name => 'r1'}
-      type_to_create = 'node'
-      @auth.expect(:account, @account)
-      @auth.expect(:can_create_resource?, true, [Hash, String])
-      r = manager.find_or_create_resource(resource_descr, type_to_create, {}, @auth)
-      r.must_equal OMF::SFA::Resource::Node.first(:name => 'r1')
-
-      @auth.verify
-    end
-
-    it 'will find an already created resource' do
-      resource_descr = {:name => 'r1'}
-      r1 = OMF::SFA::Resource::OResource.create(resource_descr)
-      type_to_create = 'node'
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])
-      r = manager.find_or_create_resource(resource_descr, type_to_create, {}, @auth)
-      r.must_equal r1
-
-      @auth.verify
-    end
-
-    it 'will find all available resources of a given type' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1')
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2')
-      t1 = Time.now
-      t2 = t1 + 3600
-      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
-      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
-        true
-      end
-
-      res = manager.find_all_available_resources({type: 'Node'}, {},  t1, t2, @auth)
-
-      res.must_equal [n1,n2]
-
-      @auth.verify
-    end
-
-    it 'will find all available resources using oproperties for query' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1', domain: "domainA")
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2', domain: "domainB")
-      t1 = Time.now
-      t2 = t1 + 3600
-      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
-      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
-        true
-      end
-
-      res = manager.find_all_available_resources({type: 'Node'}, {domain: 'domainA'}, t1, t2, @auth)
-
-      res.must_equal [n1]
-
-      @auth.verify
-    end
-
-    it 'will find all available resources using 2 oproperties for query' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1', domain: "domainA", exclusive: true)
-      n2 = OMF::SFA::Resource::Node.create(name: 'n2', domain: "domainB", exclusive: false)
-      t1 = Time.now
-      t2 = t1 + 3600
-      2.times {@auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OResource])}
-      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
-        true
-      end
-
-      res = manager.find_all_available_resources({type: 'Node'}, {domain: 'domainA', exclusive: true}, t1, t2, @auth)
-
-      res.must_equal [n1]
-
-      @auth.verify
-    end
-
-    it 'throws an exception when there are no resources available when asked for all available resources' do
-      lambda do
-        res = manager.find_all_available_resources({type: 'Node'}, {}, Time.now, Time.now + 100, @auth)
-      end.must_raise(UnavailableResourceException)
-    end
-
-    it 'throws an exception when there are no resources available for the given description and timeslot' do
-      n1 = OMF::SFA::Resource::Node.create(name: 'n1', account: @account)
-      t1 = Time.now
-      t2 = t1 + 3600
-      l1 = OMF::SFA::Resource::Lease.create(name: 'l1', account: @account, valid_from: t1, valid_until: t2)
-      n1.leases << l1
-      n1.save
-      l1.components << n1
-      l1.save
-      
-      # mock resource_available method of scheduler to always return false
-      scheduler.define_singleton_method(:resource_available?) do |resource, valid_from, valid_until| 
-        false
-      end
-      lambda do
-        res = manager.find_all_available_resources({type: 'Node'}, {}, t1 + 10, t2 - 10, @auth)
-      end.must_raise(UnavailableResourceException)
-
-      @auth.verify
-    end
-
-    it 'will create a resource if not already available for the account' do
-      2.times {@auth.expect(:account, @account)}
-      @auth.expect(:can_create_resource?, true, [Hash, String])
-      descr = {:name => 'v1'}
-      r = manager.find_or_create_resource_for_account(descr, 'o_resource', {}, @auth)
-      vr = OMF::SFA::Resource::OResource.first({:name => 'v1', :account => @account})
-      r.must_equal vr
-
-      @auth.verify
-    end
-
-    it 'will create resource from rspec' do
-      rspec = %{
-        <rspec xmlns="http://www.geni.net/resources/rspec/3" xmlns:omf="http://nitlab.inf.uth.gr/schema/sfa/rspec/1" type="request">
-          <node component_id="urn:publicid:IDN+openlab+node+node1" component_name="node1" client_id="omf">
-          </node>
-        </rspec>
-      }
-      req = Nokogiri.XML(rspec)
-
-      @auth.expect(:can_create_resource?, true, [Hash, String])
-      2.times {@auth.expect(:account, @account)}
-      r = manager.update_resources_from_rspec(req.root, false, @auth)
-      r.first.must_equal OMF::SFA::Resource::Node.first(:name => 'node1')
-
-      @auth.verify
-    end
-
-    it 'will release a resource' do
-      r1 = OMF::SFA::Resource::OResource.create(:name => 'r1')
-      manager.manage_resources([r1])
-      @auth.expect(:can_release_resource?, true, [r1])
-
-      manager.release_resource(r1, @auth)
-      OMF::SFA::Resource::OResource.first(:name => 'r1').must_be_nil
-
-      @auth.verify
-    end
-
-    it 'will release all components of an account' do
-      OMF::SFA::Resource::OResource.create({:name => 'r1', :account => @account})
-      OMF::SFA::Resource::Node.create({:name => 'n1', :account => @account})
-      OMF::SFA::Resource::Node.create({:name => 'n2'})
-      OMF::SFA::Resource::OComponent.create({:name => 'c1', :account => @account})
-
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::OComponent])
-
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::OComponent])
-
-      manager.release_all_components_for_account(@account, @auth)
-
-      OMF::SFA::Resource::OResource.first({:account => @account}).wont_be_nil
-      OMF::SFA::Resource::Node.first({:account => @account}).must_be_nil
-      OMF::SFA::Resource::OComponent.first({:account => @account}).must_be_nil
-      OMF::SFA::Resource::Node.first({:name => 'n2'}).wont_be_nil
-
-      @auth.verify
-    end
-
-    it 'will release all the resources of a specific account' do
-      #OMF::SFA::Resource::OResource.create({name: 'r1', account: account})
-      OMF::SFA::Resource::Node.create({name: 'n1', account: @account})
-      OMF::SFA::Resource::Node.create({name: 'n2'})
-      OMF::SFA::Resource::Lease.create({name: 'l1', account: @account})
-
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_view_resource?, true, [OMF::SFA::Resource::Lease])
-
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Node])
-      @auth.expect(:can_release_resource?, true, [OMF::SFA::Resource::Lease])
-
-      manager.release_all_resources_for_account(@account, @auth)
-
-      OMF::SFA::Resource::Node.first({:account => @account}).must_be_nil
-      OMF::SFA::Resource::OComponent.first({:account => @account}).must_be_nil
-      OMF::SFA::Resource::Lease.first(account: @account).must_be_nil
-
-      OMF::SFA::Resource::Account.first(:name => 'a').wont_be_nil
-      OMF::SFA::Resource::Node.first({:name => 'n2'}).wont_be_nil
-
-      @auth.verify
-    end
-  end #resource
-
-end
+end # Class AMManager

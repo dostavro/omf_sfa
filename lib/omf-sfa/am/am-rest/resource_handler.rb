@@ -1,6 +1,6 @@
-require 'omf-sfa/resource'
 require 'omf-sfa/am/am-rest/rest_handler'
 require 'omf-sfa/am/am_manager'
+require 'uuid'
 
 module OMF::SFA::AM::Rest
 
@@ -15,8 +15,19 @@ module OMF::SFA::AM::Rest
     def find_handler(path, opts)
       #opts[:account] = @am_manager.get_default_account
       opts[:resource_uri] = path.join('/')
-      debug "find_handler: path: '#{path}' opts: '#{opts.inspect}'"
-      self
+      if path.size == 0 || path.size == 1
+        debug "find_handler: path: '#{path}' opts: '#{opts.inspect}'"
+        return self
+      elsif path.size == 3 #/resources/type1/UUID/type2
+        opts[:source_resource_uri] = path[0]
+        opts[:source_resource_uuid] = path[1]
+        opts[:target_resource_uri] = path[2]
+        raise OMF::SFA::AM::Rest::BadRequestException.new "'#{opts[:source_resource_uuid]}' is not a valid UUID." unless UUID.validate(opts[:source_resource_uuid])
+        require 'omf-sfa/am/am-rest/resource_association_handler'
+        return OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@am_manager, opts)
+      else
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+      end
     end
 
     # List a resource
@@ -27,36 +38,30 @@ module OMF::SFA::AM::Rest
     def on_get(resource_uri, opts)
       debug "on_get: #{resource_uri}"
       authenticator = opts[:req].session[:authorizer]
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
         descr = {}
-        descr.merge!({type: "OMF::SFA::Resource::#{resource_type}"}) unless resource_type.nil?  
+        # descr.merge!({type: "OMF::SFA::Model::#{resource_type}"}) unless resource_type.nil?  
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
           if resource_uri == 'accounts'
             raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
             resource = @am_manager.find_all_accounts(authenticator)
           elsif resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
           else
-            resource =  @am_manager.find_all_resources(descr, authenticator)
+            resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
         else
-          descr[:account] = @am_manager.get_scheduler.get_nil_account unless resource_uri == 'leases'
-          resource = @am_manager.find_resource(descr, authenticator)
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
+          resource = @am_manager.find_resource(descr, resource_type, authenticator)
+          return show_resource(resource, opts)
         end
       else
-        body, format = parse_body(opts)
-        debug "body: #{body.inspect}, format: #{format.inspect}"
-        unless body.empty?
-          resp = resolve_unbound_request(body, format, authenticator)
-          return resp
-        else
-          resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
-        end
+        debug "list all resources."
+        resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
       end
       raise UnknownResourceException, "No resources matching the request." if resource.empty?
       show_resource(resource, opts)
@@ -69,7 +74,6 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the updated resource.
     def on_put(resource_uri, opts)
       debug "on_put: #{resource_uri}"
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       resource = update_resource(resource_uri, true, opts)
       show_resource(resource, opts)
     end
@@ -80,14 +84,7 @@ module OMF::SFA::AM::Rest
     # @param [Hash] options of the request
     # @return [String] Description of the created resource.
     def on_post(resource_uri, opts)
-      debug "on_post: #{resource_uri} - #{opts[:req].env["REQUEST_PATH"]}"
-      if opts[:req].env["REQUEST_PATH"] == '/mapper' || opts[:req].env["REQUEST_PATH"] == '/mapper/'
-        debug "Unbound request detected."
-        body, format = parse_body(opts)
-        authenticator = opts[:req].session[:authorizer]
-        resp = resolve_unbound_request(body, format, authenticator)
-        return resp
-      end
+      debug "on_post: #{resource_uri}"
       resource = update_resource(resource_uri, false, opts)
       show_resource(resource, opts)
     end
@@ -99,7 +96,6 @@ module OMF::SFA::AM::Rest
     # @return [String] Description of the created resource.
     def on_delete(resource_uri, opts)
       debug "on_delete: #{resource_uri}"
-      raise OMF::SFA::AM::Rest::BadRequestException.new "path '/mapper' is only available for POST requests." if opts[:req].env["REQUEST_PATH"] == '/mapper'
       delete_resource(resource_uri, opts)
       show_resource(nil, opts)
     end
@@ -170,7 +166,7 @@ module OMF::SFA::AM::Rest
     def show_resources_xml(resource, path, opts)
       #debug "show_resources_xml: #{resource}"
       opts[:href_prefix] = path
-      announcement = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resource, opts)
+      announcement = OMF::SFA::Model::OComponent.sfa_advertisement_xml(resource, opts)
       ['text/xml', announcement.to_xml]
     end
 
@@ -197,7 +193,11 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
+          # rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
+          # rh = JSON.parse(resource.to_json(:include => {:interfaces => {except: [:id, :account_id], include: {ips: {except: [:id, :account_id], include: {}}}}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}, :except => resource.exclude_from_json))
+          incl = resource.class.include_to_json
+          excl = resource.class.exclude_from_json
+          rh = JSON.parse(resource.to_json(:include => incl, :except => excl))
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
@@ -210,7 +210,7 @@ module OMF::SFA::AM::Rest
     protected
 
     def parse_uri(resource_uri, opts)
-      params = opts[:req].params
+      params = opts[:req].params.symbolize_keys!
       params.delete("account")
 
       return ['mapper', params] if opts[:req].env["REQUEST_PATH"] == '/mapper'
@@ -219,7 +219,7 @@ module OMF::SFA::AM::Rest
       when "cmc"
         type = "ChasisManagerCard"
       when "wimax"
-        type = "WimaxBase"
+        type = "WimaxBaseStation"
       when "lte"
         type = "LteBase"
       when "openflow"
@@ -227,7 +227,7 @@ module OMF::SFA::AM::Rest
       else
         type = resource_uri.singularize.camelize
         begin
-          eval("OMF::SFA::Resource::#{type}").class
+          eval("OMF::SFA::Model::#{type}").class
         rescue NameError => ex
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource type '#{resource_uri}'."
         end
@@ -252,7 +252,7 @@ module OMF::SFA::AM::Rest
           res_descr = {}
           res_descr.merge!({uuid: res[:uuid]}) if res.has_key?(:uuid)
           res_descr.merge!({name: res[:name]}) if res.has_key?(:name)
-          descr << res_descr unless eval("OMF::SFA::Resource::#{type_to_create}").first(res_descr)
+          descr << res_descr unless eval("OMF::SFA::Model::#{type_to_create}").first(res_descr)
         end
         raise OMF::SFA::AM::Rest::BadRequestException.new "No resources described in description #{resource_descr} is valid. Maybe all the resources alreadt=y exist." if descr.empty?
       elsif resource_descr.kind_of? Hash
@@ -263,64 +263,100 @@ module OMF::SFA::AM::Rest
         if descr.empty?
           raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
         else
-          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Resource with descr '#{descr} already exists'." if eval("OMF::SFA::Model::#{type_to_create}").first(descr)
         end
       end
 
       if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
-        resource_descr.each do |key, value|
-          # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
-          if value.kind_of? Array # this will be components
-            value.each_with_index do |v, i|
-              if v.kind_of? Hash
-                # debug "Array: #{v.inspect}"
-                model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-                if k = eval("#{model}").first(v)
-                  resource_descr[key][i] = k 
-                else
-                  resource_descr[key].delete_at(i)
-                  i -= 1 # just ignore the resource
-                end
-              end
-            end
-          elsif value.kind_of? Hash #this will be account
-            # debug "Hash: #{value.inspect}"
-            model = eval("OMF::SFA::Resource::#{type_to_create}.#{key}").model
-            if k = eval("#{model}").first(value)
-              resource_descr[key] = k 
-            else
-              resource_descr.delete!(key)
-            end
-          end
-        end
+        # resource_descr.each do |key, value|
+        #   # debug "checking prop: '#{key}': '#{value}': '#{type_to_create}'"
+        #   key = key.to_s.sub('_attributes','').to_sym
+        #   if value.kind_of? Array # this will be components
+        #     value.each_with_index do |v, i|
+        #       if v.kind_of? Hash
+        #         # debug "Array: #{v.inspect}"
+        #         model = eval("OMF::SFA::Model::#{type_to_create}.#{key}").model
+        #         puts "))))))))0 #{model}"
+        #         if k = eval("#{model}").first(v)
+        #           resource_descr[key][i] = k 
+        #         else
+        #           resource_descr[key].delete_at(i)
+        #           i -= 1 # just ignore the resource
+        #         end
+        #       end
+        #     end
+        #   elsif value.kind_of? Hash #this will be account
+        #     # debug "Hash: #{value.inspect}"
+        #     model = OMF::SFA::Model::Lease.first.account.inspect#eval("OMF::SFA::Model::#{type_to_create}.#{key}").model
+        #     puts "))))))))0 #{model}"
+        #     if k = eval("#{model}").first(value)
+        #       resource_descr[key] = k 
+        #     else
+        #       resource_descr.delete!(key)
+        #     end
+        #   end
+        # end
 
-        res_descr = {name: resource_descr[:name]}
-        if comps = resource_descr[:components]
-          resource_descr.tap { |hs| hs.delete(:components) }
-        end
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Attribute account is mandatory." if resource_descr[:account].nil? && resource_descr[:account_attributes].nil?
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Attribute components is mandatory." if (resource_descr[:components].nil? || resource_descr[:components].empty?) && (resource_descr[:components_attributes].nil? || resource_descr[:components_attributes].empty?)
+        raise OMF::SFA::AM::Rest::BadRequestException.new "Attributes valid_from and valid_until are mandatory." if resource_descr[:valid_from].nil? || resource_descr[:valid_until].nil?
+
+        res_descr = {}
+        res_descr[:name] = resource_descr[:name]
+        res_descr[:valid_from] = resource_descr[:valid_from]
+        res_descr[:valid_until] = resource_descr[:valid_until]
+        ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
+        ac = OMF::SFA::Model::Account.first(ac_desc)
+        raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
+        res_descr[:account_id] = ac.id
+        lease = @am_manager.find_or_create_lease(res_descr, authorizer)
+
+        comps = resource_descr[:components] || resource_descr[:components_attributes]
+        nil_account_id = @am_manager._get_nil_account.id
+        components = []
+        comps.each do |c|
+          desc = {}
+          # desc[:account_id] = nil_account_id
+          desc[:uuid] = c[:uuid] unless c[:uuid].nil?
+          desc[:name] = c[:name] unless c[:name].nil?
+          if k = OMF::SFA::Model::Resource.first(desc)
+            components << k
+          end
+        end 
+
         @scheduler = @am_manager.get_scheduler
-        #TODO when authorization is done remove the next line in order to change what authorizer does with his account
-        authorizer.account = resource_descr[:account]
-        resource = @scheduler.create_resource(res_descr, type_to_create, resource_descr, authorizer)
-
-        comps.each_with_index do |comp, i|
-          if comp[:type].nil?
-            comp[:type] = comp.model.to_s.split("::").last
-          end
-          c = @scheduler.create_resource({uuid: comp.uuid}, comp[:type], {}, authorizer)
-          @scheduler.lease_component(resource, c)
+        components.each do |comp|
+          c = @scheduler.create_child_resource({uuid: comp.uuid, account_id: ac.id}, comp[:type].to_s.split('::').last)
+          @scheduler.lease_component(lease, c)
         end
+        resource = lease
+        # res_descr = {name: resource_descr[:name]}
+        # if comps = resource_descr[:components]
+        #   resource_descr.tap { |hs| hs.delete(:components) }
+        # end
+        # @scheduler = @am_manager.get_scheduler
+        # #TODO when authorization is done remove the next line in order to change what authorizer does with his account
+        # authorizer.account = resource_descr[:account]
+        # resource = @scheduler.create_resource(res_descr, type_to_create, resource_descr, authorizer)
+
+        # comps.each_with_index do |comp, i|
+        #   if comp[:type].nil?
+        #     comp[:type] = comp.model.to_s.split("::").last
+        #   end
+        #   c = @scheduler.create_resource({uuid: comp.uuid}, comp[:type], {}, authorizer)
+        #   @scheduler.lease_component(resource, c)
+        # end
       else
         if resource_descr.kind_of? Array
           resource = []
           resource_descr.each do |res_desc|
-            res_desc = parse_resource_description(res_desc, type_to_create)
-            resource << eval("OMF::SFA::Resource::#{type_to_create}").create(res_desc)
+            # res_desc = parse_resource_description(res_desc, type_to_create)
+            resource << eval("OMF::SFA::Model::#{type_to_create}").create(res_desc)
             @am_manager.manage_resource(resource.last) if resource.last.account.nil?
           end
         elsif resource_descr.kind_of? Hash
-          resource_descr = parse_resource_description(resource_descr, type_to_create)
-          resource = eval("OMF::SFA::Resource::#{type_to_create}").create(resource_descr)
+          # resource_descr = parse_resource_description(resource_descr, type_to_create)
+          resource = eval("OMF::SFA::Model::#{type_to_create}").create(resource_descr)
           @am_manager.manage_resource(resource) if resource.account.nil?
         end
       end
@@ -336,14 +372,14 @@ module OMF::SFA::AM::Rest
     # @raise [UnknownResourceException] if no resource can be created
     #
     def update_a_resource(resource_descr, type_to_create, authorizer)
-      authorizer.can_modify_resource?(resource_descr, type_to_create)
       descr = {}
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
       descr.merge!({name: resource_descr[:name]}) if descr[:uuid].nil? && resource_descr.has_key?(:name)
       unless descr.empty?
-        if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(descr)
+        if resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
+          authorizer.can_modify_resource?(resource, type_to_create)
           resource.update(resource_descr)
-          @am_manager.manage_resource(resource)
+          # @am_manager.manage_resource(resource)
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
         end
@@ -361,36 +397,20 @@ module OMF::SFA::AM::Rest
     #
     def release_resource(resource_descr, type_to_create, authorizer)
       if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
-        if resource = OMF::SFA::Resource::Lease.first(resource_descr)
+        if resource = OMF::SFA::Model::Lease.first(resource_descr)
           @am_manager.release_lease(resource, authorizer)
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown Lease with descr'#{resource_descr}'."
         end
       else
         authorizer.can_release_resource?(resource_descr)
-        if resource = eval("OMF::SFA::Resource::#{type_to_create}").first(resource_descr)
+        if resource = eval("OMF::SFA::Model::#{type_to_create}").first(resource_descr)
           resource.destroy
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
         end
       end
       resource
-    end
-
-    def resolve_unbound_request(body, format, authenticator)
-      if format == :json
-        begin
-          resource = @am_manager.get_scheduler.resolve_query(body, @am_manager, authenticator)
-          debug "response: #{resource}, #{resource.class}"
-          return ['application/json', JSON.pretty_generate({:resource_response => resource}, :for_rest => true)]
-        rescue OMF::SFA::AM::UnavailableResourceException
-          raise UnknownResourceException, "There are no available resources matching the request."
-        rescue MappingSubmodule::UnknownTypeException
-          raise BadRequestException, "Missing the mandatory parameter 'type' from one of the requested resources."
-        end
-      else
-        raise UnsupportedBodyFormatException, "Format '#{format}' is not supported, please try json."
-      end
     end
 
     # Before create a new resource, parse the resource description and alternate existing resources.
@@ -407,29 +427,28 @@ module OMF::SFA::AM::Rest
             if v.kind_of? Hash
               # debug "Array: #{v.inspect}"
               begin
-                k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(v)
+                k = eval("OMF::SFA::Model::#{key.to_s.singularize.capitalize}").first(v)
                 raise NameError if k.nil?
                 resource_descr[key][i] = k
               rescue NameError => nex
-                model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
-                resource_descr[key][i] = (k = eval("OMF::SFA::Resource::#{model}").first(v)) ? k : v
+                model = eval("OMF::SFA::Model::#{type_to_create}.get_oprops[key][:__type__]")
+                resource_descr[key][i] = (k = eval("OMF::SFA::Model::#{model}").first(v)) ? k : v
               end
             end
           end
         elsif value.kind_of? Hash
           debug "Hash: #{key.inspect}: #{value.inspect}"
           begin
-            k = eval("OMF::SFA::Resource::#{key.to_s.singularize.capitalize}").first(value)
+            k = eval("OMF::SFA::Model::#{key.to_s.singularize.capitalize}").first(value)
             raise NameError if k.nil?
             resource_descr[key] = k
           rescue NameError => nex
-            model = eval("OMF::SFA::Resource::#{type_to_create}.get_oprops[key][:__type__]")
-            resource_descr[key] = (k = eval("OMF::SFA::Resource::#{model}").first(value)) ? k : value
+            model = eval("OMF::SFA::Model::#{type_to_create}.get_oprops[key][:__type__]")
+            resource_descr[key] = (k = eval("OMF::SFA::Model::#{model}").first(value)) ? k : value
           end
         end
       end
       resource_descr
     end
-
   end # ResourceHandler
 end # module

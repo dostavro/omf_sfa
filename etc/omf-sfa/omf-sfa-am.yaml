@@ -6,31 +6,10 @@ omf_sfa_am:
   #operation mode for OmfCommon.init (development, production, etc)
   operationMode: development
 
-  #database info for sqlite
-  database:
-    #database type (sqlite, mysql, postgres)
-    dbType: sqlite
-    #username for database (not used for sqlite db)
-    username: am_user
-    #password for database (not used for sqlite db)
-    password: pw
-    #localhost for database (not used for sqlite db)
-    dbHostname: localhost
-    #database name, (for sqlite this is a filename)
-    dbName: /tmp/test.sq3
-
-  #database info for postgresql
-  #database:
-  #  #database type (sqlite, mysql, postgres)
-  #  dbType: postgres
-  #  #username for database (not used for sqlite db)
-  #  username: am_user
-  #  #password for database (not used for sqlite db)
-  #  password: pw
-  #  #localhost for database (not used for sqlite db)
-  #  dbHostname: localhost
-  #  #database name, (for sqlite this is a filename)
-  #  dbName: am_test_db
+  #database info
+  # postgres://user:password@localhost/my_db
+  # sqlite://inventory.db
+  database: sqlite://inventory.db
 
   endpoints:
     -
@@ -53,3 +32,7 @@ omf_sfa_am:
   mapping_submodule:
       require: omf-sfa/am/mapping_submodule
       constructor: MappingSubmodule
+
+  am_liaison:
+      require: omf-sfa/am/nitos_am_liaison
+      constructor: OMF::SFA::AM::NitosAMLiaison

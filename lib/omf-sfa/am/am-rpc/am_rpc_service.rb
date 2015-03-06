@@ -103,12 +103,12 @@ module OMF::SFA::AM::RPC
         resources.concat(@manager.find_all_components_for_account(authorizer.account, authorizer))
         # resources = @manager.find_all_resources_for_account(authorizer.account, authorizer)
 
-        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'manifest').to_xml
+        res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'manifest').to_xml
       else
         resources = @manager.find_all_leases(nil, ["pending", "accepted", "active"], authorizer)
         resources.concat(@manager.find_all_components_for_account(@manager._get_nil_account, authorizer))
 
-        res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, type: 'advertisement').to_xml
+        res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'advertisement').to_xml
       end
       # TODO: implement the "available_only" option
 
@@ -163,7 +163,7 @@ module OMF::SFA::AM::RPC
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
 
       users.each do |user|
-        gurn = OMF::SFA::Resource::GURN.parse(user["urn"])
+        gurn = OMF::SFA::Model::GURN.parse(user["urn"])
         u = @manager.find_or_create_user({urn: gurn.urn}, user["keys"])
 
         unless u.keys.empty?
@@ -171,7 +171,7 @@ module OMF::SFA::AM::RPC
         end
       end
 
-      res = OMF::SFA::Resource::OComponent.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
+      res = OMF::SFA::Model::Component.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:value] = res
@@ -221,6 +221,7 @@ module OMF::SFA::AM::RPC
       status['omf_expires_at'] = authorizer.account.valid_until.utc.strftime('%Y%m%d%H%M%SZ')
 
       resources = @manager.find_all_components_for_account(authorizer.account, authorizer)
+      leases = @manager.find_all_leases(authorizer.account, ['accepted', 'active'], authorizer)
       # # only list independent resources
       # resources = resources.select {|r| r.independent_component?}
 
@@ -229,7 +230,7 @@ module OMF::SFA::AM::RPC
         #status['geni_urn'] = "urn:publicid:IDN+omf:nitos+sliver+accdsw"
 
         # Any of the following configuring, ready, failed, and unknown
-        status['geni_status'] = 'unknown'
+        status['geni_status'] = 'ready'
 
         status['geni_resources'] = resources.collect do |r|
           {
@@ -238,6 +239,16 @@ module OMF::SFA::AM::RPC
             'geni_error' => '',
           }
         end
+
+        geni_leases = leases.collect do |l|
+          l_status = l.active? ? "ready" : "configuring"
+          {
+            'geni_urn'=> l.urn,
+            'geni_status' => l_status,
+            'geni_error' => '',
+          }
+        end
+        status['geni_resources'] += geni_leases unless geni_leases.empty?
         @return_struct[:value] = status
       else
         @return_struct[:code][:geni_code] = 12 # SEARCH FAILED
@@ -250,7 +261,6 @@ module OMF::SFA::AM::RPC
         @return_struct[:value] = status
         return @return_struct
       end
-
 
       @return_struct[:code][:geni_code] = 0
       @return_struct[:output] = ''

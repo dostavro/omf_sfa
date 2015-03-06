@@ -74,20 +74,42 @@ module OMF::SFA::AM::RPC
     ##### ACCOUNT
 
     def can_renew_account?(account, expiration_time)
-      debug "Check permission 'can_renew_account?' (#{account == @account}, #{@permissions[:can_renew_account?]}, #{@user_cred.valid_at?(expiration_time)})"
-      unless account == @account &&
+      debug "Check permission 'can_renew_account?' (#{account.id == @account.id}, #{@permissions[:can_renew_account?]}, #{@user_cred.valid_at?(expiration_time)})"
+      unless account.id == @account.id &&
           @permissions[:can_renew_account?] &&
           @user_cred.valid_at?(expiration_time) # not sure if this is the right check
         raise OMF::SFA::AM::InsufficientPrivilegesException.new("Can't renew account after the expiration of the credentials")
       end
+      true
     end
 
     ##### RESOURCE
 
     def can_release_resource?(resource)
-      unless resource.account == @account && @permissions[:can_release_resource?]
+      unless resource.account.id == @account.id && @permissions[:can_release_resource?]
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
+      true
+    end
+
+    def create_account_name_from_urn(urn)
+      gurn = OMF::SFA::Model::GURN.create(urn, :type => "OMF::SFA::Resource::Account")
+      domain = gurn.domain.gsub(":", '.')
+      acc_name = "#{domain}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      domain = gurn.domain
+      authority = domain.split(":").first.split(".").first
+      subauthority = domain.split(":").last
+      acc_name = "#{authority}.#{subauthority}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      acc_name = "#{authority}.#{gurn.short_name}"
+      return acc_name if acc_name.size <= 32
+
+      acc_name = gurn.short_name
+      return acc_name if acc_name.size <= 32
+      raise OMF::SFA::AM::FormatException.new "Slice urn is too long, account '#{acc_name}' cannot be generated."
     end
 
     protected
@@ -148,13 +170,14 @@ module OMF::SFA::AM::RPC
           raise OMF::SFA::AM::InsufficientPrivilegesException.new "Slice urn mismatch in XML call and credentials"
         end
 
-        gurn = OMF::SFA::Resource::GURN.create(account_urn, :type => "OMF::SFA::Resource::Account")
-        domain = gurn.domain.sub(":", '.')
-        acc_name = "#{domain}.#{gurn.short_name}"
-        # acc_name = "#{gurn.domain.sub!(":", '_').sub!(".", '_')}.#{gurn.short_name}"
+        acc_name = create_account_name_from_urn(account_urn)
 
         @account = am_manager.find_or_create_account({:urn => account_urn, :name => acc_name}, self)
-        @account.valid_until = @user_cred.valid_until
+        # if @account.valid_until != @user_cred.valid_until
+          # @account.valid_until = @user_cred.valid_until
+          debug "Renewing account '#{@account.name}' until '#{@user_cred.valid_until}'"
+          am_manager.renew_account_until(@account, @user_cred.valid_until, self)
+        # end
         if @account.closed?
           if @permissions[:can_create_account?]
             @account.closed_at = nil
@@ -162,13 +185,9 @@ module OMF::SFA::AM::RPC
             raise OMF::SFA::AM::InsufficientPrivilegesException.new("You don't have the privilege to enable a closed account")
           end
         end
+        @account.add_user(@user) unless @account.users.include?(@user)
         @account.save
-
-        @project = @account.project
-        @project.add_user(@user)
       end
-
     end
-
   end
 end

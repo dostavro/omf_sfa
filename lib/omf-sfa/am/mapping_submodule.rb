@@ -3,10 +3,11 @@
 # You should find a copy of the License in LICENSE.TXT or at http://opensource.org/licenses/MIT.
 # By downloading or using this software you accept the terms and the liability disclaimer in the License.
 require 'time'
+require 'omf_common/lobject'
 
 DEFAULT_DURATION = 3600
 
-class MappingSubmodule
+class MappingSubmodule < OMF::Common::LObject
   
   class UnknownTypeException < Exception; end
 
@@ -15,7 +16,7 @@ class MappingSubmodule
   # @param [Hash] Options that come to the initialization of am_scheduler are also passed here.
   #  
   def initialize(opts = {})
-    puts "MappingSubmodule INIT: opts #{opts}"
+    debug "MappingSubmodule INIT: opts #{opts}"
   end
 
   # Resolves an unbound query
@@ -27,7 +28,7 @@ class MappingSubmodule
   # @raise [MappingSubmodule::UnknownTypeException] if no type is defined in the query
   #  
   def resolve(query, am_manager, authorizer)
-    puts "MappingSubmodule: query: #{query}"
+    debug "MappingSubmodule: query: #{query}"
 
     query[:resources].each do |res|
       raise UnknownTypeException unless res[:type]
@@ -50,7 +51,7 @@ class MappingSubmodule
       res[:valid_from] = res[:valid_from].to_s
       res[:valid_until] = res[:valid_until].to_s
     end
-    puts "Map resolve response: #{query}"
+    debug "Map resolve response: #{query}"
     query
   end
 
@@ -62,7 +63,7 @@ class MappingSubmodule
     # @return [String] the resolved valid from
     # 
     def resolve_valid_from(resource)
-      puts "resolve_valid_from: resource: #{resource}"
+      debug "resolve_valid_from: resource: #{resource}"
       return resource[:valid_from] = Time.parse(resource[:valid_from]).utc if resource[:valid_from]
       resource[:valid_from] = Time.now.utc
     end
@@ -74,7 +75,7 @@ class MappingSubmodule
     # @return [String] the resolved valid until
     #
     def resolve_valid_until(resource)
-      puts "resolve_valid_until: resource: #{resource}"
+      debug "resolve_valid_until: resource: #{resource}"
       return resource[:valid_until] = Time.parse(resource[:valid_until]).utc if resource[:valid_until]
       if duration = resource.delete(:duration)
         resource[:valid_until] = (resource[:valid_from] + duration).utc
@@ -91,7 +92,7 @@ class MappingSubmodule
     # @return [String] the resolved valid until
     #
     def resolve_exclusive(resource, resources = nil, am_manager, authorizer)
-      puts "resolve_exclusive: resource: #{resource}, resources: #{resources.inspect}"
+      debug "resolve_exclusive: resource: #{resource}, resources: #{resources.inspect}"
       return resource[:exclusive] = true unless resource[:type] == 'Node'
       unless resources.nil?
         resources.each do |res|
@@ -101,10 +102,10 @@ class MappingSubmodule
           end
         end
       end
-      all_resources = am_manager.find_all_resources({type: resource[:type], account: am_manager._get_nil_account}, authorizer)
+      all_resources = am_manager.find_all_resources({account_id: am_manager._get_nil_account.id}, resource[:type], authorizer)
       all_excl_res = all_resources.select {|res| !res.exclusive.nil? && res.exclusive}
 
-      av_resources = am_manager.find_all_available_resources({type: resource[:type]}, {}, resource[:valid_from], resource[:valid_until], authorizer)
+      av_resources = am_manager.find_all_available_components({}, resource[:type], resource[:valid_from], resource[:valid_until], authorizer)
       
       av_excl_res = av_resources.select {|res| res.exclusive}
       excl_percent = all_excl_res.size == 0 ? 0 : av_excl_res.size.to_f / all_excl_res.size.to_f
@@ -132,7 +133,7 @@ class MappingSubmodule
     # @raise [OMF::SFA::AM::UnknownResourceException] if no available resources match the query
     #
     def resolve_domain(resource, resources = nil, am_manager, authorizer)
-      puts "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
+      debug "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
       unless resources.nil?
         resources.each do |res|
           if res[:domain] && resource[:type] == res[:type] && resource[:exclusive] == res[:exclusive] # we might need to change/add res[:type] to res[:resource_type] in the future
@@ -143,7 +144,7 @@ class MappingSubmodule
       end
 
       domains = {}
-      resources = am_manager.find_all_available_resources({type: resource[:type]}, {exclusive: resource[:exclusive]}, resource[:valid_from], resource[:valid_until], authorizer)
+      resources = am_manager.find_all_available_components({exclusive: resource[:exclusive]}, resource[:type], resource[:valid_from], resource[:valid_until], authorizer)
 
       # resources = resources.select { |res| res[:exclusive] == resource[:exclusive] } if resource[:exclusive]
 
@@ -173,13 +174,12 @@ class MappingSubmodule
     # @raise [OMF::SFA::AM::UnknownResourceException] if no available resources match the query
     #
     def resolve_resource(resource, resources, am_manager, authorizer)
-      puts "resolve_resource: resource: #{resource}, resources: #{resources}"
+      debug "resolve_resource: resource: #{resource}, resources: #{resources}"
       descr = {}
-      descr[:type] = resource[:type]
-      oprops_descr = {}
-      oprops_descr[:domain] = resource[:domain]
-      oprops_descr[:exclusive] = resource[:exclusive]
-      av_resources = am_manager.find_all_available_resources(descr, oprops_descr, resource[:valid_from], resource[:valid_until], authorizer)
+      descr[:domain] = resource[:domain]
+      descr[:exclusive] = resource[:exclusive]
+
+      av_resources = am_manager.find_all_available_components(descr, resource[:type], resource[:valid_from], resource[:valid_until], authorizer)
       
       resources.each do |res| #remove already given resources
         av_resources.each do |ares|

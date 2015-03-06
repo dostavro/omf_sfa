@@ -4,8 +4,6 @@ require 'omf-sfa/am/credential'
 module OMF::SFA::AM
   class UserCredential < OMF::Common::LObject
 
-    include OMF::SFA::Resource
-
     attr_reader :user_urn, :user_uuid, :not_after
 
     def self.unmarshall(cert_s)

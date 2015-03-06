@@ -40,15 +40,13 @@ Database
 Use the Rakefile to create the database, where the description of your resources is being stored.
 
     $ cd $OMF_SFA_HOME
-    $ rake autoMigrate
+    $ rake db:migrate
 
-this will create an empty database based on the information defined on the
-configuration file.
+this will create an empty database based on the information defined on the configuration file.
 
-If a change in the database model is required we can use the Rakefile to
-autoUpgrade the database.
+If a reset on the db is required you can use:
 
-    $ rake autoUpgrade
+    $ rake db:reset
 
 Certificates
 ------------
@@ -101,7 +99,9 @@ Also copy the am certificate to trusted_roots folder.
 
 	$ cp am.pem /root/.omf/trusted_roots 
 
-Hint: you can use the following command in order to inspect a certificate in a human readable way.
+Hint: In case you get an error that the certificates are not proper, it might mean that they are out of date, thus you need to recreate
+all the certificates. You can use the following command in order to inspect a certificate in a human readable way and determine
+what is wrong with it.
 
     $ openssl x509 -in root.pem -text
 
