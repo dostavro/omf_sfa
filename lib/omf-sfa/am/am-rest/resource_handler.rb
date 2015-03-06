@@ -372,14 +372,14 @@ module OMF::SFA::AM::Rest
     # @raise [UnknownResourceException] if no resource can be created
     #
     def update_a_resource(resource_descr, type_to_create, authorizer)
-      authorizer.can_modify_resource?(resource_descr, type_to_create)
       descr = {}
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
       descr.merge!({name: resource_descr[:name]}) if descr[:uuid].nil? && resource_descr.has_key?(:name)
       unless descr.empty?
         if resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
+          authorizer.can_modify_resource?(resource, type_to_create)
           resource.update(resource_descr)
-          @am_manager.manage_resource(resource)
+          # @am_manager.manage_resource(resource)
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
         end
