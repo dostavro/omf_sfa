@@ -3,7 +3,7 @@ require 'omf_common/lobject'
 require 'omf-sfa/am/am_manager'
 require 'omf-sfa/am/am_liaison'
 require 'active_support/inflector'
-
+require 'rufus-scheduler'
 
 
 module OMF::SFA::AM
@@ -49,6 +49,22 @@ module OMF::SFA::AM
       child
     end
 
+    # Find al leases if no +account+ and +status+ is given
+    #
+    # @param [Account] filter the leases by account
+    # @param [Status] filter the leases by their status ['pending', 'accepted', 'active', 'past', 'cancelled']
+    # @return [Lease] The requested leases
+    #
+    def find_all_leases(account = nil, status = ['pending', 'accepted', 'active', 'past', 'cancelled'])
+      debug "find_all_leases: account: #{account.inspect} status: #{status}"
+      if account.nil?
+        leases = OMF::SFA::Model::Lease.where(status: status)
+      else
+        leases = OMF::SFA::Model::Lease.where(account_id: account.id, status: status)
+      end
+      leases.to_a
+    end
+
     # Releases/destroys the given resource
     #
     # @param [Resource] The actual resource we want to destroy
@@ -60,19 +76,31 @@ module OMF::SFA::AM
         raise "Expected Resource but got '#{resource.inspect}'"
       end
 
-      # resource.leases.each do |l|
-      #   time = Time.now
-      #   if (l.valid_until.utc <= time.utc)
-      #     l.status = "past"
-      #   else
-      #     l.status = "cancelled"
-      #   end
-      #   l.save
-      # end
-
       resource = resource.destroy
       raise "Failed to destroy resource" unless resource
       resource
+    end
+
+    # cancel +lease+
+    #
+    # This implementation simply frees the lease record
+    # and destroys any child components if attached to the lease
+    #
+    # @param [Lease] lease to release
+    #
+    def release_lease(lease)
+      debug "release_lease: lease:'#{lease.inspect}'"
+      unless lease.is_a? OMF::SFA::Model::Lease
+        raise "Expected Lease but got '#{lease.inspect}'"
+      end
+      lease.components.each do |c|
+          c.destroy unless c.parent_id.nil? # Destroy all the children and leave the parent intact
+      end
+
+      lease.valid_until <= Time.now ? lease.status = "past" : lease.status = "cancelled"
+      l = lease.save
+      delete_lease_events_from_event_scheduler(lease) if l
+      l
     end
 
     # Accept or reject the reservation of the component
@@ -136,6 +164,9 @@ module OMF::SFA::AM
       @nil_account
     end
 
+    attr_reader :event_scheduler
+    attr_accessor :liaison
+
     def initialize(opts = {})
       @nil_account = OMF::SFA::Model::Account.find_or_create(:name => '__default__') do |a|
         a.valid_until = Time.now + 1E10
@@ -157,6 +188,80 @@ module OMF::SFA::AM
       #@am_liaison = OMF::SFA::AM::AMLiaison.new
     end
 
-  end # AMScheduler
+    def initialize_event_scheduler
+      debug "initialize_event_scheduler"
+      @event_scheduler = Rufus::Scheduler.new
 
+      leases = find_all_leases(nil, ['pending', 'accepted', 'active'])
+      leases.each do |lease|
+        add_lease_events_on_event_scheduler(lease)
+      end
+
+      list_all_event_scheduler_jobs
+    end
+
+    def add_lease_events_on_event_scheduler(lease)
+      debug "add_lease_events_on_event_scheduler: lease: #{lease.inspect}"
+      t_now = Time.now
+      l_uuid = lease.uuid
+      if t_now > lease.valid_until
+        release_lease(lease)
+        return
+      end
+      if t_now > lease.valid_from # the lease is active - create only the on_lease_end event
+        lease.status = 'active'
+        lease.save
+        @event_scheduler.at(lease.valid_until, tag: "#{l_uuid}_end") do
+          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid) #we need to refresh the lease, because it might have changed in the midtime.
+          lease.status = 'past'
+          lease.save
+          @liaison.on_lease_end(lease)
+        end
+      else
+        @event_scheduler.at(lease.valid_from, tag: "#{l_uuid}_start") do
+          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid)
+          lease.status = 'active'
+          lease.save
+          @liaison.on_lease_start(lease)
+        end
+        @event_scheduler.at(lease.valid_until, tag: "#{l_uuid}_end") do
+          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid) 
+          lease.status = 'past'
+          lease.save
+          @liaison.on_lease_end(lease)
+        end
+      end
+    end
+
+    def update_lease_events_on_event_scheduler(lease)
+      debug "update_lease_events_on_event_scheduler: lease: #{lease.inspect}"
+      delete_lease_events_from_event_scheduler(lease)
+      add_lease_events_on_event_scheduler(lease)
+      list_all_event_scheduler_jobs
+    end
+
+    def delete_lease_events_from_event_scheduler(lease)
+      debug "delete_lease_events_on_event_scheduler: lease: #{lease.inspect}"
+      uuid = lease.uuid
+      job_ids = []
+      @event_scheduler.jobs.each do |j|
+        job_ids << j.id if j.tags.first == "#{uuid}_start" || j.tags.first == "#{uuid}_end"
+      end
+
+      job_ids.each do |jid|
+        debug "unscheduling job: #{jid}"
+        @event_scheduler.unschedule(jid)
+      end
+
+      list_all_event_scheduler_jobs
+    end
+
+    def list_all_event_scheduler_jobs
+      debug "Existing jobs on event scheduler: "
+      debug "no jobs in the queue" if @event_scheduler.jobs.empty?
+      @event_scheduler.jobs.each do |j|
+        debug "job: #{j.tags.first} - #{j.next_time}"
+      end
+    end
+  end # AMScheduler
 end # OMF::SFA::AM
