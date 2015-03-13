@@ -121,4 +121,34 @@ class AMScheduler < MiniTest::Test
     assert_equal 1, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.count
     assert_empty OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases
   end
+
+  def test_that_it_can_release_a_lease
+    t = Time.now
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100, status: 'accepted')
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+    node_child = OMF::SFA::Model::Node.create(name: 'child_node1', parent: node)
+    node.add_lease(lease)
+    node_child.add_lease(lease)
+
+    @scheduler.event_scheduler = Minitest::Mock.new
+    3.times {@scheduler.event_scheduler.expect :jobs, [], []}
+
+    l1 = @scheduler.release_lease(lease)
+    l2 = OMF::SFA::Model::Lease.first(name: 'lease1')
+
+    assert_equal l2, l1
+    assert_equal 'cancelled', l2.status
+    assert_equal 1, l2.components.count
+    assert_equal 'node1', l2.components.first.name
+    assert_equal 1, OMF::SFA::Model::Node.count
+    assert OMF::SFA::Model::Node.first(name: 'node1')
+  end
+
+  def test_that_it_can_list_leases
+    l1 = OMF::SFA::Model::Lease.create(name: 'lease1')
+    l2 = OMF::SFA::Model::Lease.create(name: 'lease2')
+
+    leases = @scheduler.find_all_leases
+    assert_equal [l1, l2], leases
+  end
 end

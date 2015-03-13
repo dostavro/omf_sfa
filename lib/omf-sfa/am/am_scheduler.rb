@@ -164,8 +164,7 @@ module OMF::SFA::AM
       @nil_account
     end
 
-    attr_reader :event_scheduler
-    attr_accessor :liaison
+    attr_accessor :liaison, :event_scheduler
 
     def initialize(opts = {})
       @nil_account = OMF::SFA::Model::Account.find_or_create(:name => '__default__') do |a|

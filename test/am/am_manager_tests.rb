@@ -4,6 +4,7 @@ require 'minitest/autorun'
 require 'minitest/pride'
 require 'sequel'
 require 'omf-sfa/am/am_manager'
+require 'omf-sfa/am/am_scheduler'
 require 'omf_common/load_yaml'
 
 db = Sequel.sqlite # In Memory database
@@ -272,6 +273,13 @@ class AMManager < MiniTest::Test
   def test_that_can_create_a_lease_if_it_doesnt_exist
     authorizer = Minitest::Mock.new
     authorizer.expect :can_create_resource?, true, [{name: 'lease1'}, 'lease']
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    scheduler.expect :add_lease_events_on_event_scheduler, nil, [OMF::SFA::Model::Lease]
+    scheduler.expect :list_all_event_scheduler_jobs, nil, []
+    scheduler.expect :event_scheduler, Minitest::Mock.new, []
+    scheduler.expect :event_scheduler=, Minitest::Mock.new, [Minitest::Mock]
+    scheduler.event_scheduler = Minitest::Mock.new
+    scheduler.event_scheduler.expect :jobs, [], []
 
     lease = @manager.find_or_create_lease({name: 'lease1'}, authorizer)
     assert_instance_of OMF::SFA::Model::Lease, lease
@@ -346,8 +354,17 @@ class AMManager < MiniTest::Test
   def test_that_can_modify_a_lease
     authorizer = Minitest::Mock.new
     lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted')
-
+    @manager = OMF::SFA::AM::AMManager.new(scheduler = Minitest::Mock.new)
+    scheduler.expect :modify_lease_events_from_event_scheduler, nil, [OMF::SFA::Model::Lease]
+    scheduler.expect :add_lease_events_on_event_scheduler, nil, [OMF::SFA::Model::Lease]
+    scheduler.expect :remove_lease_events_from_event_scheduler, nil, [OMF::SFA::Model::Lease]
+    scheduler.expect :list_all_event_scheduler_jobs, nil, []
+    scheduler.expect :event_scheduler, Minitest::Mock.new, []
+    scheduler.expect :event_scheduler=, Minitest::Mock.new, [Minitest::Mock]
+    scheduler.event_scheduler = Minitest::Mock.new
+    scheduler.event_scheduler.expect :jobs, [], []
     authorizer.expect :can_modify_lease?, true, [OMF::SFA::Model::Lease]
+
     l1 = @manager.modify_lease({status: 'past'}, lease, authorizer)
 
     assert_equal OMF::SFA::Model::Lease.find(name: 'lease1').status, l1.status
@@ -370,6 +387,10 @@ class AMManager < MiniTest::Test
 
   def test_that_can_release_a_lease
     authorizer = Minitest::Mock.new
+    manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new)
+    manager.get_scheduler.event_scheduler = Minitest::Mock.new
+    3.times {manager.get_scheduler.event_scheduler.expect :jobs, [], []}
+
     t = Time.now
     lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100, status: 'accepted')
     node = OMF::SFA::Model::Node.create(name: 'node1')
@@ -378,7 +399,7 @@ class AMManager < MiniTest::Test
     node_child.add_lease(lease)
 
     authorizer.expect :can_release_lease?, true, [OMF::SFA::Model::Lease]
-    l1 = @manager.release_lease(lease, authorizer)
+    l1 = manager.release_lease(lease, authorizer)
     l2 = OMF::SFA::Model::Lease.first(name: 'lease1')
 
     assert_equal l2, l1
