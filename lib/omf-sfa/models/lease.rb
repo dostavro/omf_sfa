@@ -37,5 +37,17 @@ module OMF::SFA::Model
       t_now = Time.now
       t_now >= self.valid_from && t_now < self.valid_until
     end
+
+    def to_hash
+      values.reject! { |k, v| v.nil?}
+      values[:components] = []
+      self.components.each do |component|
+        next if component.account.id == 2
+        values[:components] << component.to_hash_brief
+      end
+      excluded = self.class.exclude_from_json
+      values.reject! { |k, v| excluded.include?(k)}
+      values
+    end
   end
 end

@@ -5,9 +5,10 @@ module OMF::SFA::Model
 
     many_to_one :interface
     one_to_one :cmc
+    one_to_one :e_node_b
 
     plugin :nested_attributes
-    nested_attributes :interface, :cmc
+    nested_attributes :interface, :cmc, :e_node_b
 
     extend OMF::SFA::Model::Base::ClassMethods
     include OMF::SFA::Model::Base::InstanceMethods
