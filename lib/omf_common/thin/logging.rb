@@ -29,12 +29,12 @@ module Thin
     public :log
 
     # Log a message to the console if tracing is activated
-    def trace(msg=nil)
-      return unless msg
-      (@logger ||= OMF::Common::LObject.new(self.class)).debug(msg)
-    end
-    module_function :trace
-    public :trace
+    #def trace(msg=nil)
+    #  return unless msg
+    #  (@logger ||= OMF::Common::LObject.new(self.class)).debug(msg)
+    #end
+    #module_function :trace
+    #public :trace
 
     # Log a message to the console if debugging is activated
     def debug(msg=nil)
