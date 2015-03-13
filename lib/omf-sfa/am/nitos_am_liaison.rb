@@ -144,36 +144,6 @@ module OMF::SFA::AM
       end
     end
 
-
-    # It will send the corresponding create messages to the components contained
-    # in the lease when the lease is about to start. At the end of the
-    # lease the corresponding release messages will be sent to the components.
-    #
-    # @param [Lease] lease Contains the lease information "valid_from" and
-    #                 "valid_until" along with the reserved components
-    #
-    def enable_lease(lease, component)
-      debug "enable_lease: lease: '#{lease.inspect}' component: '#{component.inspect}'"
-
-      @leases ||= {}
-
-      OmfCommon.comm.subscribe(component.name) do |resource|
-        unless resource.error?
-
-          create_timer = EventMachine::Timer.new(lease[:valid_from] - Time.now) do
-            @leases[lease] = {} unless @leases[lease]
-            @leases[lease] = { component.id => {:start => create_timer} }
-
-            #create_resource(resource, lease, :node, {hrn: component.name, uuid: component.uuid})
-            create_resource(resource, lease, component)
-          end
-        else
-          raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{resource.inspect}'"
-          #error res.inspect
-        end
-      end
-    end
-
     def create_resource(resource, lease, component)
       #resource.create(type, hrn: component.name, uuid: component.uuid) do |reply_msg|
       resource.create(component.resource_type.to_sym, hrn: component.name, uuid: component.uuid) do |reply_msg|
@@ -290,13 +260,17 @@ module OMF::SFA::AM
       true
     end
 
-    #def release_lease(resource)
+    def on_lease_start(lease)
+      debug "on_lease_start: lease: '#{lease.inspect}'"
+      # TODO configure openflow switch
+      # TODO see if the child components have an image and load it 
+    end
 
-    #  resource_topic = @comm.get_topic(resource.name)
-
-    #  raise UnknownResourceException.new "Cannot find resource's pubsub topic: '#{resource.inspect}'" unless resource_topic
-
-    #end
+    def on_lease_end(lease)
+      debug "on_lease_end: lease: '#{lease.inspect}'"
+      # TODO release openflow switch
+      # TODO shutdown all components
+    end
 
     private
 
@@ -307,8 +281,6 @@ module OMF::SFA::AM
         end
       end
     end
-
-
   end # AMLiaison
 end # OMF::SFA::AM
 

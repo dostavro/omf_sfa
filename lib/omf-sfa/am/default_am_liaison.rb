@@ -38,18 +38,6 @@ module OMF::SFA::AM
       warn "Am liason: configure_keys: Not implemented."
     end
 
-
-    # It will send the corresponding create messages to the components contained
-    # in the lease when the lease is about to start. At the end of the
-    # lease the corresponding release messages will be sent to the components.
-    #
-    # @param [Lease] lease Contains the lease information "valid_from" and
-    #                 "valid_until" along with the reserved components
-    #
-    def enable_lease(lease, component)
-      warn "Am liason: enable_lease: Not implemented."
-    end
-
     def create_resource(resource, lease, component)
       warn "Am liason: create_resource: Not implemented."
     end
@@ -60,6 +48,14 @@ module OMF::SFA::AM
 
     def start_resource_monitoring(resource, lease, oml_uri=nil)
       warn "Am liason: start_resource_monitoring: Not implemented."
+    end
+
+    def on_lease_start(lease)
+      warn "Am liason: on_lease_start: Not implemented."
+    end
+
+    def on_lease_end(lease)
+      warn "Am liason: on_lease_end: Not implemented."
     end
   end # DefaultAMLiaison
 end # OMF::SFA::AM
