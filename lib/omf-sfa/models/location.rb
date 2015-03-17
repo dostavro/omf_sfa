@@ -3,7 +3,9 @@ require 'omf-sfa/models/resource'
 module OMF::SFA::Model
   class Location < Resource
 
-    many_to_one :node
+    one_to_one :node
+    plugin :nested_attributes
+    nested_attributes :node
 
     extend OMF::SFA::Model::Base::ClassMethods
     include OMF::SFA::Model::Base::InstanceMethods

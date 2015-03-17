@@ -8,7 +8,7 @@ module OMF::SFA::Model
     one_to_many :interfaces
     one_to_many :cpus
     many_to_one :cmc
-    one_to_one :location
+    many_to_one :location
     many_to_one :sliver_type
 
     plugin :nested_attributes
@@ -49,7 +49,7 @@ module OMF::SFA::Model
 
     def self.exclude_from_json
       sup = super
-      [:sliver_type_id, :cmc_id].concat(sup)
+      [:sliver_type_id, :cmc_id, :location_id].concat(sup)
     end
 
     def self.include_nested_attributes_to_json
