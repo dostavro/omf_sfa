@@ -193,11 +193,8 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          # rh = resource.to_hash(already_described, opts.merge(:href_prefix => prefix, max_levels: 3))
-          # rh = JSON.parse(resource.to_json(:include => {:interfaces => {except: [:id, :account_id], include: {ips: {except: [:id, :account_id], include: {}}}}, :leases => {}, :account => {:only => :name}, :cmc => {}, :cpus => {}}, :except => resource.exclude_from_json))
-          incl = resource.class.include_to_json
-          excl = resource.class.exclude_from_json
-          rh = JSON.parse(resource.to_json(:include => incl, :except => excl))
+          rh = resource.to_hash
+
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
           # end
@@ -221,7 +218,7 @@ module OMF::SFA::AM::Rest
       when "wimax"
         type = "WimaxBaseStation"
       when "lte"
-        type = "LteBase"
+        type = "ENodeB"
       when "openflow"
         type = "OpenflowSwitch"
       else
@@ -379,6 +376,7 @@ module OMF::SFA::AM::Rest
         if resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
           authorizer.can_modify_resource?(resource, type_to_create)
           resource.update(resource_descr)
+          @am_manager.get_scheduler.update_lease_events_on_event_scheduler(resource) if type_to_create == 'Lease'
           # @am_manager.manage_resource(resource)
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."

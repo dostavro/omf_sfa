@@ -29,8 +29,33 @@ module OMF::SFA::Model
     end
 
     def to_hash
-      values.reject! { |k, v| v.nil? }
+      values.reject! { |k, v| v.nil? || (k == :account_id && v == 2)}
+      included = self.class.include_nested_attributes_to_json
+      included.each do |assoc|
+        res = self.send(assoc)
+        next if res.nil? 
+        if res.kind_of? Array
+          next if res.empty?
+          values[assoc] = []
+          res.each do |val|
+            values[assoc] << val.to_hash_brief
+          end
+        elsif res.kind_of? OMF::SFA::Model::Resource
+          # next if assoc == :account && !res.account.nil? && res.account.id == 2 # nil account
+          values[assoc] = res.to_hash_brief
+        end
+        
+      end
+      excluded = self.class.exclude_from_json
+      values.reject! { |k, v| excluded.include?(k)}
       super
+    end
+
+    def to_hash_brief
+      values.reject! { |k, v| v.nil? }
+      excluded = self.class.exclude_from_json
+      values.reject! { |k, v| excluded.include?(k)}
+      values
     end
 
     def clone
@@ -63,8 +88,16 @@ module OMF::SFA::Model
         next if key == :account && self.name != 'OMF::SFA::Model::Lease'
         next if self.name == "OMF::SFA::Model::#{key.to_s.classify}"
         out[key] = {}
-        out[key][:except] = eval("OMF::SFA::Model::#{key.to_s.classify}").exclude_from_json
-        out[key][:include] = eval("OMF::SFA::Model::#{key.to_s.classify}").include_to_json(incoming << key)
+        begin
+          out[key][:except] = eval("OMF::SFA::Model::#{key.to_s.classify}").exclude_from_json
+          out[key][:include] = eval("OMF::SFA::Model::#{key.to_s.classify}").include_to_json(incoming << key)
+        rescue NameError => ex
+          # out.delete(key)
+          key_class = key.to_s.split('_').last
+          out[key] = {}
+          out[key][:except] = eval("OMF::SFA::Model::#{key_class.to_s.classify}").exclude_from_json
+          out[key][:include] = eval("OMF::SFA::Model::#{key_class.to_s.classify}").include_to_json(incoming << key)
+        end
       end
       out
     end

@@ -258,6 +258,8 @@ module OMF::SFA::AM
       lease = OMF::SFA::Model::Lease.create(lease_descr)
 
       raise UnavailableResourceException.new "Cannot create '#{lease_descr.inspect}'" unless lease
+      @scheduler.add_lease_events_on_event_scheduler(lease) 
+      @scheduler.list_all_event_scheduler_jobs #debug messages only
       lease
       # lease = create_resource(lease_descr, 'Lease', lease_properties, authorizer)
     end
@@ -296,6 +298,7 @@ module OMF::SFA::AM
     def modify_lease(lease_properties, lease, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_lease?(lease)
       lease.update(lease_properties)
+      @scheduler.update_lease_events_on_event_scheduler(lease)
     end
 
     # cancel +lease+
@@ -309,12 +312,7 @@ module OMF::SFA::AM
     def release_lease(lease, authorizer)
       debug "release_lease: lease:'#{lease.inspect}' authorizer:'#{authorizer.inspect}'"
       raise InsufficientPrivilegesException unless authorizer.can_release_lease?(lease)
-      lease.components.each do |c|
-        c.destroy unless c.parent_id.nil? # Destroy all the children and leave the parent intact
-      end
-
-      lease.valid_until <= Time.now ? lease.status = "past" : lease.status = "cancelled"
-      lease.save
+      @scheduler.release_lease(lease)
     end
 
     # Release an array of leases.

@@ -1,6 +1,7 @@
 require 'omf-sfa/models/component'
 require 'omf-sfa/models/ip'
 require 'omf-sfa/models/link'
+require 'omf-sfa/models/openflow_switch'
 
 module OMF::SFA::Model
   class Interface < Component
@@ -8,6 +9,7 @@ module OMF::SFA::Model
     many_to_one :node
     one_to_many :ips
     many_to_one :link
+    many_to_one :openflow_switch
 
     plugin :nested_attributes
     nested_attributes :node, :ips, :link
@@ -27,6 +29,17 @@ module OMF::SFA::Model
     def self.include_nested_attributes_to_json
       sup = super
       [:ips, :link].concat(sup)
+    end
+
+    def to_hash_brief
+      unless self.ips.empty?
+        values[:ips] = []
+        self.ips.each do |ip|
+          values[:ips] << ip.to_hash_brief
+        end
+      end
+      values[:link] = self.link.to_hash_brief unless self.link.nil?
+      super
     end
   end
 end
