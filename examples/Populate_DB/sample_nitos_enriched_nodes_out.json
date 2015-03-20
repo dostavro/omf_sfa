@@ -33,6 +33,7 @@
     },
     "domain": "omf:nitos.outdoor",
     "hardware_type": "PC-Grid",
+    "gateway": "nitlab.inf.uth.gr",
     "cpus_attributes": [
       {
         "cpu_type": "Intel(R) Core(TM)2 Duo CPU P8400 @ 2.26GHz",
@@ -44,7 +45,12 @@
     ],
     "ram": "1.8905 GB",
     "ram_type": "DIMM Synchronous",
-    "hd_capacity": "59.6263 GB"
+    "hd_capacity": "59.6263 GB",
+    "location_attributes": {
+      "latitude": "39.360814",
+      "longitude": "22.950075",
+      "altitude": "4"
+    }
   },
   {
     "name": "node002",
@@ -80,6 +86,7 @@
     },
     "domain": "omf:nitos.outdoor",
     "hardware_type": "PC-Orbit",
+    "gateway": "nitlab.inf.uth.gr",
     "cpus_attributes": [
       {
         "cpu_type": "AMD Geode LX800 @ 500 MHz",
@@ -91,7 +98,12 @@
     ],
     "ram": "256 MB",
     "ram_type": "DDR DRAM",
-    "hd_capacity": "59.6263 GB"
+    "hd_capacity": "59.6263 GB",
+    "location_attributes": {
+      "latitude": "39.360814",
+      "longitude": "22.950075",
+      "altitude": "4"
+    }
   },
   {
     "name": "node003",
@@ -127,6 +139,7 @@
     },
     "domain": "omf:nitos.outdoor",
     "hardware_type": "PC-Orbit",
+    "gateway": "nitlab.inf.uth.gr",
     "cpus_attributes": [
       {
         "cpu_type": "AMD Geode LX800 @ 500 MHz",
@@ -138,6 +151,11 @@
     ],
     "ram": "256 MB",
     "ram_type": "DDR DRAM",
-    "hd_capacity": "59.6263 GB"
+    "hd_capacity": "59.6263 GB",
+    "location_attributes": {
+      "latitude": "39.360814",
+      "longitude": "22.950075",
+      "altitude": "4"
+    }
   }
 ]

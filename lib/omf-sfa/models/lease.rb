@@ -45,6 +45,7 @@ module OMF::SFA::Model
         next if component.account.id == 2
         values[:components] << component.to_hash_brief
       end
+      values[:account] = self.account.to_hash_brief
       excluded = self.class.exclude_from_json
       values.reject! { |k, v| excluded.include?(k)}
       values
