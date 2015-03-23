@@ -152,7 +152,9 @@ module OMF::SFA::AM::XMPP
 
           entity_cert = File.expand_path(auth[:entity_cert])
           entity_key = File.expand_path(auth[:entity_key])
-          @cert = OmfCommon::Auth::Certificate.create_from_pem(File.read(entity_cert))
+          # if entity cert contains the private key just add the entity cert else add the entity_key too
+          pem_file = File.open(entity_cert).lines.any? { |line| line.chomp == '-----BEGIN RSA PRIVATE KEY-----'} ? File.read(entity_cert) : "#{File.read(entity_cert)}#{File.read(entity_key)}"
+          @cert = OmfCommon::Auth::Certificate.create_from_pem(pem_file)
           @cert.resource_id = OmfCommon.comm.local_topic.address
           OmfCommon::Auth::CertificateStore.instance.register(@cert)
 
