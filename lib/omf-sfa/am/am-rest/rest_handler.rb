@@ -297,6 +297,11 @@ module OMF::SFA::AM::Rest
         raise UnsupportedBodyFormatException.new('Send body raw, not as form data')
       end
       (body = body.string) if body.is_a? StringIO
+      if body.is_a? Tempfile
+        tmp = body
+        body = body.read
+        tmp.rewind
+      end
       debug 'PARSE_BODY(ct: ', req.content_type, '): ', body.inspect
       unless content_type = req.content_type
         body.strip!

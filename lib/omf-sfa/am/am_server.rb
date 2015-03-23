@@ -146,13 +146,13 @@ module OMF::SFA::AM
       opts[:handlers] = {
         # Should be done in a better way
         :pre_rackup => lambda do
-          # EM.next_tick do
+          EM.next_tick do
           # Thread.new do
-            # OmfCommon.init(@@config[:operationMode], :communication => {:url => "xmpp://#{@@xmpp[:user]}:#{@@xmpp[:password]}@#{@@xmpp[:server]}", :auth => {}}) do |el|
+            OmfCommon.init(@@config[:operationMode], :communication => {:url => "xmpp://#{@@xmpp[:user]}:#{@@xmpp[:password]}@#{@@xmpp[:server]}", :auth => {}}) do |el|
             # OmfCommon.init(@@config[:operationMode], :communication => {:url => "amqp://testServer", :auth => {}}) do |el|
-            #  puts "Connected to the XMPP."
-            # end
-          # end
+             puts "Connected to the XMPP."
+            end
+          end
         end,
         :pre_parse => lambda do |p, options|
           p.on("--test-load-am", "Load an AM configuration for testing") do |n| options[:load_test_am] = true end
@@ -169,11 +169,11 @@ module OMF::SFA::AM
           init_db(opts)
           init_am_manager(opts)
           load_test_am(opts) if opts[:load_test_am]
-          EM.next_tick do
-            OmfCommon.init(@@config[:operationMode], :communication => {:url => "amqp://testServer", :auth => {}}) do |el|
-              puts "Connected to the XMPP."
-            end
-          end
+          # EM.next_tick do
+          #   OmfCommon.init(@@config[:operationMode], :communication => {:url => "amqp://testServer", :auth => {}}) do |el|
+          #     puts "Connected to the XMPP."
+          #   end
+          # end
         end
       }
 

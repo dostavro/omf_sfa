@@ -23,7 +23,7 @@ omf_sfa_am:
       type: xmpp
       user: am_mgr-1.0
       password: pw
-      server: testserver 
+      server: nitlab.inf.uth.gr 
       auth:
         :entity_cert: ~/.omf/am.pem
         :entity_key: ~/.omf/am.pkey
