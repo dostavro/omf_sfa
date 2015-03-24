@@ -245,6 +245,7 @@ module OMF::SFA::Model
           if !value.kind_of?(String) && value.kind_of?(Enumerable) && !value.kind_of?(Nokogiri::XML::Element)
             value.each do |v|
               if v.respond_to?(:to_sfa_xml)
+                next if v.is_a?(OMF::SFA::Model::Lease) && (v.status == 'cancelled' || v.status == 'past')
                 v.to_sfa_xml(prop_el, obj2id, opts)
               else
                 el = prop_el.add_child(Nokogiri::XML::Element.new(prop_name, prop_el.document))
