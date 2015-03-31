@@ -11,8 +11,14 @@ module OMF::SFA::Model
     plugin :nested_attributes
     nested_attributes :node, :ip
 
-    def exclude_from_json
-      [:ip_id]
+    def self.exclude_from_json
+      sup = super
+      [:ip_id].concat(sup)
+    end
+
+    def to_hash_brief
+      values[:ip] = self.ip.to_hash_brief
+      super
     end
 
     def self.include_nested_attributes_to_json
