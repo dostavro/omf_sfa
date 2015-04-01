@@ -50,5 +50,10 @@ module OMF::SFA::Model
       values.reject! { |k, v| excluded.include?(k)}
       values
     end
+
+    def to_hash_brief
+      values[:account] = self.account.to_hash_brief
+      super
+    end
   end
 end
