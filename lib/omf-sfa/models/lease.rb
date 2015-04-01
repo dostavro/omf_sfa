@@ -52,7 +52,7 @@ module OMF::SFA::Model
     end
 
     def to_hash_brief
-      values[:account] = self.account.to_hash_brief
+      values[:account] = self.account.to_hash_brief unless self.account.nil?
       super
     end
   end
