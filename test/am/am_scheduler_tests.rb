@@ -144,6 +144,27 @@ class AMScheduler < MiniTest::Test
     assert OMF::SFA::Model::Node.first(name: 'node1')
   end
 
+  def test_that_it_can_delete_a_lease
+    t = Time.now
+    lease = OMF::SFA::Model::Lease.create(name: 'lease1', status: 'accepted', valid_from: t, valid_until: t + 100, status: 'accepted')
+    node = OMF::SFA::Model::Node.create(name: 'node1')
+    node_child = OMF::SFA::Model::Node.create(name: 'child_node1', parent: node)
+    node.add_lease(lease)
+    node_child.add_lease(lease)
+
+    @scheduler.event_scheduler = Minitest::Mock.new
+    3.times {@scheduler.event_scheduler.expect :jobs, [], []}
+
+    resp = @scheduler.delete_lease(lease)
+    l = OMF::SFA::Model::Lease.first(name: 'lease1')
+
+    assert_equal resp, true
+    assert_equal l, nil
+
+    assert_equal 1, OMF::SFA::Model::Node.count
+    assert OMF::SFA::Model::Node.first(name: 'node1')
+  end
+
   def test_that_it_can_list_leases
     l1 = OMF::SFA::Model::Lease.create(name: 'lease1')
     l2 = OMF::SFA::Model::Lease.create(name: 'lease2')

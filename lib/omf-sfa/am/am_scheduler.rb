@@ -103,6 +103,26 @@ module OMF::SFA::AM
       l
     end
 
+    # delete +lease+
+    #
+    # This implementation simply frees the lease record
+    # and destroys any child components if attached to the lease
+    #
+    # @param [Lease] lease to release
+    #
+    def delete_lease(lease)
+      debug "delete_lease: lease:'#{lease.inspect}'"
+      unless lease.is_a? OMF::SFA::Model::Lease
+        raise "Expected Lease but got '#{lease.inspect}'"
+      end
+      lease.components.each do |c|
+        c.destroy unless c.parent_id.nil? # Destroy all the children and leave the parent intact
+      end
+
+      lease.destroy
+      true
+    end
+
     # Accept or reject the reservation of the component
     #
     # @param [Lease] lease contains the corresponding reservation window

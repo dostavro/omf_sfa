@@ -162,6 +162,27 @@ module OMF::SFA::AM::RPC
       rspec = Nokogiri::XML.parse(rspec_s)
       resources = @manager.update_resources_from_rspec(rspec.root, true, authorizer)
 
+      leases_only = true
+      resources.each do |res|
+        if res.resource_type != 'lease'
+          leases_only = false
+          break
+        end
+      end
+
+      if resources.nil? || resources.empty? || leases_only
+        debug('CreateSliver failed', "all the requested resources were unavailable for the requested DateTime.")
+
+        resources.each do |res|
+          @manager.release_lease(res, authorizer) if res.status == 'pending'
+        end
+
+        @return_struct[:code][:geni_code] = 7 # operation refused
+        @return_struct[:output] = "all the requested resources were unavailable for the requested DateTime."
+        @return_struct[:value] = ''
+        return @return_struct
+      end
+
       users.each do |user|
         gurn = OMF::SFA::Model::GURN.parse(user["urn"])
         u = @manager.find_or_create_user({urn: gurn.urn}, user["keys"])
