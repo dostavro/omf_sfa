@@ -42,22 +42,36 @@ module OMF::SFA::AM::Rest
       source_resource = @am_manager.find_resource(desc, source_type, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_resource?(source_resource, source_type)
       body, format = parse_body(opts)
-      desc = {}
-      desc[:uuid] = body[:uuid]
-      raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
-      target_resource = @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+
+      target_resources = []
+      if body.kind_of? Array
+        body.each do |r|
+          desc = {}
+          desc[:uuid] = r[:uuid]
+          raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
+          target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+        end
+      else
+        desc = {}
+        desc[:uuid] = body[:uuid]
+        raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
+        target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+      end
       
       if source_resource.class.method_defined?("add_#{target_type.singularize}")
-        raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type).include?(target_resource)
-        source_resource.send("add_#{target_type.singularize}", target_resource)
-        show_resource(source_resource, opts)
+        target_resources.each do |target_resource|
+          raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type).include?(target_resource)
+          source_resource.send("add_#{target_type.singularize}", target_resource)
+        end
       elsif source_resource.class.method_defined?("#{target_type.singularize}=")
-        # it is not necessary to check if it is associated
-        # raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type.singularize).include?(target_resource)
-        source_resource.send("#{target_type.singularize}=", target_resource)
-        show_resource(source_resource, opts)
+        raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
+        source_resource.send("#{target_type.singularize}=", target_resources.first)
       else
         raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+      end
+
+      if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
+        self.send("add_#{target_type.pluralize.downcase}_to_#{source_type.pluralize.downcase}", target_resources, source_resource)
       end
       show_resource(source_resource, opts)
     end
@@ -76,20 +90,37 @@ module OMF::SFA::AM::Rest
       source_resource = @am_manager.find_resource(desc, source_type, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_resource?(source_resource, source_type)
       body, format = parse_body(opts)
-      desc = {}
-      desc[:uuid] = body[:uuid]
-      raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
-      target_resource = @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+
+      target_resources = []
+      if body.kind_of? Array
+        body.each do |r|
+          desc = {}
+          desc[:uuid] = r[:uuid]
+          raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
+          target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+        end
+      else
+        desc = {}
+        desc[:uuid] = body[:uuid]
+        raise OMF::SFA::AM::Rest::BadRequestException.new "uuid in body is mandatory." if desc[:uuid].nil?
+        target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
+      end
 
       if source_resource.class.method_defined?("remove_#{target_type.singularize}")
-        source_resource.send("remove_#{target_type.singularize}", target_resource.id)
-        show_resource(source_resource, opts)
+        target_resources.each do |target_resource|
+          source_resource.send("remove_#{target_type.singularize}", target_resource.id)
+        end
       elsif source_resource.class.method_defined?("#{target_type.singularize}=")
+        raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
         source_resource.send("#{target_type.singularize}=", nil)
-        show_resource(source_resource, opts)
       else
         raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
       end
+
+      if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
+        self.send("delete_#{target_type.pluralize.downcase}_from_#{source_type.pluralize.downcase}", target_resources, source_resource)
+      end
+      show_resource(source_resource, opts)
     end
 
     # Create a new resource
@@ -104,6 +135,7 @@ module OMF::SFA::AM::Rest
 
     protected
     def parse_uri(resource_uri, opts)
+      init_special_cases()
       params = opts[:req].params.symbolize_keys!
       params.delete("account")
 
@@ -126,6 +158,36 @@ module OMF::SFA::AM::Rest
       opts[:target_resource_uri] = target_type
       
       [source_type, source_uuid, target_type, params]
+    end
+
+    #######################################################################
+    #     Special cases                                                   #
+    #######################################################################
+    # For every special case you need to do the following:                #
+    # 1. initialize the special case in the init_special_cases function   #
+    # bellow.                                                             #
+    # 2. add two methods like the ones bellow that refer to [users, keys] #
+    # special case and handle the special case there.                     #
+    #######################################################################
+
+    def init_special_cases
+      @special_cases = [['users','keys']]
+    end
+
+    def add_keys_to_users(key, user)
+      debug "add_keys_to_users: #{key.inspect} - #{user.inspect}"
+      user.accounts.each do |ac|
+        puts "-- #{ac.inspect}"
+        @am_manager.liaison.configure_keys(user.keys, ac)
+      end
+    end
+
+    def delete_keys_from_users(key, user)
+      debug "delete_keys_from_users:  #{key.inspect} - #{user.inspect}"
+      user.accounts.each do |ac|
+        puts "-- #{ac.inspect}"
+        @am_manager.liaison.configure_keys(user.keys, ac)
+      end
     end
   end # ResourceHandler
 end # module
