@@ -174,7 +174,7 @@ module OMF::SFA::AM::RPC
         debug('CreateSliver failed', "all the requested resources were unavailable for the requested DateTime.")
 
         resources.each do |res|
-          @manager.release_lease(res, authorizer) if res.status == 'pending'
+          @manager.get_scheduler.delete_lease(res) if res.status == 'pending'
         end
 
         @return_struct[:code][:geni_code] = 7 # operation refused
