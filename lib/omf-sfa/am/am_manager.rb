@@ -56,8 +56,7 @@ module OMF::SFA::AM
         raise "Resource '#{resource}' needs to be of type 'Resource', but is '#{resource.class}'"
       end
 
-      null_account = _get_nil_account
-      resource.account = null_account
+      resource.account_id = _get_nil_account.id
       resource.save
       resource
     end
