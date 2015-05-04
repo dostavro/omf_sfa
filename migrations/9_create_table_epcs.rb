@@ -8,9 +8,13 @@ Sequel.migration do
       String :vendor
       Integer :plmnid
     end
+    alter_table(:e_node_bs) do
+      add_foreign_key :epc_id, :epcs, :on_delete => :set_null
+    end
   end
 
   down do
     drop_table(:epcs)
+    drop_column(:e_node_bs, :epc_id)
   end
 end
