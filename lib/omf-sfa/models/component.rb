@@ -27,5 +27,14 @@ module OMF::SFA::Model
       sup = super
       [:parent_id].concat(sup)
     end
+
+    def to_hash
+      sup = super
+      if sup[:leases]
+        sup[:leases].delete_if {|l| l[:status] == 'cancelled' || l[:status] == 'past'} 
+        sup.delete(:leases) if sup[:leases].empty?
+      end
+      sup
+    end
   end #Class
 end #OMF::SFA::Model
