@@ -313,7 +313,7 @@ module OMF::SFA::AM::Rest
         components = []
         comps.each do |c|
           desc = {}
-          # desc[:account_id] = nil_account_id
+          desc[:account_id] = nil_account_id
           desc[:uuid] = c[:uuid] unless c[:uuid].nil?
           desc[:name] = c[:name] unless c[:name].nil?
           if k = OMF::SFA::Model::Resource.first(desc)

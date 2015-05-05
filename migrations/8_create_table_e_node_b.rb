@@ -5,7 +5,6 @@ Sequel.migration do
       foreign_key :control_ip_id, :ips, :on_delete => :set_null
       foreign_key :pgw_ip_id, :ips, :on_delete => :set_null
       foreign_key :mme_ip_id, :ips, :on_delete => :set_null
-      foreign_key :epc_id, :epcs, :on_delete => :set_null
 
       String :base_model
       String :vendor
