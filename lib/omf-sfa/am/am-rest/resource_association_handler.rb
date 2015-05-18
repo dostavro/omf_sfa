@@ -171,22 +171,78 @@ module OMF::SFA::AM::Rest
     #######################################################################
 
     def init_special_cases
-      @special_cases = [['users','keys']]
+      @special_cases = [['users','keys'],['users','accounts']]
     end
 
+    # this will call configure_keys of am_liaison and for every slice of 
+    # the user it will add all the keys related to that slice (for every slice all
+    # related users' ssh_keys)
     def add_keys_to_users(key, user)
       debug "add_keys_to_users: #{key.inspect} - #{user.inspect}"
       user.accounts.each do |ac|
         puts "-- #{ac.inspect}"
-        @am_manager.liaison.configure_keys(user.keys, ac)
+        keys = []
+        ac.users.each do |u|
+          u.keys.each do |k|
+            keys << k unless keys.include? k
+          end
+        end
+
+        @am_manager.liaison.configure_keys(keys, ac)
       end
     end
 
+    # this will call configure_keys of am_liaison and for every slice of 
+    # the user it will add all the keys related to that slice (for every slice all
+    # related users' ssh_keys), because the key was just deleted it will prcticly delete 
+    # the key from the slice.
     def delete_keys_from_users(key, user)
-      debug "delete_keys_from_users:  #{key.inspect} - #{user.inspect}"
+      debug "add_keys_to_users: #{key.inspect} - #{user.inspect}"
       user.accounts.each do |ac|
         puts "-- #{ac.inspect}"
-        @am_manager.liaison.configure_keys(user.keys, ac)
+        keys = []
+        ac.users.each do |u|
+          u.keys.each do |k|
+            keys << k unless keys.include? k
+          end
+        end
+
+        @am_manager.liaison.configure_keys(keys, ac)
+      end
+    end
+
+    # this will configure_keys of am_liaison for all the slices in accounts arguement
+    # and will add all the keys related to the each account
+    def add_accounts_to_users(accounts, user)
+      debug "add_accounts_to_users: #{accounts.inspect} - #{user.inspect}"
+      accounts.each do |ac|
+        keys = []
+        ac.users.each do |u|
+          u.keys.each do |k|
+            keys << k unless keys.include? k
+          end
+        end
+
+        @am_manager.liaison.configure_keys(keys, ac)
+      end
+    end
+
+    # this will configure_keys of am_liaison for all the slices in accounts arguement
+    # and will add all the keys related to the each account. Because the accounts user
+    # was deleted with this call, it will practicly just delete the specific user keys 
+    # from all the accounts 
+    def delete_accounts_from_users(accounts, user)
+      debug "delete_accounts_from_users:  #{accounts.inspect} - #{user.inspect}"
+      accounts.each do |ac|
+        keys = []
+        ac.users.each do |u|
+          next if u == user # this shouldn't happen anyway.
+          u.keys.each do |k|
+            keys << k unless keys.include? k
+          end
+        end
+
+        @am_manager.liaison.configure_keys(keys, ac)
       end
     end
   end # ResourceHandler

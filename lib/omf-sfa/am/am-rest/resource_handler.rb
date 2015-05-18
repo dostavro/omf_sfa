@@ -350,11 +350,17 @@ module OMF::SFA::AM::Rest
             # res_desc = parse_resource_description(res_desc, type_to_create)
             resource << eval("OMF::SFA::Model::#{type_to_create}").create(res_desc)
             @am_manager.manage_resource(resource.last) if resource.last.account.nil?
+            if type_to_create == 'Account'
+              @am_manager.liaison.create_account(resource.last)
+            end
           end
         elsif resource_descr.kind_of? Hash
           # resource_descr = parse_resource_description(resource_descr, type_to_create)
           resource = eval("OMF::SFA::Model::#{type_to_create}").create(resource_descr)
           @am_manager.manage_resource(resource) if resource.account.nil?
+          if type_to_create == 'Account'
+            @am_manager.liaison.create_account(resource)
+          end
         end
       end
       resource
@@ -393,8 +399,8 @@ module OMF::SFA::AM::Rest
     # @return [OResource] The resource created
     # @raise [UnknownResourceException] if no resource can be created
     #
-    def release_resource(resource_descr, type_to_create, authorizer)
-      if type_to_create == "Lease" #Lease is a unigue case, needs special treatment
+    def release_resource(resource_descr, type_to_release, authorizer)
+      if type_to_release == "Lease" #Lease is a unigue case, needs special treatment
         if resource = OMF::SFA::Model::Lease.first(resource_descr)
           @am_manager.release_lease(resource, authorizer)
         else
@@ -402,7 +408,10 @@ module OMF::SFA::AM::Rest
         end
       else
         authorizer.can_release_resource?(resource_descr)
-        if resource = eval("OMF::SFA::Model::#{type_to_create}").first(resource_descr)
+        if resource = eval("OMF::SFA::Model::#{type_to_release}").first(resource_descr)
+          if type_to_release == 'Account'
+            @am_manager.liaison.close_account(resource)
+          end
           resource.destroy
         else
           raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'."
