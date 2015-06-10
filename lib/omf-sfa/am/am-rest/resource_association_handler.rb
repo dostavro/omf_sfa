@@ -58,16 +58,26 @@ module OMF::SFA::AM::Rest
         target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
       end
       
-      if source_resource.class.method_defined?("add_#{target_type.singularize}")
+      # in those casses we need to use the manager and not the relation between them
+      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels") 
+        scheduler = @am_manager.get_scheduler
+        ac_id = source_resource.account.id
         target_resources.each do |target_resource|
-          raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type).include?(target_resource)
-          source_resource.send("add_#{target_type.singularize}", target_resource)
+          c = scheduler.create_child_resource({uuid: target_resource[:uuid], account_id: ac_id}, target_resource[:type].to_s.split('::').last)
+          scheduler.lease_component(source_resource, c)
         end
-      elsif source_resource.class.method_defined?("#{target_type.singularize}=")
-        raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
-        source_resource.send("#{target_type.singularize}=", target_resources.first)
       else
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+        if source_resource.class.method_defined?("add_#{target_type.singularize}")
+          target_resources.each do |target_resource|
+            raise OMF::SFA::AM::Rest::BadRequestException.new "resources are already associated." if source_resource.send(target_type).include?(target_resource)
+            source_resource.send("add_#{target_type.singularize}", target_resource)
+          end
+        elsif source_resource.class.method_defined?("#{target_type.singularize}=")
+          raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
+          source_resource.send("#{target_type.singularize}=", target_resources.first)
+        else
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+        end
       end
 
       if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
@@ -106,15 +116,43 @@ module OMF::SFA::AM::Rest
         target_resources << @am_manager.find_resource(desc, target_type.singularize.camelize, authorizer)
       end
 
-      if source_resource.class.method_defined?("remove_#{target_type.singularize}")
-        target_resources.each do |target_resource|
-          source_resource.send("remove_#{target_type.singularize}", target_resource.id)
+       # in this casses we need to use the manager and not the relation between them
+      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels") 
+        scheduler = @am_manager.get_scheduler
+        lease = source_resource
+        target_resources.each do |comp|
+          if comp.account.id == scheduler.get_nil_account.id # comp is a parent resource
+            debug "remove parent resource association from lease."
+            lease.components.each do |lcomp|
+              if !lcomp.parent.nil? && lcomp.parent.id == comp.id
+                @am_manager.release_resource(lcomp, authorizer) # release child resoure
+                lease.remove_component(comp) # remove parent resource from lease
+                lease.reload
+                if lease.components.empty?
+                  @am_manager.release_lease(lease, authorizer)
+                end
+              end
+            end
+          else # comp is a child resource
+            debug "remove child resource association from lease."
+            lease.remove_component(comp.parent)
+            @am_manager.release_resource(comp, authorizer)
+            if lease.components.empty?
+              @am_manager.release_lease(lease, authorizer)
+            end
+          end
         end
-      elsif source_resource.class.method_defined?("#{target_type.singularize}=")
-        raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
-        source_resource.send("#{target_type.singularize}=", nil)
       else
-        raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+        if source_resource.class.method_defined?("remove_#{target_type.singularize}")
+          target_resources.each do |target_resource|
+            source_resource.send("remove_#{target_type.singularize}", target_resource.id)
+          end
+        elsif source_resource.class.method_defined?("#{target_type.singularize}=")
+          raise OMF::SFA::AM::Rest::BadRequestException.new "cannot associate many resources in a one-to-one relationship between '#{source_type}' and '#{target_type}'." if target_resources.size > 1 
+          source_resource.send("#{target_type.singularize}=", nil)
+        else
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Invalid URL."
+        end
       end
 
       if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
