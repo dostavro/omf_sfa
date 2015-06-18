@@ -302,6 +302,7 @@ module OMF::SFA::AM::Rest
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
+        raise OMF::SFA::AM::Rest::NotAuthorizedException.new "Account with description '#{ac_desc}' is closed." unless ac.active?
         res_descr[:account_id] = ac.id
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
 
