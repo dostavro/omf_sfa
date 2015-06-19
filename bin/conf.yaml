@@ -1,10 +1,6 @@
 :auth:
-  :root_cert_dir: ~/.omf/trusted_roots
-  :entity_cert: ~/.omf/user_cert.pem
-  :entity_key: ~/.omf/user_cert.pkey
-:xmpp:
-  :username: one
-  :password: pw
-  :server: nitlab.inf.uth.gr
-  :topic: am_controller
-  :operation_mode: development
+  :entity_cert: /root/.omf/user_cert.pem
+  :entity_key: /root/.omf/user_cert.pkey
+:rest:
+  :server: localhost
+  :port: 8001

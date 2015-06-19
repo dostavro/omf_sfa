@@ -8,7 +8,7 @@ module OMF::SFA::Model
     plugin :nested_attributes
     nested_attributes :users, :resources
 
-    @@def_duration = 100 * 86400 # 100 days
+    @@def_duration = 1000 * 86400 # 1000 days
 
     def active?
       return false unless self.closed_at.nil?

@@ -127,8 +127,7 @@ not required (and best skipped), but it is really usefull, from an administratio
 Populate the database
 ---------------------
 
-First you have to edit the configuration file for the create_resource script accordingly (if on previous steps you have decided to 
-use your xmpp, change the xmpp here as well):
+First you have to edit the configuration file for the create_resource script accordingly:
 
     $ nano $OMF_SFA_HOME/bin/conf.yaml
 
@@ -144,7 +143,7 @@ To populate the database with the nodes:
 
     $ ./create_resource -t node -c conf.yaml -i nodes_description.json
 
-This script uses the xmpp interface of am_server to import data in the database.
+This script uses the REST interface of am_server to import data in the database.
 
 In order to populate the database with the channels a similar procedure can be followed. We need a json that describes the
 channels (sample file [here](https://github.com/dostavro/omf_sfa/tree/master/examples/Populate_DB/sample_nitos_channels.json)).

@@ -46,10 +46,7 @@ module OMF::SFA::AM::Rest
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
           descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels')
-          if resource_uri == 'accounts'
-            raise NotAuthorizedException, "User not found, please attach user certificates for this request." if authenticator.user.nil?
-            resource = @am_manager.find_all_accounts(authenticator)
-          elsif resource_uri == 'leases'
+          if resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
           else
             resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
@@ -305,6 +302,7 @@ module OMF::SFA::AM::Rest
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
+        raise OMF::SFA::AM::Rest::NotAuthorizedException.new "Account with description '#{ac_desc}' is closed." unless ac.active?
         res_descr[:account_id] = ac.id
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# this executable populates the db with new resources.
+# create_resource -t node -
 BIN_DIR = File.dirname(File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__)
 TOP_DIR = File.join(BIN_DIR, '..')
 $: << File.join(TOP_DIR, 'lib')
@@ -25,6 +27,7 @@ opts = {
   }
 }
 
+comm_type = nil
 resource_url = nil
 resource_type = :node
 resource_properties = nil
@@ -32,6 +35,8 @@ op_mode = :development
 @authorization = false
 @entity = nil
 @trusted_roots = nil
+@cert = nil
+@pkey = nil
 
 op = OptionParser.new
 op.banner = "Usage: #{op.program_name} --conf CONF_FILE --in INPUT_FILE...\n#{DESCR}\n"
@@ -47,22 +52,37 @@ op.on '-c', '--conf FILE', "Configuration file with communication info" do |file
     exit
   end
 
-  if x = @y[:xmpp]
+  if x = @y[:rest]
+    require "net/https"
+    require "uri"
+    resource_url = "https://#{x[:server]}:#{x[:port]}/resources/#{resource_type.to_s.downcase.pluralize}"
+    comm_type = "REST"
+  elsif x = @y[:xmpp]
     resource_url = x[:topic]
     opts[:communication][:url] = "xmpp://#{x[:username]}:#{x[:password]}@#{x[:server]}"
     op_mode = x[:op_mode]
+    comm_type = "XMPP"
+  else
+    error "neither REST nor XMPP details was found in the configuration file"
+    exit
   end
 
   if a = @y[:auth]
-    @authorization = true
-    opts[:communication][:auth] = {}
-    entity_cert = File.expand_path(a[:entity_cert])#'~/.omf/user_cert.pem'
-    if File.exist?(entity_cert)
-      @entity = OmfCommon::Auth::Certificate.create_from_pem(File.read(entity_cert))
-      @trusted_roots = File.expand_path(a[:root_cert_dir]) #'~/.omf/trusted_roots'
+    if comm_type == "REST"
+      @pem = a[:entity_cert]
+      @pkey = a[:entity_key]
+    else
+      @authorization = true
+      opts[:communication][:auth] = {}
+      entity_cert = File.expand_path(a[:entity_cert])#'~/.omf/user_cert.pem'
+      if File.exist?(entity_cert)
+        @entity = OmfCommon::Auth::Certificate.create_from_pem(File.read(entity_cert))
+        @trusted_roots = File.expand_path(a[:root_cert_dir]) #'~/.omf/trusted_roots'
+      end
     end
   else
     warn "authorization is disabled."
+    exit if comm_type == "REST"
   end
 end
 op.on '-i', '--in FILE', "Input file containing properties" do |file|
@@ -101,6 +121,32 @@ end
 
 def authorization?
   @authorization
+end
+
+def create_resource_with_rest(url, res_desc, pem, key)
+  puts "Create resource through REST.\nURL: #{url}\nRESOURCE DESCRIPTION: \n#{res_desc}\n"
+
+  uri = URI.parse(url)
+  pem = File.read(pem)
+  pkey = File.read(key)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  http.cert = OpenSSL::X509::Certificate.new(pem)
+  http.key = OpenSSL::PKey::RSA.new(pkey)
+  http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+  request = Net::HTTP::Post.new(uri.request_uri, initheader = {'Content-Type' =>'application/json'}) 
+  request.body = res_desc.to_json
+
+  response = http.request(request)
+
+  puts "OUTPUT:"
+  puts "#{response.inspect}"
+end
+
+if comm_type == "REST"
+  create_resource_with_rest(resource_url, resource_properties, @pem, @pkey)
+  exit
 end
 
 OmfCommon.init(op_mode, opts) do |el|
