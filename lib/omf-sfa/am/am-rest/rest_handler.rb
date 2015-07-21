@@ -283,6 +283,8 @@ module OMF::SFA::AM::Rest
     #
     def populate_opts(req, opts)
       path = req.path_info.split('/').select { |p| !p.empty? }
+      opts[:req] = req
+      opts[:format] = req['format'] || 'json'
       opts[:target] = find_handler(path, opts)
       #opts[:target].inspect
       opts
@@ -349,8 +351,6 @@ module OMF::SFA::AM::Rest
     def dispatch(req)
       opts = {}
       populate_opts(req, opts)
-      opts[:req] = req
-      opts[:format] = req['format'] || 'json'
       #puts "OPTS>>>> #{opts.inspect}"
       method = req.request_method
       target = opts[:target] #|| self

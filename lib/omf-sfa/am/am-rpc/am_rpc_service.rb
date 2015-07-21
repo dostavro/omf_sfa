@@ -106,15 +106,14 @@ module OMF::SFA::AM::RPC
         res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'manifest').to_xml
       else
         resources = @manager.find_all_leases(nil, ["pending", "accepted", "active"], authorizer)
-        resources.concat(@manager.find_all_components_for_account(@manager._get_nil_account, authorizer))
-
+        comps = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
+        if only_available
+          debug "only_available flag is true!"
+          comps.delete_if {|c| !c.available}
+        end
+        resources.concat(comps)
         res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'advertisement').to_xml
       end
-      # TODO: implement the "available_only" option
-
-      # only list independent resources (TODO: What does this mean??)
-      #resources = resources.select {|r| r.independent_component?}
-      #debug "Resources for '#{slice_urn}' >>> #{resources.inspect}"
 
       #res = OMF::SFA::Resource::OComponent.sfa_advertisement_xml(resources).to_xml
       if compressed
