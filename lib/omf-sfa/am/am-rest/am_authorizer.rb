@@ -65,6 +65,8 @@ module OMF::SFA::AM::Rest
         raise OMF::SFA::AM::InsufficientPrivilegesException.new
       end
 
+      return true if @user.nil? && @account.nil?
+
       return true if @account == @am_manager._get_nil_account || @user.has_nil_account?(@am_manager) 
 
       @user.get_all_accounts.each do |acc|
@@ -128,7 +130,7 @@ module OMF::SFA::AM::Rest
       if @user.nil?
         permissions = {
           can_create_account?:   false,
-          can_view_account?:     false,
+          can_view_account?:     true,
           can_renew_account?:    false,
           can_close_account?:    false,
           # RESOURCE

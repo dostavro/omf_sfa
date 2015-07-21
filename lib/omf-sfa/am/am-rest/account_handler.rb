@@ -18,7 +18,7 @@ module OMF::SFA::AM::Rest
     def find_handler(path, opts)
       account_id = opts[:resource_uri] = path.shift
       if account_id
-        account = opts[:account] = find_account(account_id)
+        account = opts[:account] = find_account(account_id, opts)
       end
       return self if path.empty?
 
@@ -117,7 +117,7 @@ module OMF::SFA::AM::Rest
       end
     end
 
-    def find_account(account_id)
+    def find_account(account_id, opts)
       if account_id.start_with?('urn')
         fopts = {:urn => account_id}
       else
