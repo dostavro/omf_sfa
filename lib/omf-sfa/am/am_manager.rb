@@ -423,6 +423,36 @@ module OMF::SFA::AM
       components
     end
 
+    # Find a number of components matching the resource description that are not leased for the given timeslot.
+    # If it doesn't exist, or is not visible to requester
+    # throws +UnknownResourceException+.
+    #
+    # @param [Hash] description of components
+    # @param [String] The type of components we are trying to find
+    # @param [String, Time] beggining of the timeslot 
+    # @param [String, Time] ending of the timeslot
+    # @param [Array] array of component uuids that are not eligible to be returned by this function 
+    # @param [Integer] number of available components to be returned by this function
+    # @return [Array] All availlable components
+    # @raise [UnknownResourceException] if no matching resource can be found
+    #
+    def find_available_components(component_descr, component_type, valid_from, valid_until, non_valid_component_uuids = [], nof_requested_components = 1, authorizer)
+      debug "find_all_available_components: descr: '#{component_descr.inspect}', from: '#{valid_from}', until: '#{valid_until}'"
+      component_descr[:account_id] = _get_nil_account.id
+      components = find_all_resources(component_descr, component_type, authorizer)
+      components.shuffle! # this randomizes the result
+      
+      output = []
+      components.each do |comp|
+        next if non_valid_component_uuids.include?(comp.uuid)
+        output << comp if @scheduler.component_available?(comp, valid_from, valid_until) 
+        break if output.size >= nof_requested_components
+      end
+
+      raise UnavailableResourceException if output.size < nof_requested_components
+      output
+    end
+
     # Find all resources for a specific account. Return the managed resources
     # if no account is given
     #
