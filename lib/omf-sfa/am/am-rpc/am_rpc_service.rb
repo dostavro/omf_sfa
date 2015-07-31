@@ -182,22 +182,19 @@ module OMF::SFA::AM::RPC
         return @return_struct
       end
 
+      all_keys = []
       users.each do |user|
         gurn = OMF::SFA::Model::GURN.parse(user["urn"])
         u = @manager.find_or_create_user({urn: gurn.urn}, user["keys"])
+        u.keys.each do |k|
+          all_keys << k unless all_keys.include? k
+        end
         unless authorizer.account.users.include?(u) 
           authorizer.account.add_user(u) 
           authorizer.account.save
         end
       end
-
-      keys = []
-      authorizer.account.users.each do |u|
-        u.keys.each do |k|
-          keys << k unless keys.include? k
-        end
-      end
-      @liaison.configure_keys(keys, authorizer.account)
+      @liaison.configure_keys(all_keys, authorizer.account)
 
       res = OMF::SFA::Model::Component.sfa_response_xml(resources, {:type => 'manifest'}).to_xml
 

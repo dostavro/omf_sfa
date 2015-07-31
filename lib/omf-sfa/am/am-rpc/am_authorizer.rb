@@ -55,7 +55,7 @@ module OMF::SFA::AM::RPC
       user_descr.merge!({uuid: peer.user_uuid}) unless peer.user_uuid.nil?
       user_descr.merge!({urn: peer.user_urn}) unless peer.user_urn.nil?
       raise OMF::SFA::AM::InsufficientPrivilegesException.new "URN and UUID are missing." if user_descr.empty?
-      user = am_manager.find_or_create_user(user_descr, [])
+      user = am_manager.find_or_create_user(user_descr)
 
       creds = credentials.map do |cs|
         cs = OMF::SFA::AM::PrivilegeCredential.unmarshall(cs)

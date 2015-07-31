@@ -111,9 +111,9 @@ module OMF::SFA::AM
       new_keys = []   
       keys.each do |k|
         if k.kind_of?(OMF::SFA::Model::Key)
-          new_keys << k.ssh_key
+          new_keys << k.ssh_key unless new_keys.include?(k.ssh_key)
         elsif k.kind_of?(String)
-          new_keys << k
+          new_keys << k unless new_keys.include?(k)
         end
       end
 
