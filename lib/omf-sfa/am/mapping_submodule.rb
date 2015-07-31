@@ -179,13 +179,13 @@ class MappingSubmodule < OMF::Common::LObject
       descr[:domain] = resource[:domain]
       descr[:exclusive] = resource[:exclusive]
 
-      av_resources = am_manager.find_all_available_components(descr, resource[:type], resource[:valid_from], resource[:valid_until], authorizer)
-      
-      resources.each do |res| #remove already given resources
-        av_resources.each do |ares|
-          av_resources.delete(ares) if res[:uuid] && ares.uuid.to_s == res[:uuid]
-        end
+      resource_uuids = []
+      resources.each do |res|
+        resource_uuids << res[:uuid].to_s
       end
+
+      av_resources = am_manager.find_available_components(descr, resource[:type], resource[:valid_from], resource[:valid_until], resource_uuids, 1, authorizer)
+
       raise OMF::SFA::AM::UnavailableResourceException if av_resources.empty?
 
       res = av_resources.sample
