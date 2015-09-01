@@ -134,6 +134,7 @@ class MappingSubmodule < OMF::Common::LObject
     #
     def resolve_domain(resource, resources = nil, am_manager, authorizer)
       debug "resolve_domain: resource: #{resource}, resources: #{resources.inspect}"
+      return resource[:domain] = OMF::SFA::Model::Constants.default_domain if resource[:type] == 'Channel'
       unless resources.nil?
         resources.each do |res|
           if res[:domain] && resource[:type] == res[:type] && resource[:exclusive] == res[:exclusive] # we might need to change/add res[:type] to res[:resource_type] in the future
@@ -144,7 +145,8 @@ class MappingSubmodule < OMF::Common::LObject
       end
 
       domains = {}
-      resources = am_manager.find_all_available_components({exclusive: resource[:exclusive]}, resource[:type], resource[:valid_from], resource[:valid_until], authorizer)
+      resources = get_available_components({exclusive: resource[:exclusive]}, resource[:type], resource[:valid_from], resource[:valid_until], resources, 1, am_manager, authorizer)
+      # am_manager.find_all_available_components({exclusive: resource[:exclusive]}, resource[:type], resource[:valid_from], resource[:valid_until], am_manager, authorizer)
 
       # resources = resources.select { |res| res[:exclusive] == resource[:exclusive] } if resource[:exclusive]
 
@@ -179,12 +181,7 @@ class MappingSubmodule < OMF::Common::LObject
       descr[:domain] = resource[:domain]
       descr[:exclusive] = resource[:exclusive]
 
-      resource_uuids = []
-      resources.each do |res|
-        resource_uuids << res[:uuid].to_s
-      end
-
-      av_resources = am_manager.find_available_components(descr, resource[:type], resource[:valid_from], resource[:valid_until], resource_uuids, 1, authorizer)
+      av_resources = get_available_components(descr, resource[:type], resource[:valid_from], resource[:valid_until], resources, 1, am_manager, authorizer)
 
       raise OMF::SFA::AM::UnavailableResourceException if av_resources.empty?
 
@@ -192,5 +189,15 @@ class MappingSubmodule < OMF::Common::LObject
       resource[:uuid] = res.uuid.to_s
       resource[:urn] = res.urn
       resource[:urn]
+    end
+
+    private
+    def get_available_components(resource_description, resource_type, valid_from, valid_until, non_acceptable_resources, nof_components, am_manager, authorizer)
+      resource_uuids = []
+      non_acceptable_resources.each do |res|
+        resource_uuids << res[:uuid].to_s
+      end
+
+      am_manager.find_available_components(resource_description, resource_type, valid_from, valid_until, resource_uuids, 1, authorizer)
     end
 end
