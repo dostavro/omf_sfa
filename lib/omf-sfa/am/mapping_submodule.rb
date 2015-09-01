@@ -196,7 +196,7 @@ class MappingSubmodule < OMF::Common::LObject
       resource_uuids = []
       non_acceptable_resources.each do |res|
         resource_uuids << res[:uuid].to_s
-      end
+      end unless non_acceptable_resources.nil?
 
       am_manager.find_available_components(resource_description, resource_type, valid_from, valid_until, resource_uuids, 1, authorizer)
     end
