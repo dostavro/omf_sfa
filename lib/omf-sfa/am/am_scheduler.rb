@@ -156,6 +156,7 @@ module OMF::SFA::AM
     #
     def component_available?(component, start_time, end_time)
       return component.available unless component.exclusive
+      return false unless component.available
       return true if OMF::SFA::Model::Lease.all.empty?
 
       parent = component.account == get_nil_account() ? component : component.parent
