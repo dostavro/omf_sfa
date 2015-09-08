@@ -20,6 +20,16 @@ module OMF::SFA::AM::Rest
       authorizer = opts[:req].session[:authorizer]
       source_resource = @am_manager.find_resource(desc, source_type, authorizer)
       # target_type = target_type.downcase.pluralize
+
+      if params['special_method']
+        begin
+          self.send("get_#{target_type.downcase}_#{source_type.downcase}", source_resource, opts)
+        rescue NoMethodError => ex
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Method #{target_type.downcase}_#{source_type.pluralize.downcase} is not defined for GET requests."
+        end
+        return show_resource(source_resource, opts)
+      end
+
       if source_resource.class.method_defined?(target_type)
         resource = source_resource.send(target_type)
         return show_resource(resource, opts)
@@ -41,6 +51,16 @@ module OMF::SFA::AM::Rest
       authorizer = opts[:req].session[:authorizer]
       source_resource = @am_manager.find_resource(desc, source_type, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_resource?(source_resource, source_type)
+
+      if params['special_method']
+        begin
+          self.send("put_#{target_type.downcase}_#{source_type.downcase}", source_resource, opts)
+        rescue NoMethodError => ex
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Method #{target_type.downcase}_#{source_type.pluralize.downcase} is not defined for PUT requests."
+        end
+        return show_resource(source_resource, opts)
+      end
+
       body, format = parse_body(opts)
 
       target_resources = []
@@ -99,6 +119,16 @@ module OMF::SFA::AM::Rest
       authorizer = opts[:req].session[:authorizer]
       source_resource = @am_manager.find_resource(desc, source_type, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_resource?(source_resource, source_type)
+
+      if params['special_method']
+        begin
+          self.send("delete_#{target_type.downcase}_#{source_type.downcase}", source_resource, opts)
+        rescue NoMethodError => ex
+          raise OMF::SFA::AM::Rest::BadRequestException.new "Method #{target_type.downcase}_#{source_type.pluralize.downcase} is not defined for DELETE requests."
+        end
+        return show_resource(source_resource, opts)
+      end
+
       body, format = parse_body(opts)
 
       target_resources = []
@@ -174,8 +204,15 @@ module OMF::SFA::AM::Rest
     protected
     def parse_uri(resource_uri, opts)
       init_special_cases()
+      init_special_methods()
       params = opts[:req].params.symbolize_keys!
       params.delete("account")
+
+      if @special_methods.include?([opts[:source_resource_uri], opts[:target_resource_uri]])
+        debug "special method: #{opts[:target_resource_uri]}_#{opts[:source_resource_uri]}"
+        params['special_method'] = true
+        return [opts[:source_resource_uri].singularize.camelize, opts[:source_resource_uuid], opts[:target_resource_uri], params]
+      end
 
       source_type = opts[:source_resource_uri].singularize.camelize
       begin
@@ -237,7 +274,6 @@ module OMF::SFA::AM::Rest
     def delete_keys_from_users(key, user)
       debug "add_keys_to_users: #{key.inspect} - #{user.inspect}"
       user.accounts.each do |ac|
-        puts "-- #{ac.inspect}"
         keys = []
         ac.users.each do |u|
           u.keys.each do |k|
@@ -282,6 +318,31 @@ module OMF::SFA::AM::Rest
 
         @am_manager.liaison.configure_keys(keys, ac)
       end
+    end
+
+    #######################################################################
+    #     Special methods                                                 #
+    #######################################################################
+    # For every special method case you need to do the following:         #
+    # 1. initialize the special method in the init_special_method function#
+    # bellow.                                                             #
+    # 2. add a method like the one bellow that refer to [account, open]   #
+    # special method and handle the special method there.                 #
+    #######################################################################
+    def init_special_methods
+      @special_methods = [['accounts', 'close'], ['accounts', 'open']]
+    end
+
+    def put_open_account(account, opts)
+      debug "put_open_accounts: #{account.inspect} - #{opts[:req].body.inspect}"
+      body, format = parse_body(opts)
+      valid_until = body['valid_until'] || body['duration'] || nil # nil will give the default account duration
+      @am_manager.renew_account_until(account, valid_until, opts[:req].session[:authorizer])
+    end
+
+    def put_close_account(account, opts)
+      debug "put_close_accounts: #{account.inspect} - #{opts.inspect}"
+      @am_manager.close_account(account, opts[:req].session[:authorizer])
     end
   end # ResourceHandler
 end # module

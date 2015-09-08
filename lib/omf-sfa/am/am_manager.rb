@@ -165,7 +165,11 @@ module OMF::SFA::AM
     # @raise [InsufficientPrivilegesException] if permission is not granted
     #
     def close_account(account_descr, authorizer)
-      account = find_account(account_descr, authorizer)
+      if account_descr.is_a?(OMF::SFA::Model::Account)
+        account = account_descr
+      else
+        account = find_account(account_descr, authorizer)
+      end
       raise InsufficientPrivilegesException unless authorizer.can_close_account?(account)
 
       #release_all_components_for_account(account, authorizer)
