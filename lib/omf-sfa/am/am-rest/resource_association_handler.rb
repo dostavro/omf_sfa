@@ -103,6 +103,7 @@ module OMF::SFA::AM::Rest
       if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
         self.send("add_#{target_type.pluralize.downcase}_to_#{source_type.pluralize.downcase}", target_resources, source_resource)
       end
+      source_resource.save
       show_resource(source_resource, opts)
     end
 
@@ -188,6 +189,7 @@ module OMF::SFA::AM::Rest
       if @special_cases.include?([source_type.pluralize.downcase, target_type.pluralize.downcase])
         self.send("delete_#{target_type.pluralize.downcase}_from_#{source_type.pluralize.downcase}", target_resources, source_resource)
       end
+      source_resource.save
       show_resource(source_resource, opts)
     end
 

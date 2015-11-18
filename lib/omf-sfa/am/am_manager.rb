@@ -147,6 +147,7 @@ module OMF::SFA::AM
       
       account.open if account.closed?  
       account.valid_until = expiration_time
+      account.save
       # Ask the corresponding RC to create/re-open an account
       @liaison.create_account(account)
 

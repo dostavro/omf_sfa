@@ -2,14 +2,15 @@ require 'omf-sfa/models/component'
 require 'omf-sfa/models/ip'
 require 'omf-sfa/models/link'
 require 'omf-sfa/models/openflow_switch'
+require 'omf-sfa/models/usrp_ethernet_device'
 
 module OMF::SFA::Model
   class Interface < Component
-
     many_to_one :node
     one_to_many :ips
     many_to_one :link
     many_to_one :openflow_switch
+    many_to_one :usrp_ethernet_device
 
     plugin :nested_attributes
     nested_attributes :node, :ips, :link

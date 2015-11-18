@@ -1,15 +1,17 @@
 require 'omf-sfa/models/component'
 require 'omf-sfa/models/node'
+require 'omf-sfa/models/e_node_b'
 require 'omf-sfa/models/ip'
 
 module OMF::SFA::Model
   class Cmc < Component
 
     one_to_one :node
+    one_to_one :e_node_b
     many_to_one :ip
 
     plugin :nested_attributes
-    nested_attributes :node, :ip
+    nested_attributes :node, :e_node_b, :ip
 
     def self.exclude_from_json
       sup = super
