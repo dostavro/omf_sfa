@@ -10,7 +10,7 @@ module OMF::SFA::Model
     plugin :nested_attributes
     nested_attributes :of_controller_ip, :interfaces
 
-    sfa_class 'e_node_b', :can_be_referred => true, :expose_id => false
+    sfa_class 'openflow_switch', :can_be_referred => true, :expose_id => false
 
     def self.exclude_from_json
       sup = super

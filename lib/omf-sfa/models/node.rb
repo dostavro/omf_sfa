@@ -7,12 +7,13 @@ module OMF::SFA::Model
 
     one_to_many :interfaces
     one_to_many :cpus
+    one_to_many :usb_devices
     many_to_one :cmc
     many_to_one :location
     many_to_one :sliver_type
 
     plugin :nested_attributes
-    nested_attributes :interfaces, :cpus, :cmc, :location, :sliver_type
+    nested_attributes :interfaces, :cpus, :cmc, :location, :sliver_type, :usb_devices
 
     sfa_class 'node'
     sfa :client_id, :attribute => true
@@ -54,7 +55,7 @@ module OMF::SFA::Model
 
     def self.include_nested_attributes_to_json
       sup = super
-      [:interfaces, :cpus, :cmc, :location, :sliver_type, :leases].concat(sup)
+      [:interfaces, :cpus, :cmc, :location, :sliver_type, :leases, :usb_devices].concat(sup)
     end
   end
 end
