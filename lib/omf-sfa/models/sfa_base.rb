@@ -141,6 +141,7 @@ module OMF::SFA::Model
             _to_sfa_xml(r, root, obj2id, opts)
           end
         else
+          return root.document if resources.sfa_class.nil?
           resources.to_sfa_xml(root, obj2id, opts)
         end
         root.document
