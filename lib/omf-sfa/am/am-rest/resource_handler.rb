@@ -45,14 +45,14 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         if descr[:name].nil? && descr[:uuid].nil?
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels' || resource_uri == 'e_node_bs' || resource_uri == 'lte')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels' || resource_uri == 'e_node_bs' || resource_uri == 'lte' || resource_uri == 'wimax_base_stations')
           if resource_uri == 'leases'
             resource =  @am_manager.find_all_leases(nil, ["pending", "accepted", "active"], authenticator)
           else
             resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
         else
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels' || resource_uri == 'e_node_bs' || resource_uri == 'lte')
+          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if (resource_uri == 'nodes' || resource_uri == 'channels' || resource_uri == 'e_node_bs' || resource_uri == 'lte' || resource_uri == 'wimax_base_stations')
           resource = @am_manager.find_resource(descr, resource_type, authenticator)
           return show_resource(resource, opts)
         end
