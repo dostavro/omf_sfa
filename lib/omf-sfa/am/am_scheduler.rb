@@ -140,7 +140,8 @@ module OMF::SFA::AM
         parent.add_lease(lease)   
         component.add_lease(lease)
         lease.save
-
+        parent.save
+        component.save
         true
       else
         false
