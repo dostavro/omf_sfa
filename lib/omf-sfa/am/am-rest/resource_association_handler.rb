@@ -79,7 +79,7 @@ module OMF::SFA::AM::Rest
       end
       
       # in those casses we need to use the manager and not the relation between them
-      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels") 
+      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels" || target_type == "e_node_bs" || target_type == "wimax_base_stations") 
         scheduler = @am_manager.get_scheduler
         ac_id = source_resource.account.id
         target_resources.each do |target_resource|
@@ -148,7 +148,7 @@ module OMF::SFA::AM::Rest
       end
 
        # in this casses we need to use the manager and not the relation between them
-      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels") 
+      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels" || target_type == "e_node_bs" || target_type == "wimax_base_stations") 
         scheduler = @am_manager.get_scheduler
         lease = source_resource
         target_resources.each do |comp|
