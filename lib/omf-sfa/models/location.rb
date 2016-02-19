@@ -20,8 +20,11 @@ module OMF::SFA::Model
 
     def position_3d
         return nil unless self.position_3d_x && self.position_3d_y && self.position_3d_z
-        el = "<position_3d x=\"#{self.position_3d_x}\" y=\"#{self.position_3d_y}\" z=\"#{self.position_3d_z}\"/>"
-        Nokogiri::XML(el).child
+        el = "<ol:position_3d x=\"#{self.position_3d_x}\" y=\"#{self.position_3d_y}\" z=\"#{self.position_3d_z}\"/>"
+        el_xml = Nokogiri::XML(el)
+        ns = el_xml.root.add_namespace('ol', "http://nitlab.inf.uth.gr/schema/sfa/rspec/1")
+        el_xml.root.namespace = ns
+        el_xml.child
     end
   end
 end
