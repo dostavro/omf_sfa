@@ -65,6 +65,7 @@ module OMF::SFA::Model
       # @option opts [Boolean] :has_manny If true, can occur multiple times, forming an array
       # @option opts [Boolean] :disabled If true, then this property will not be exposed through SFA. Useful for disabling inherited properties when needed. (e.g. link)
       # @option opts [String] :default Give a default value to this property
+      # @option opts [String] :attr_name If set, then the attribute name will be changed accordingly. <property_name attr_name="attr_value"/>
       #
       def sfa(name, opts = {})
         name = name.to_s
@@ -195,6 +196,7 @@ module OMF::SFA::Model
             if value.is_a?(Time)
               value = value.xmlschema # xs:dateTime
             end
+            key = prop_opts[:attr_name] ? prop_opts[:attr_name] : key # change the attribute name if opts[:attr_name] is defined
             _to_sfa_property_xml(key, value, new_element, prop_opts, obj2id, opts)
           end
         end

@@ -16,7 +16,7 @@ module OMF::SFA::Model
     sfa_class 'ip', :expose_id => false
     sfa :address, :attribute => true
     sfa :netmask, :attribute => true
-    sfa :ip_type, :attribute => true
+    sfa :ip_type, :attribute => true, :attr_name => 'type'
 
     def self.exclude_from_json
       sup = super
