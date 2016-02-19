@@ -10,4 +10,11 @@
       <xs:attribute name="leaseREF" type="xs:IDREF"/>
     </xs:complexType>
   </xs:element>
+  <xs:element name="position_3d">
+    <xs:complexType>
+      <xs:attribute name="x" use="required"/>
+      <xs:attribute name="y" use="required"/>
+      <xs:attribute name="z" use="required"/>
+    </xs:complexType>
+  </xs:element>
 </xs:schema>

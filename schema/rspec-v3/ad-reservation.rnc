@@ -1,6 +1,6 @@
 default namespace = "http://nitlab.inf.uth.gr/schema/sfa/rspec/1"
 
-start = Lease
+start = Lease|Position
 
 Lease = element lease {
   (attribute leaseID { xsd:ID } &
@@ -9,4 +9,10 @@ Lease = element lease {
   attribute valid_from { xsd:dateTime } &
   attribute valid_until { xsd:dateTime })
   | (attribute leaseREF { xsd:IDREF })
+}
+
+Position = element position_3d {
+  attribute x { text } &
+  attribute y { text } &
+  attribute z { text }
 }
