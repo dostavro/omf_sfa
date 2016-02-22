@@ -92,4 +92,3 @@ module OMF::SFA::Model
     end
   end
 end
-t
