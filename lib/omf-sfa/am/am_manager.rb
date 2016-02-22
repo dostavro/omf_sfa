@@ -303,6 +303,7 @@ module OMF::SFA::AM
       raise InsufficientPrivilegesException unless authorizer.can_modify_lease?(lease)
       lease.update(lease_properties)
       @scheduler.update_lease_events_on_event_scheduler(lease)
+      lease
     end
 
     # cancel +lease+
@@ -700,6 +701,29 @@ module OMF::SFA::AM
 
         resources = resources.concat(channels)
 
+        # if resources.include?(false) # a component failed to be leased because of scheduler lease_component returned false
+        #   resources.delete(false)
+        #   release_resources(resources, authorizer)
+        #   raise UnavailableResourceException.new "One or more resources failed to be allocated"
+        # end
+
+        failed_resources = []
+        resources.each do |res|
+          failed_resources << res if res.kind_of? Hash
+        end
+
+        unless failed_resources.empty?
+          resources.delete_if {|item| failed_resources.include?(item)}
+          urns = []
+          failed_resources.each do |fres|
+            puts 
+            release_resource(fres[:failed], authorizer)
+            urns << fres[:failed].urn
+          end
+          release_resources(resources, authorizer)
+          raise UnavailableResourceException.new "The resources with the following URNs: '#{urns.inspect}' failed to be allocated"
+        end
+
         # TODO: release the unused leases. The leases we have created but we never managed
         # to attach them to a resource because the scheduler denied it.
         if clean_state
@@ -780,7 +804,7 @@ module OMF::SFA::AM
         lease = leases[lease_id]
 
         unless lease.nil? || lease.components.include?(resource)#lease.components.first(:uuid => resource.uuid)
-          @scheduler.lease_component(lease, resource)
+          return {failed: resource} unless @scheduler.lease_component(lease, resource) 
 
           monitoring_el = resource_el.xpath('//xmlns:monitoring')
           unless monitoring_el.empty?
