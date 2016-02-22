@@ -131,7 +131,7 @@ module OMF::SFA::AM::Rest
         # reason.content = ex.to_s
         # reason = root.add_child(Nokogiri::XML::Element.new('bt', doc))
         # reason.content = ex.backtrace.join("\n\t")
-        return [500, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS' }, JSON.pretty_generate(body)]
+        return [500, { "Content-Type" => 'application/json', 'Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS' }, JSON.pretty_generate(body) + "\n"]
       end
     end
 
