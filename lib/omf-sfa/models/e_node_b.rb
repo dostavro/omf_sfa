@@ -24,5 +24,9 @@ module OMF::SFA::Model
       sup = super
       [:leases, :control_ip, :pgw_ip, :mme_ip, :epc, :cmc].concat(sup)
     end
+
+    def self.can_be_managed?
+      true
+    end
   end
 end

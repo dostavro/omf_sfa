@@ -57,5 +57,9 @@ module OMF::SFA::Model
       sup = super
       [:interfaces, :cpus, :cmc, :location, :sliver_type, :leases, :usb_devices].concat(sup)
     end
+
+    def self.can_be_managed?
+      true
+    end
   end
 end

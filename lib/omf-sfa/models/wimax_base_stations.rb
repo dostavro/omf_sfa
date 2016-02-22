@@ -16,5 +16,9 @@ module OMF::SFA::Model
       sup = super
       [:leases].concat(sup)
     end
+
+    def self.can_be_managed?
+      true
+    end
   end
 end

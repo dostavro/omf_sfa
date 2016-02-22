@@ -16,6 +16,7 @@ module OMF::SFA::Model
     sfa :valid_from, :attribute => true
     sfa :valid_until, :attribute => true
     sfa :client_id, :attribute => true
+    sfa :sliver_id, :attribute => true
 
     def self.include_nested_attributes_to_json
       sup = super
@@ -24,12 +25,18 @@ module OMF::SFA::Model
 
     def before_save
       self.status = 'pending' if self.status.nil?
+      self.name = self.uuid if self.name.nil?
       self.valid_until = Time.parse(self.valid_until) if self.valid_until.kind_of? String
       self.valid_from = Time.parse(self.valid_from) if self.valid_from.kind_of? String
       # Get rid of the milliseconds
       self.valid_from = Time.at(self.valid_from.to_i) unless valid_from.nil?
       self.valid_until = Time.at(self.valid_until.to_i) unless valid_until.nil?
       super
+      self.urn = GURN.create(self.name, :type => 'sliver').to_s if GURN.parse(self.urn).type == 'lease'
+    end
+
+    def sliver_id
+      self.urn
     end
 
     def active?
@@ -42,10 +49,10 @@ module OMF::SFA::Model
       values.reject! { |k, v| v.nil?}
       values[:components] = []
       self.components.each do |component|
-        next if component.account.id == 2
+        next if ((self.status == 'active' || self.status == 'accepted') && component.account.id == 2)
         values[:components] << component.to_hash_brief
       end
-      values[:account] = self.account.to_hash_brief
+      values[:account] = self.account ? self.account.to_hash_brief : nil
       excluded = self.class.exclude_from_json
       values.reject! { |k, v| excluded.include?(k)}
       values
@@ -55,5 +62,34 @@ module OMF::SFA::Model
       values[:account] = self.account.to_hash_brief unless self.account.nil?
       super
     end
+
+    def allocation_status
+      return "geni_unallocated" if self.status == 'pending' || self.status == 'cancelled'
+      return "geni_allocated" unless self.status == 'active'
+      ret = 'geni_provisioned'
+      self.components.each do |comp|
+        if comp.resource_type == 'node' && comp.status != 'geni_provisioned'
+          ret = 'geni_allocated'
+          break
+        end
+      end
+      ret
+    end
+
+    def operational_status
+      case self.status
+      when 'pending'
+        "geni_failed"
+      when 'accepted'
+        "geni_pending_allocation"
+      when "active"
+        "geni_ready"
+      when 'cancelled'
+        "geni_unallocated"
+      else
+        self.status
+      end
+    end
   end
 end
+t
