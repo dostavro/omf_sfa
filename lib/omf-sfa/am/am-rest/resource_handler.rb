@@ -40,30 +40,28 @@ module OMF::SFA::AM::Rest
       authenticator = opts[:req].session[:authorizer]
       unless resource_uri.empty?
         resource_type, resource_params = parse_uri(resource_uri, opts)
-        descr = {}
-        # descr.merge!({type: "OMF::SFA::Model::#{resource_type}"}) unless resource_type.nil?  
-        descr.merge!(resource_params) unless resource_params.empty?
-        opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
-        if descr[:name].nil? && descr[:uuid].nil?
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if eval("OMF::SFA::Model::#{resource_type}").can_be_managed?
-          if resource_uri == 'leases'
-            status_types = ["pending", "accepted", "active"] # default value
-            status_types = resource_params[:status].split(',') unless resource_params[:status].nil?
+        if resource_uri == 'leases'
+          status_types = ["pending", "accepted", "active"] # default value
+          status_types = resource_params[:status].split(',') unless resource_params[:status].nil?
 
-            acc_desc = {}
-            acc_desc[:urn] = resource_params[:account_urn] if resource_params[:account_urn]
-            acc_desc[:uuid] = resource_params[:account_uuid] if resource_params[:account_uuid]
-            account = @am_manager.find_account(acc_desc, authenticator) unless acc_desc.empty?
-            
-            resource =  @am_manager.find_all_leases(account, status_types, authenticator)
-          else
-            resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
-          end
-        else
-          descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if eval("OMF::SFA::Model::#{resource_type}").can_be_managed?
-          resource = @am_manager.find_resource(descr, resource_type, authenticator)
+          acc_desc = {}
+          acc_desc[:urn] = resource_params.delete(:account_urn) if resource_params[:account_urn]
+          acc_desc[:uuid] = resource_params.delete(:account_uuid) if resource_params[:account_uuid]
+          account = @am_manager.find_account(acc_desc, authenticator) unless acc_desc.empty?
+          
+          resource =  @am_manager.find_all_leases(account, status_types, authenticator)
           return show_resource(resource, opts)
         end
+        descr = {}
+        descr.merge!(resource_params) unless resource_params.empty?
+        opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
+        descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if eval("OMF::SFA::Model::#{resource_type}").can_be_managed?
+        if descr[:name].nil? && descr[:uuid].nil?
+          resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
+        else
+          resource = @am_manager.find_resource(descr, resource_type, authenticator)
+        end
+        return show_resource(resource, opts)
       else
         debug "list all resources."
         resource = @am_manager.find_all_resources_for_account(opts[:account], authenticator)
