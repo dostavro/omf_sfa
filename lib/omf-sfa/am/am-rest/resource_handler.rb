@@ -49,7 +49,13 @@ module OMF::SFA::AM::Rest
           if resource_uri == 'leases'
             status_types = ["pending", "accepted", "active"] # default value
             status_types = resource_params[:status].split(',') unless resource_params[:status].nil?
-            resource =  @am_manager.find_all_leases(nil, status_types, authenticator)
+
+            acc_desc = {}
+            acc_desc[:urn] = resource_params[:account_urn] if resource_params[:account_urn]
+            acc_desc[:uuid] = resource_params[:account_uuid] if resource_params[:account_uuid]
+            account = @am_manager.find_account(acc_desc, authenticator) unless acc_desc.empty?
+            
+            resource =  @am_manager.find_all_leases(account, status_types, authenticator)
           else
             resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
           end
