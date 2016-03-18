@@ -1,0 +1,41 @@
+# Policies Module Configuration. 
+# enabled: true/false will enable/disable the module (false will pass all policy tests)
+# timeslot_size: the timeslot size in minutes
+# policies_per_domain: specific policy per domain
+#   domain:        domain name (taken from the account URN domain)(DEFAULT domain will set a default policy for domain that don't exist )
+#   max_minutes:   daily upper limit on total duration of reservations for each account of the domain (-1 for infinite)
+#   max_resources: daily upper limit on total resources contained in reservations for each account of the domain (-1  for infinite)
+# policies_per_urn: specific policy per account URN
+#   urn:           account URN
+#   max_minutes:   daily upper limit on total duration of reservations for a specific account (-1 for infinite)
+#   max_resources: daily upper limit on total resources contained in reservations for a specific account (-1  for infinite)
+policies:
+    enabled: false
+    timeslot_size: 30
+    policies_per_domain:
+      -
+        domain: omf:testserver
+        quota:
+            max_minutes:   240
+            max_resources: 5
+      -
+        domain: geni:gpo:gcf
+        quota:
+            max_minutes:   200
+            max_resources: 4
+      -
+        domain: DEFAULT
+        quota:
+            max_minutes:   -1
+            max_resources: -1
+    policies_per_urn:
+      -
+        urn: urn:publicid:IDN+omf:testserver+account+ardadouk
+        quota:
+            max_minutes:   240
+            max_resources: 10
+      -
+        domain: urn:publicid:IDN+geni:gpo:gcf+slice+testSlice
+        quota:
+            max_minutes:   200
+            max_resources: 4

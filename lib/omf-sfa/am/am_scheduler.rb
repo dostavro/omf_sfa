@@ -16,6 +16,8 @@ module OMF::SFA::AM
 
     @@mapping_hook = nil
 
+    attr_reader :event_scheduler
+
     # Create a resource of specific type given its description in a hash. We create a clone of itself 
     # and assign it to the user who asked for it (conceptually a physical resource even though it is exclusive,
     # is never given to the user but instead we provide him a clone of the resource).
@@ -135,8 +137,12 @@ module OMF::SFA::AM
 
       parent = component.parent
 
+      return false unless @@am_policies.valid?(lease, component)
+      # @@am_policies.validate(lease, component)
+
       if component_available?(component, lease.valid_from, lease.valid_until)
-        lease.status = "accepted"
+        time = Time.now
+        lease.status = time > lease.valid_until ? "past" : time <= lease.valid_until && time >= lease.valid_from ? "active" : "accepted" 
         parent.add_lease(lease)   
         component.add_lease(lease)
         lease.save
@@ -197,14 +203,22 @@ module OMF::SFA::AM
 
       if (mopts = opts[:mapping_submodule]) && (opts[:mapping_submodule][:require]) && (opts[:mapping_submodule][:constructor])
         require mopts[:require] if mopts[:require]
-        unless mconstructor = mopts[:constructor]
-          raise "Missing PDP provider declaration."
-        end
+        raise "Missing Mapping Submodule provider declaration." unless mconstructor = mopts[:constructor]
         @@mapping_hook = eval(mconstructor).new(opts)
       else
         debug "Loading default Mapping Submodule."
         require 'omf-sfa/am/mapping_submodule'
         @@mapping_hook = MappingSubmodule.new(opts)
+      end
+
+      if (popts = opts[:am_policies]) && (opts[:am_policies][:require]) && (opts[:am_policies][:constructor])
+        require popts[:require] if popts[:require]
+        raise "Missing AM Policies Module provider declaration." unless pconstructor = popts[:constructor]
+        @@am_policies = eval(pconstructor).new(opts)
+      else
+        debug "Loading default Policies Module."
+        require 'omf-sfa/am/am_policies'
+        @@am_policies = AMPolicies.new(opts)
       end
       #@am_liaison = OMF::SFA::AM::AMLiaison.new
     end
@@ -219,6 +233,14 @@ module OMF::SFA::AM
       end
 
       list_all_event_scheduler_jobs
+    end
+
+    def am_policies=(policy)
+      @@am_policies = policy
+    end
+
+    def am_policies
+      @@am_policies
     end
 
     def add_lease_events_on_event_scheduler(lease)

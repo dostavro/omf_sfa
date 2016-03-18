@@ -13,7 +13,7 @@ module OMF::SFA::AM
     include OmfCommon
     include OmfCommon::Auth
 
-    attr_accessor :comm
+    attr_accessor :comm, :am_manager, :am_scheduler
     @leases = {}
 
     def initialize

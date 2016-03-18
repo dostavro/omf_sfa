@@ -218,4 +218,9 @@ if @@config[:am_liaison]
   opts[:am_liaison][:require] = @@config[:am_liaison][:require]
   opts[:am_liaison][:constructor] =  @@config[:am_liaison][:constructor]
 end
+if @@config[:am_policies]
+  opts[:am_policies] = {}
+  opts[:am_policies][:require] = @@config[:am_policies][:require]
+  opts[:am_policies][:constructor] =  @@config[:am_policies][:constructor]
+end
 OMF::SFA::AM::AMServer.new.run(opts)

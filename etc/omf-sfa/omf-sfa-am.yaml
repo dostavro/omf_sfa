@@ -36,3 +36,7 @@ omf_sfa_am:
   am_liaison:
       require: omf-sfa/am/nitos_am_liaison
       constructor: OMF::SFA::AM::NitosAMLiaison
+
+  am_policies:
+      require: omf-sfa/am/am_policies
+      constructor: OMF::SFA::AM::AMPolicies
