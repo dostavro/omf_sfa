@@ -36,5 +36,17 @@ module OMF::SFA::Model
       end
       sup
     end
+
+    def available_now?
+      return false unless self.available
+
+      parent = self.parent ? self.parent : self
+
+      t_now = Time.now
+      parent.leases.each do |l|
+        return false if l.valid_from <= t_now && l.valid_until >= t_now
+      end
+      true
+    end
   end #Class
 end #OMF::SFA::Model

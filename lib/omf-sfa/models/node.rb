@@ -18,7 +18,7 @@ module OMF::SFA::Model
     sfa_class 'node'
     sfa :client_id, :attribute => true
     sfa :hardware_type, :attr_value => 'name'
-    sfa :available, :attr_value => 'now'  # <available now="true">
+    sfa :availability, :attr_value => 'now', :attr_name => 'available'  # <available now="true">
     sfa :sliver_type, :inline => true
     sfa :interfaces, :inline => true, :has_many => true
     sfa :exclusive, :attribute => true
@@ -33,6 +33,10 @@ module OMF::SFA::Model
       gateway = self.parent.gateway
       el = "<login authentication=\"ssh-keys\" hostname=\"#{gateway}\" port=\"22\" username=\"#{self.account.name}\"/>"
       Nokogiri::XML(el).child
+    end
+
+    def availability
+      self.available_now?
     end
 
     attr_accessor :monitoring

@@ -109,7 +109,7 @@ module OMF::SFA::AM::RPC
         comps = @manager.find_all_components_for_account(@manager._get_nil_account, authorizer)
         if only_available
           debug "only_available flag is true!"
-          comps.delete_if {|c| !c.available}
+          comps.delete_if {|c| !c.available_now?}
         end
         resources.concat(comps)
         res = OMF::SFA::Model::Component.sfa_response_xml(resources, type: 'advertisement').to_xml
