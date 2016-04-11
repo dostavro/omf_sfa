@@ -25,7 +25,7 @@ module OMF::SFA::AM::Rest
         :code => err_code,
         :reason => reason
       }}
-      @reply = [err_code, { 'Content-Type' => 'text/json', 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body.to_json]
+      @reply = [err_code, { 'Content-Type' => 'text/json', 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, JSON.pretty_generate(body) + "\n"]
     end
 
   end
@@ -98,23 +98,22 @@ module OMF::SFA::AM::Rest
           }, ""]
         end
         content_type, body = dispatch(req)
-        #return [200 ,{'Content-Type' => 'application/json'}, JSON.pretty_generate(body)]
         return [200 ,{ 'Content-Type' => content_type, 'Access-Control-Allow-Origin' => '*' , 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS' }, body]
       rescue RackException => rex
         debug rex.to_s
-        debug rex.backtrace.join("\n")
+        # debug rex.backtrace.join("\n")
         return rex.reply
       rescue OMF::SFA::AM::InsufficientPrivilegesException => iex
         debug iex.to_s
-        debug iex.backtrace.join("\n")
+        # debug iex.backtrace.join("\n")
         return RackException.new(401, iex.to_s).reply
       rescue OMF::SFA::AM::AMManagerException => mex
         debug mex.to_s
-        debug mex.backtrace.join("\n")
+        # debug mex.backtrace.join("\n")
         return RackException.new(400, mex.to_s).reply
       rescue ArgumentError => aex
         debug aex.to_s
-        debug aex.backtrace.join("\n")
+        # debug aex.backtrace.join("\n")
         return RackException.new(400, aex.to_s).reply
       rescue Exception => ex
         body = {
