@@ -836,6 +836,12 @@ module OMF::SFA::AM
       #     resource.update_from_xml(resource_el, authorizer)
       #   end
       # end
+      sliver_type_el = resource_el.xpath('//xmlns:sliver_type')
+      unless sliver_type_el.empty?
+        sliver_type = OMF::SFA::Model::SliverType.first({name: sliver_type_el.first['name']})
+        resource.sliver_type = sliver_type
+      end
+
       resource.save
       resource
 
