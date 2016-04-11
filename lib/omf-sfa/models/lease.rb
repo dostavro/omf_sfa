@@ -68,6 +68,7 @@ module OMF::SFA::Model
       return "geni_allocated" unless self.status == 'active'
       ret = 'geni_provisioned'
       self.components.each do |comp|
+        next if comp.parent.nil?
         if comp.resource_type == 'node' && comp.status != 'geni_provisioned'
           ret = 'geni_allocated'
           break
@@ -85,6 +86,8 @@ module OMF::SFA::Model
       when "active"
         "geni_ready"
       when 'cancelled'
+        "geni_unallocated"
+      when 'passed'
         "geni_unallocated"
       else
         self.status
