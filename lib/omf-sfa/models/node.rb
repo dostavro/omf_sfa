@@ -17,6 +17,7 @@ module OMF::SFA::Model
 
     sfa_class 'node'
     sfa :client_id, :attribute => true
+    sfa :sliver_id, :attribute => true
     sfa :hardware_type, :attr_value => 'name'
     sfa :availability, :attr_value => 'now', :attr_name => 'available'  # <available now="true">
     sfa :sliver_type, :inline => true
@@ -45,6 +46,12 @@ module OMF::SFA::Model
       return nil unless @monitoring
       el = "<oml_info oml_url=\"#{@monitoring[:oml_url]}\" domain=\"#{@monitoring[:domain]}\">"
       Nokogiri::XML(el).child
+    end
+
+    def sliver_id
+      return nil if self.parent.nil?
+      return nil if self.leases.nil? || self.leases.empty?
+      self.leases.first.urn
     end
 
     def before_save
