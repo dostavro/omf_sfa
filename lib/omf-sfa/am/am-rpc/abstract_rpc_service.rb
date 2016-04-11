@@ -25,7 +25,7 @@ module OMF::SFA::AM::RPC
     # parameters.
     #
     def self.implement(api)
-      @@mappings ||= {}
+      @mappings ||= {}
       api.api_description.each do |m|
         wrapper_name = "_wrapper_#{m.method_name}".to_sym
         self.send(:define_method, wrapper_name) do |*args|
@@ -47,13 +47,13 @@ module OMF::SFA::AM::RPC
           end
         end
         #puts "API: map #{m.rpc_name} to #{wrapper_name}"
-        @@mappings[m.rpc_name.to_s] = wrapper_name
+        @mappings[m.rpc_name.to_s] = wrapper_name
       end
     end
 
     def self.rpc(mappings = nil)
       raise "Unexpected argument '#{mappings}' for rpc" if mappings
-      @@mappings
+      @mappings
     end
   end # AbstractService
 
