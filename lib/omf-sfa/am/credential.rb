@@ -45,6 +45,7 @@ module OMF::SFA::AM
     # </signed-credential>
 
     def self.unmarshall(xml_text)
+      xml_text = xml_text["geni_value"] if xml_text.kind_of?(Hash)
       signer_urn = verify_signed_xml(xml_text)
       cred = Nokogiri::XML.parse(xml_text)
       unless cred.root.name == 'signed-credential'
