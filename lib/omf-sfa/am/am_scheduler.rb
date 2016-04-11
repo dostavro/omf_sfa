@@ -247,32 +247,32 @@ module OMF::SFA::AM
       debug "add_lease_events_on_event_scheduler: lease: #{lease.inspect}"
       t_now = Time.now
       l_uuid = lease.uuid
-      if t_now > lease.valid_until
+      if t_now >= lease.valid_until
         release_lease(lease)
         return
       end
-      if t_now > lease.valid_from # the lease is active - create only the on_lease_end event
+      if t_now >= lease.valid_from # the lease is active - create only the on_lease_end event
         lease.status = 'active'
         lease.save
-        @event_scheduler.at(lease.valid_until, tag: "#{l_uuid}_end") do
-          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid) #we need to refresh the lease, because it might have changed in the midtime.
-          lease.status = 'past'
-          lease.save
-          @liaison.on_lease_end(lease)
+        @event_scheduler.in('0.1s', tag: "#{l_uuid}_start") do
+          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid)
+          break if lease.nil?
+          @liaison.on_lease_start(lease)
         end
       else
         @event_scheduler.at(lease.valid_from, tag: "#{l_uuid}_start") do
           lease = OMF::SFA::Model::Lease.first(uuid: l_uuid)
+          break if lease.nil?
           lease.status = 'active'
           lease.save
           @liaison.on_lease_start(lease)
         end
-        @event_scheduler.at(lease.valid_until, tag: "#{l_uuid}_end") do
-          lease = OMF::SFA::Model::Lease.first(uuid: l_uuid) 
-          lease.status = 'past'
-          lease.save
-          @liaison.on_lease_end(lease)
-        end
+      end
+      @event_scheduler.at(lease.valid_until, tag: "#{l_uuid}_end") do
+        lease = OMF::SFA::Model::Lease.first(uuid: l_uuid) 
+        lease.status = 'past'
+        lease.save
+        @liaison.on_lease_end(lease)
       end
     end
 
