@@ -73,13 +73,6 @@ module OMF::SFA::AM::RPC
         @return_struct[:output] = "'geni_rspec_version' argument is missing."
         @return_struct[:value] = ''
         return @return_struct
-        #ans = {
-        #  :code => {
-        #    :geni_code => 1 # Bad Arguments
-        #  },
-        #  :output => "'geni_rspec_version' argument is missing."
-        #}
-        #return ans
       end
       unless rspec_version["type"].downcase.eql?("geni") && (rspec_version["version"].eql?("3.0") ||
                                                              rspec_version["version"].eql?("3"))
@@ -87,13 +80,6 @@ module OMF::SFA::AM::RPC
         @return_struct[:output] = "'Version' or 'Type' of RSpecs are not the same with what 'GetVersion' returns."
         @return_struct[:value] = ''
         return @return_struct
-        #ans = {
-        #  :code => {
-        #    :geni_code => 4 # Bad Version
-        #  },
-        #  :output => "'Version' or 'Type' of RSpecs are not the same with that 'GetVersion' returns."
-        #}
-        #return ans
       end
 
       authorizer = OMF::SFA::AM::RPC::AMAuthorizer.create_for_sfa_request(slice_urn, credentials, @request, @manager)
@@ -124,25 +110,11 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = res
       @return_struct[:output] = ''
       return @return_struct
-
-      #{
-      #  :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => res
-      #}
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
       @return_struct[:value] = ''
       return @return_struct
-
-      #{
-      #  :code => {
-      #    :geni_code => 3
-      #  },
-      #  :output => e
-      #}
     end
 
     def create_sliver(slice_urn, credentials, rspec_s, users, options)
@@ -202,12 +174,6 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = res
       @return_struct[:output] = ''
       return @return_struct
-
-      #{ :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => res
-      #}
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
@@ -222,6 +188,12 @@ module OMF::SFA::AM::RPC
     rescue OMF::SFA::AM::FormatException => e
       debug('CreateSliver Exception', e.to_s)
       @return_struct[:code][:geni_code] = 4 # Bad Version
+      @return_struct[:output] = e.to_s
+      @return_struct[:value] = ''
+      return @return_struct
+    rescue OMF::SFA::AM::UnavailableResourceException => e
+      debug('CreateSliver Exception', e.to_s)
+      @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
       @return_struct[:value] = ''
       return @return_struct
@@ -290,12 +262,6 @@ module OMF::SFA::AM::RPC
       @return_struct[:code][:geni_code] = 0
       @return_struct[:output] = ''
       return @return_struct
-
-      #{ :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => status
-      #}
     rescue OMF::SFA::AM::InsufficientPrivilegesException => e
       @return_struct[:code][:geni_code] = 3
       @return_struct[:output] = e.to_s
@@ -328,12 +294,6 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = true
       @return_struct[:output] = ''
       return @return_struct
-
-      #{ :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => true
-      #}
     rescue OMF::SFA::AM::UnavailableResourceException => e
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
@@ -367,12 +327,6 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = true
       @return_struct[:output] = ''
       return @return_struct
-
-      #{ :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => true
-      #}
     rescue OMF::SFA::AM::UnavailableResourceException => e
       @return_struct[:code][:geni_code] = 12 # Search Failed
       @return_struct[:output] = e.to_s
@@ -398,12 +352,6 @@ module OMF::SFA::AM::RPC
       @return_struct[:value] = true
       @return_struct[:output] = ''
       return @return_struct
-
-      #{ :code => {
-      #    :geni_code => 0
-      #  },
-      #  :value => true
-      #}
     end
 
     private
@@ -420,10 +368,5 @@ module OMF::SFA::AM::RPC
         :output => ''
       }
     end
-
   end # AMService
-
 end # module
-
-
-
