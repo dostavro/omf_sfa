@@ -16,8 +16,11 @@ module OMF::SFA::AM
     attr_accessor :comm
     @leases = {}
 
-    def initialize
+    def initialize(opts)
       @config = OMF::Common::YAML.load('am_liaison_conf', :path => [File.dirname(__FILE__) + '/../../../etc/omf-sfa'])[:am_liaison]
+      
+      @am_manager = opts[:am][:manager]
+      @am_scheduler = @am_manager.get_scheduler
  
       EM.next_tick do
         OmfCommon.comm.on_connected do |comm|
@@ -27,35 +30,39 @@ module OMF::SFA::AM
     end
 
     def create_account(account)
-      warn "Am liason: create_account: Not implemented."
+      warn "Am liaison: create_account: Not implemented."
     end
 
     def close_account(account)
-      warn "Am liason: close_account: Not implemented."
+      warn "Am liaison: close_account: Not implemented."
     end
 
     def configure_keys(keys, account)
-      warn "Am liason: configure_keys: Not implemented."
+      warn "Am liaison: configure_keys: Not implemented."
     end
 
     def create_resource(resource, lease, component)
-      warn "Am liason: create_resource: Not implemented."
+      warn "Am liaison: create_resource: Not implemented."
     end
 
     def release_resource(resource, new_res, lease, component)
-      warn "Am liason: release_resource: Not implemented."
+      warn "Am liaison: release_resource: Not implemented."
     end
 
     def start_resource_monitoring(resource, lease, oml_uri=nil)
-      warn "Am liason: start_resource_monitoring: Not implemented."
+      warn "Am liaison: start_resource_monitoring: Not implemented."
     end
 
     def on_lease_start(lease)
-      warn "Am liason: on_lease_start: Not implemented."
+      warn "Am liaison: on_lease_start: Not implemented."
     end
 
     def on_lease_end(lease)
-      warn "Am liason: on_lease_end: Not implemented."
+      warn "Am liaison: on_lease_end: Not implemented."
+    end
+
+    def provision(leases)
+      warn "Am liaison: on_provision: Not implemented."
     end
   end # DefaultAMLiaison
 end # OMF::SFA::AM
