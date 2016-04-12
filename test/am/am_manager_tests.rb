@@ -358,6 +358,7 @@ class AMManager < MiniTest::Test
     scheduler.expect :modify_lease_events_from_event_scheduler, nil, [OMF::SFA::Model::Lease]
     scheduler.expect :add_lease_events_on_event_scheduler, nil, [OMF::SFA::Model::Lease]
     scheduler.expect :remove_lease_events_from_event_scheduler, nil, [OMF::SFA::Model::Lease]
+    scheduler.expect :update_lease_events_on_event_scheduler, nil, [OMF::SFA::Model::Lease]
     scheduler.expect :list_all_event_scheduler_jobs, nil, []
     scheduler.expect :event_scheduler, Minitest::Mock.new, []
     scheduler.expect :event_scheduler=, Minitest::Mock.new, [Minitest::Mock]

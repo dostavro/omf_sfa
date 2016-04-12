@@ -53,6 +53,8 @@ class AMScheduler < MiniTest::Test
   end
 
   def test_tha_can_lease_a_component_1
+    @scheduler.am_policies = Minitest::Mock.new
+    @scheduler.am_policies.expect :valid?, true, [OMF::SFA::Model::Lease, OMF::SFA::Model::Node]
     account1 = OMF::SFA::Model::Account.create(name: 'account1')
     account2 = OMF::SFA::Model::Account.create(name: 'account2')
     parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
@@ -68,6 +70,8 @@ class AMScheduler < MiniTest::Test
   end
 
   def test_tha_can_lease_a_component_2
+    @scheduler.am_policies = Minitest::Mock.new
+    @scheduler.am_policies.expect :valid?, true, [OMF::SFA::Model::Lease, OMF::SFA::Model::Node]
     account1 = OMF::SFA::Model::Account.create(name: 'account1')
     account2 = OMF::SFA::Model::Account.create(name: 'account2')
     parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
@@ -87,6 +91,8 @@ class AMScheduler < MiniTest::Test
   end
 
   def test_that_cannot_lease_a_component_that_is_already_leased_1
+    @scheduler.am_policies = Minitest::Mock.new
+    @scheduler.am_policies.expect :valid?, true, [OMF::SFA::Model::Lease, OMF::SFA::Model::Node]
     account1 = OMF::SFA::Model::Account.create(name: 'account1')
     account2 = OMF::SFA::Model::Account.create(name: 'account2')
     parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
@@ -105,6 +111,8 @@ class AMScheduler < MiniTest::Test
   end
 
   def test_that_cannot_lease_a_component_that_is_already_leased_2
+    @scheduler.am_policies = Minitest::Mock.new
+    @scheduler.am_policies.expect :valid?, true, [OMF::SFA::Model::Lease, OMF::SFA::Model::Node]
     account1 = OMF::SFA::Model::Account.create(name: 'account1')
     account2 = OMF::SFA::Model::Account.create(name: 'account2')
     parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
@@ -116,6 +124,26 @@ class AMScheduler < MiniTest::Test
 
     child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
     lease2 = OMF::SFA::Model::Lease.create(name: 'lease2', valid_from: '2014-12-23T14:00:00+02:00', valid_until: '2014-12-23T18:00:00+02:00')
+
+    refute @scheduler.lease_component(lease2, child)
+    assert_equal 1, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.count
+    assert_empty OMF::SFA::Model::Node.first(name: 'node1', account_id: account2.id, parent_id: parent.id).leases
+  end
+
+  def test_that_cannot_lease_a_component_that_is_already_leased_3
+    @scheduler.am_policies = Minitest::Mock.new
+    @scheduler.am_policies.expect :valid?, true, [OMF::SFA::Model::Lease, OMF::SFA::Model::Node]
+    account1 = OMF::SFA::Model::Account.create(name: 'account1')
+    account2 = OMF::SFA::Model::Account.create(name: 'account2')
+    parent = OMF::SFA::Model::Node.create(name: 'node1', account_id: account1.id)
+    
+    t1 = Time.parse('2014-12-23T15:00:00+02:00')
+    t2 = Time.parse('2014-12-23T17:00:00+02:00')
+    lease1 = OMF::SFA::Model::Lease.create(name: 'lease1', valid_from: t1, valid_until: t2, status: 'accepted')
+    lease1.add_component(parent)
+
+    child = OMF::SFA::Model::Node.create(name: 'node1', account_id: account2.id, parent_id: parent.id)
+    lease2 = OMF::SFA::Model::Lease.create(name: 'lease2', valid_from: t1, valid_until: t2)
 
     refute @scheduler.lease_component(lease2, child)
     assert_equal 1, OMF::SFA::Model::Node.first(name: 'node1', account_id: account1.id).leases.count

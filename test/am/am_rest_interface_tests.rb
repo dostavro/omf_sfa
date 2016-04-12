@@ -84,36 +84,6 @@ class AMRestInterface < MiniTest::Test
     authorizer.verify
   end
 
-  def test_it_can_list_accounts_based_on_user_param
-    a = OMF::SFA::Model::Account.create({:name => 'a1'})
-    u = OMF::SFA::Model::User.create({:name => 'u1', :account => a})
-
-    opts = {}
-    opts[:req] = MiniTest::Mock.new
-    opts[:req].expect(:params, {user: "u1"})
-    4.times {opts[:req].expect(:path, "/resources/accounts")}
-
-    authorizer = MiniTest::Mock.new
-    # 5.times {authorizer.expect(:can_view_resource?, true, [Object])}
-    1.times {authorizer.expect(:user, "u1")}
-    2.times {authorizer.expect(:can_view_account?, true, [OMF::SFA::Model::Account])}
-    2.times {opts[:req].expect(:session, {authorizer: authorizer})}
-    2.times {opts[:req].expect(:env, {"REQUEST_PATH" => "/resources"})}
-
-    type, json = @rest.on_get('accounts', opts)
-    assert_instance_of String, type
-    assert_equal type, "application/json"
-    assert_instance_of String, json
-
-    accounts = JSON.parse(json)["resource_response"]["resources"]
-    assert_instance_of Array, accounts
-    account = accounts.first
-    assert_equal account["name"], "a1"
-
-    opts[:req].verify
-    authorizer.verify
-  end
-
   def test_it_can_create_a_new_resource 
     opts = {}
     opts[:req] = MiniTest::Mock.new
@@ -475,6 +445,43 @@ class AMRestInterface < MiniTest::Test
     authorizer.verify
   end
 
+  def test_it_wont_lease_a_already_leased_component
+    r = OMF::SFA::Model::Node.create({:name => 'r1'})
+    @manager.manage_resource(r)
+    
+    @scheduler.event_scheduler = Minitest::Mock.new
+    1.times {@scheduler.event_scheduler.expect :jobs, [], []}
+    1.times {@scheduler.event_scheduler.expect :add_lease_events_on_event_scheduler, [], [OMF::SFA::Model::Lease]}
+    1.times {@scheduler.event_scheduler.expect :at, nil, [Object, Object]}
+    a = OMF::SFA::Model::Account.create(:name => 'account1')
+    time1 = Time.now + 100
+    time2 = time1 + 200
+    l = OMF::SFA::Model::Lease.create({:name => 'l1', :valid_from => time1, :valid_until => time2, :account_id => a.id, :status => 'accepted'})
+    l.add_component r
+    l_json = "{ \"name\": \"l2\", \"valid_from\": \"#{time1}\", \"valid_until\": \"#{time2}\", \"account\":{\"name\": \"account1\"}, \"components\":[{\"name\": \"r1\"},{\"name\":\"r2\"}]}"
+
+    opts = {}
+    opts[:req] = MiniTest::Mock.new
+    opts[:req].expect(:params, {})
+    2.times {opts[:req].expect(:path, "/resources/leases")}
+    opts[:req].expect(:body, l_json)
+    2.times {opts[:req].expect(:content_type, 'application/json')}
+    3.times {opts[:req].expect(:env, {"REQUEST_PATH" => "/resources/leases"})}
+
+    authorizer = MiniTest::Mock.new
+    3.times {authorizer.expect(:can_create_resource?, true, [Object, Object])}
+    1.times {authorizer.expect(:can_release_resource?, true, [Object])}
+    3.times {authorizer.expect(:account, a, [])}
+    1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    assert_raises OMF::SFA::AM::Rest::NotAuthorizedException do
+        @rest.on_post('leases', opts)
+    end
+
+    opts[:req].verify
+    authorizer.verify
+  end
+
   def test_it_can_update_a_lease 
     r = OMF::SFA::Model::Node.create({:name => 'r1'})
     @manager.manage_resource(r)
@@ -562,7 +569,7 @@ class AMRestInterface < MiniTest::Test
     authorizer.verify
   end
 
-  def test_it_can_create_an_account 
+  def test_it_can_create_an_account
     l_json = "{ \"name\": \"ac_name\" }"
 
     opts = {}
@@ -576,6 +583,9 @@ class AMRestInterface < MiniTest::Test
     authorizer = MiniTest::Mock.new
     3.times {authorizer.expect(:can_create_resource?, true, [Object, Object])}
     1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    @manager.liaison = Minitest::Mock.new
+    1.times {@manager.liaison.expect(:create_account, nil, [Object])}
 
     type, json = @rest.on_post('accounts', opts)
     assert_instance_of String, type
@@ -647,6 +657,9 @@ class AMRestInterface < MiniTest::Test
     1.times {authorizer.expect(:can_modify_resource?, true, [Object, Object])}
     2.times {authorizer.expect(:can_view_resource?, true, [Object])}
     1.times {opts[:req].expect(:session, {authorizer: authorizer})}
+
+    @manager.liaison = Minitest::Mock.new
+    1.times {@manager.liaison.expect(:configure_keys, nil, [Object, Object])}
 
     require 'omf-sfa/am/am-rest/resource_association_handler'
     rest = OMF::SFA::AM::Rest::ResourceAssociationHandler.new(@manager)
