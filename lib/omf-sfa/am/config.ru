@@ -2,6 +2,7 @@
 
 #RPC_URL = '/rpc'
 RPC_URL = '/RPC2'
+RPC_URL_V3 = '/RPC3'
 
 REQUIRE_LOGIN = false
 
@@ -30,11 +31,10 @@ am_sched = am_mgr.get_scheduler
 am_liaison = nil
 if opts[:am_liaison]
   require opts[:am_liaison][:require]
-  puts "#{opts[:am_liaison].inspect}"
-  am_liaison = eval(opts[:am_liaison][:constructor]).new
+  am_liaison = eval(opts[:am_liaison][:constructor]).new(opts)
 else
   require 'omf-sfa/am/default_am_liaison'
-  am_liaison = OMF::SFA::AM::DefaultAMLiaison.new
+  am_liaison = OMF::SFA::AM::DefaultAMLiaison.new(opts)
 end
 am_mgr.liaison = am_liaison
 am_sched.liaison = am_liaison
@@ -49,6 +49,18 @@ map RPC_URL do
   require 'omf-sfa/am/am-rpc/am_rpc_service'
   require 'builder' # otherwise rack-rpc-0.0.6/lib/rack/rpc/endpoint/xmlrpc.rb:85 raises an uninitialized error message
   service = OMF::SFA::AM::RPC::AMService.new({:manager => am_mgr, :liaison => am_liaison})
+
+  app = lambda do |env|
+    [404, {"Content-Type" => "text/plain"}, ["Not found"]]
+  end
+
+  run Rack::RPC::Endpoint.new(app, service, :path => '')
+end
+
+map RPC_URL_V3 do
+  require 'omf-sfa/am/am-rpc/v3/am_rpc_service'
+  require 'builder' # otherwise rack-rpc-0.0.6/lib/rack/rpc/endpoint/xmlrpc.rb:85 raises an uninitialized error message
+  service = OMF::SFA::AM::RPC::V3::AMService.new({:manager => am_mgr, :liaison => am_liaison})
 
   app = lambda do |env|
     [404, {"Content-Type" => "text/plain"}, ["Not found"]]
@@ -87,6 +99,17 @@ map "/mapper" do
   # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
   # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
   run OMF::SFA::AM::Rest::MappingHandler.new(opts[:am][:manager], opts)
+end
+
+map "/actions" do 
+  use OMF::SFA::AM::Rest::SessionAuthenticator, #:expire_after => 10,
+          :login_url => (REQUIRE_LOGIN ? '/login' : nil),
+          :no_session => ['^/$', "^#{RPC_URL}", '^/login', '^/logout', '^/readme', '^/assets'],
+          :am_manager => am_mgr
+  require 'omf-sfa/am/am-rest/actions_handler'
+  # account = opts[:am_mgr].get_default_account()  # TODO: Is this still needed?
+  # run OMF::SFA::AM::Rest::ResourceHandler.new(opts[:am][:manager], opts.merge({:account => account}))
+  run OMF::SFA::AM::Rest::ActionsHandler.new(opts[:am][:manager], opts)
 end
 
 if REQUIRE_LOGIN
