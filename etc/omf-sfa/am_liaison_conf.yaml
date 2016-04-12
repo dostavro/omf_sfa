@@ -1,4 +1,20 @@
 
 am_liaison:
-  nagios_url: http://10.64.86.230:4567
-  default_oml_url: tcp:nitlab.inf.uth.gr:3003
+  nagios_url: http://NAGIOS_IP:PORT
+  default_oml_url: OML_URL
+
+  provision:
+    default_sliver_type_urn: URN
+
+  REST_end_points:
+    -
+      domain: omf:domain
+      url: http://CMC_IP:PORT
+      user: USERNAME
+      token: TOKEN
+
+    -
+      domain: DEFAULT
+      url: http://CMC_IP:PORT
+      user: USERNAME
+      token: TOKEN
