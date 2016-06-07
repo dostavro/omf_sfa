@@ -15,5 +15,10 @@ module OMF::SFA::Model
     #   sup = super
     #   [].concat(sup)
     # end
+    def to_hash_brief
+      values[:config_method] = self.config_method
+      values[:imsi] = self.imsi
+      super
+    end
   end
 end
