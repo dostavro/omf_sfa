@@ -1,0 +1,20 @@
+default namespace = "http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1"
+
+include "../rspec-v3/common.rnc"
+
+start = eNodeb
+
+eNodeb = element e_node_b {
+  attribute base_model { text } &
+  attribute center_dl_frequency { text } &
+  attribute center_ul_frequency { text } &
+  attribute channel_bandwidth { text } &
+  attribute mme_sctp_port { xsd:integer } &
+  attribute number_of_antennas { xsd:integer } &
+  attribute mode { text } &
+  attribute tx_power { text } &
+  attribute vendor { text } &
+  element control_ip { InterfaceContents } &
+  element mme_ip { InterfaceContents } &
+  element pgw_ip { InterfaceContents } 
+}

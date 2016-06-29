@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  
+  GENIPUBLIC-COPYRIGHT
+  Copyright (c) 2011 University of Utah and the Flux Group.
+  All rights reserved.
+  
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and/or hardware specification (the "Work") to
+  deal in the Work without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Work, and to permit persons to whom the Work
+  is furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Work.
+  
+  THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS
+  IN THE WORK.
+-->
+<!--
+  
+  Common definitions for advertisements, requests, etc
+  Version 3
+  
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://www.geni.net/resources/rspec/3" xmlns:lte="http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1" xmlns:rspec="http://www.geni.net/resources/rspec/3">
+  <xs:include schemaLocation="any-extension.xsd"/>
+  <xs:import namespace="http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1" schemaLocation="ad.xsd"/>
+  <xs:element name="rspec" type="rspec:RSpecContents"/>
+  <xs:complexType name="RSpecContents">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:element ref="rspec:node"/>
+      <xs:element ref="rspec:link"/>
+    </xs:choice>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="generated" type="xs:dateTime"/>
+    <xs:attribute name="generated_by"/>
+    <xs:attribute name="expires" type="xs:dateTime"/>
+  </xs:complexType>
+  <xs:element name="node" type="rspec:NodeContents"/>
+  <xs:element name="link" type="rspec:LinkContents"/>
+  <xs:complexType name="NodeContents">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:element ref="rspec:relation"/>
+      <xs:element ref="rspec:location"/>
+      <xs:element ref="rspec:services"/>
+      <xs:element ref="rspec:interface"/>
+    </xs:choice>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+  </xs:complexType>
+  <xs:element name="relation" type="rspec:RelationContents"/>
+  <xs:element name="location" type="rspec:LocationContents"/>
+  <xs:element name="services" type="rspec:ServiceContents"/>
+  <xs:element name="interface" type="rspec:InterfaceContents"/>
+  <xs:complexType name="ServiceContents">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:element ref="rspec:login"/>
+    </xs:choice>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+  </xs:complexType>
+  <xs:element name="login" type="rspec:LoginServiceContents"/>
+  <xs:complexType name="LoginServiceContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="authentication" use="required"/>
+    <xs:attribute name="hostname"/>
+    <xs:attribute name="port"/>
+  </xs:complexType>
+  <xs:complexType name="RelationContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="type" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="LocationContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="country" use="required"/>
+    <xs:attribute name="longitude"/>
+    <xs:attribute name="latitude"/>
+  </xs:complexType>
+  <xs:complexType name="InterfaceContents">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:element ref="rspec:ip"/>
+    </xs:choice>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+  </xs:complexType>
+  <xs:element name="ip" type="rspec:IpContents"/>
+  <xs:complexType name="IpContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="address" use="required"/>
+    <xs:attribute name="netmask"/>
+    <xs:attribute name="type"/>
+  </xs:complexType>
+  <xs:complexType name="LinkContents">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:element ref="rspec:property"/>
+      <xs:element ref="rspec:link_type"/>
+      <xs:element ref="rspec:interface_ref"/>
+    </xs:choice>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+  </xs:complexType>
+  <xs:element name="property" type="rspec:LinkPropertyContents"/>
+  <xs:element name="interface_ref" type="rspec:InterfaceRefContents"/>
+  <xs:complexType name="InterfaceRefContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+  </xs:complexType>
+  <!-- The unidirectional network properties of a link. -->
+  <xs:complexType name="LinkPropertyContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="source_id" use="required"/>
+    <xs:attribute name="dest_id" use="required"/>
+    <xs:attribute name="capacity"/>
+    <xs:attribute name="latency"/>
+    <xs:attribute name="packet_loss"/>
+  </xs:complexType>
+  <xs:element name="link_type">
+    <xs:complexType>
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:attributeGroup ref="rspec:AnyExtension"/>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="class"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="link_class">
+    <xs:complexType>
+      <xs:group ref="rspec:AnyExtension"/>
+      <xs:attributeGroup ref="rspec:AnyExtension"/>
+      <xs:attribute name="name" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="sliver_type" type="rspec:SliverTypeContents"/>
+  <xs:complexType name="SliverTypeContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="name" use="required"/>
+  </xs:complexType>
+  <xs:element name="hardware_type" type="rspec:HardwareTypeContents"/>
+  <xs:complexType name="HardwareTypeContents">
+    <xs:group ref="rspec:AnyExtension"/>
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="name" use="required"/>
+  </xs:complexType>
+  <xs:group name="DiskImageContents">
+    <xs:sequence>
+      <xs:group ref="rspec:AnyExtension"/>
+    </xs:sequence>
+  </xs:group>
+  <xs:attributeGroup name="DiskImageContents">
+    <xs:attributeGroup ref="rspec:AnyExtension"/>
+    <xs:attribute name="name" use="required"/>
+    <xs:attribute name="os"/>
+    <xs:attribute name="version"/>
+    <xs:attribute name="description"/>
+  </xs:attributeGroup>
+</xs:schema>

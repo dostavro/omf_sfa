@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1" xmlns:lte="http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1" xmlns:rspec="http://www.geni.net/resources/rspec/3">
+  <xs:import namespace="http://www.geni.net/resources/rspec/3" schemaLocation="common.xsd"/>
+  <xs:element name="e_node_b">
+    <xs:complexType>
+      <xs:all>
+        <xs:element ref="lte:control_ip"/>
+        <xs:element ref="lte:mme_ip"/>
+        <xs:element ref="lte:pgw_ip"/>
+      </xs:all>
+      <xs:attribute name="base_model" use="required"/>
+      <xs:attribute name="center_dl_frequency" use="required"/>
+      <xs:attribute name="center_ul_frequency" use="required"/>
+      <xs:attribute name="channel_bandwidth" use="required"/>
+      <xs:attribute name="mme_sctp_port" use="required" type="xs:integer"/>
+      <xs:attribute name="number_of_antennas" use="required" type="xs:integer"/>
+      <xs:attribute name="mode" use="required"/>
+      <xs:attribute name="tx_power" use="required"/>
+      <xs:attribute name="vendor" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="control_ip" type="rspec:InterfaceContents"/>
+  <xs:element name="mme_ip" type="rspec:InterfaceContents"/>
+  <xs:element name="pgw_ip" type="rspec:InterfaceContents"/>
+</xs:schema>
