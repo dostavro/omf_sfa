@@ -44,6 +44,7 @@ module OMF::SFA::Model
 
       t_now = Time.now
       parent.leases.each do |l|
+        next if l.status == "cancelled"
         return false if l.valid_from <= t_now && l.valid_until >= t_now
       end
       true
