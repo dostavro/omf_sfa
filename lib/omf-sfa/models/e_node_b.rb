@@ -13,7 +13,26 @@ module OMF::SFA::Model
     plugin :nested_attributes
     nested_attributes :control_ip, :pgw_ip, :mme_ip, :epc, :cmc
 
-    sfa_class 'e_node_b', :can_be_referred => true, :expose_id => false
+    sfa_add_namespace :flex, 'http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1'
+    sfa_class 'e_node_b', :can_be_referred => true, :expose_id => false, :namespace => :flex
+
+    sfa :availability, :attr_value => 'now', :attr_name => 'available'
+    sfa :base_model, :namespace => :flex
+    sfa :vendor, :namespace => :flex
+    sfa :mode, :namespace => :flex
+    sfa :center_ul_frequency, :namespace => :flex
+    sfa :center_dl_frequency, :namespace => :flex
+    sfa :channel_bandwidth, :namespace => :flex
+    sfa :number_of_antennas, :namespace => :flex
+    sfa :tx_power, :namespace => :flex
+    sfa :mme_sctp_port, :namespace => :flex
+    sfa :control_ip, :namespace => :flex
+    sfa :pgw_ip, :namespace => :flex
+    sfa :mme_ip, :namespace => :flex
+
+    def availability
+      self.available_now?
+    end
 
     def self.exclude_from_json
       sup = super

@@ -117,14 +117,16 @@ module OMF::SFA::Model
         case opts[:type].downcase
         when 'advertisement'
           root['xsi:schemaLocation'] = "#{SFA_NAMESPACE_URI} #{SFA_NAMESPACE_URI}/ad.xsd " +
-          "#{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/ad-reservation.xsd"
+          "#{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/ad-reservation.xsd" + 
+          "#{@@sfa_namespaces[:flex]} #{@@sfa_namespaces[:flex]}/ad.xsd"
 
           now = Time.now
           root.set_attribute('generated', now.iso8601)
           root.set_attribute('expires', (now + (opts[:valid_for] || 600)).iso8601)
         when 'manifest'
           root['xsi:schemaLocation'] = "#{SFA_NAMESPACE_URI} #{SFA_NAMESPACE_URI}/manifest.xsd " +
-          "#{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/request-reservation.xsd"
+          "#{@@sfa_namespaces[:ol]} #{@@sfa_namespaces[:ol]}/request-reservation.xsd" + 
+          "#{@@sfa_namespaces[:flex]} #{@@sfa_namespaces[:flex]}/ad.xsd"
 
           now = Time.now
           root.set_attribute('generated', now.iso8601)
