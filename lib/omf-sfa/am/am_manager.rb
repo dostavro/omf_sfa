@@ -896,12 +896,13 @@ module OMF::SFA::AM
       begin
         raise UnavailableResourceException unless UUID.validate(lease_el[:id])
         lease = find_lease({:uuid => lease_el[:id]}, authorizer)
-        if lease.valid_from != lease_properties[:valid_from] || lease.valid_until != lease_properties[:valid_until]
-          lease = modify_lease(lease_properties, lease, authorizer)
-          return { lease_el[:id] => lease }
-        else
-          return { lease_el[:id] => lease }
-        end
+        # if lease.valid_from != lease_properties[:valid_from] || lease.valid_until != lease_properties[:valid_until]
+        #   lease = modify_lease(lease_properties, lease, authorizer)
+        #   return { lease_el[:id] => lease }
+        # else
+        #   return { lease_el[:id] => lease }
+        # end
+        return { lease_el[:id] => lease }
       rescue UnavailableResourceException
         lease_descr = {account_id: authorizer.account.id, valid_from: lease_el[:valid_from], valid_until: lease_el[:valid_until]}
         lease = find_or_create_lease(lease_descr, authorizer)
