@@ -10,6 +10,7 @@ require 'sequel'
 
 require 'omf-sfa/am/am_runner'
 require 'omf-sfa/am/am_manager'
+require 'omf-sfa/am/central_am_manager'
 require 'omf-sfa/am/am_scheduler'
 require 'omf-sfa/am/am_liaison'
 require 'omf-sfa/am/am-xmpp/am_xmpp'
@@ -134,7 +135,11 @@ module OMF::SFA::AM
     end
 
     def init_am_manager(opts = {})
-      @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new(opts))
+      if opts[:central_broker] && opts
+        @am_manager = OMF::SFA::AM::CentralAMManager.new(OMF::SFA::AM::AMScheduler.new(opts))
+      else
+        @am_manager = OMF::SFA::AM::AMManager.new(OMF::SFA::AM::AMScheduler.new(opts))
+      end
       opts.merge!({am: {manager: @am_manager}})
     end
 
@@ -222,5 +227,15 @@ if @@config[:am_policies]
   opts[:am_policies] = {}
   opts[:am_policies][:require] = @@config[:am_policies][:require]
   opts[:am_policies][:constructor] =  @@config[:am_policies][:constructor]
+end
+if @@config[:central_broker] && @@config[:central_broker][:enabled]
+  opts[:central_broker] = {}
+  opts[:central_broker][:subauthorities] = {}
+  @@config[:central_broker][:subauthorities].each do |subauthority|
+    opts[:central_broker][:subauthorities][subauthority[:domain]] = {}
+    opts[:central_broker][:subauthorities][subauthority[:domain]][:address] = subauthority[:address]
+    opts[:central_broker][:subauthorities][subauthority[:domain]][:cert]    = subauthority[:cert]
+    opts[:central_broker][:subauthorities][subauthority[:domain]][:key]     = subauthority[:key]
+  end
 end
 OMF::SFA::AM::AMServer.new.run(opts)

@@ -111,7 +111,8 @@ module OMF::SFA::AM::Rest
         jb = JSON.parse(body)
         account = nil
         if jb.kind_of? Hash
-          account = jb['account'].nil? ? nil : jb['account']['name']
+          jb['account'] = jb.delete('account_attributes') if jb['account_attributes']
+          account = jb['account'].nil? ? nil : jb['account']['name'] || jb['account']['uuid'] || jb['account']['urn']
         end
         
         req.session[:authorizer] = AMAuthorizer.create_for_rest_request(env['rack.authenticated'], env['rack.peer_cert'], account, @opts[:am_manager])

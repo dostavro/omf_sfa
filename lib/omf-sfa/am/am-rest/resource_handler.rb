@@ -16,7 +16,7 @@ module OMF::SFA::AM::Rest
       #opts[:account] = @am_manager.get_default_account
       opts[:resource_uri] = path.join('/')
       if path.size == 0 || path.size == 1
-        debug "find_handler: path: '#{path}' opts: '#{opts.inspect}'"
+        debug "find_handler: path: '#{path}'"
         return self
       elsif path.size == 3 #/resources/type1/UUID/type2
         opts[:source_resource_uri] = path[0]
@@ -56,8 +56,16 @@ module OMF::SFA::AM::Rest
         descr.merge!(resource_params) unless resource_params.empty?
         opts[:path] = opts[:req].path.split('/')[0 .. -2].join('/')
         descr[:account_id] = @am_manager.get_scheduler.get_nil_account.id if eval("OMF::SFA::Model::#{resource_type}").can_be_managed?
-        if descr[:name].nil? && descr[:uuid].nil?
+        if descr[:name].nil? && descr[:uuid].nil? && descr[:urn].nil?
+           if descr[:account_urn]
+            acc = @am_manager.find_account({urn: descr.delete(:account_urn)}, authenticator)
+            descr[:account_id] = acc.id if acc
+          elsif descr[:account_uuid]
+            acc = @am_manager.find_account({uuid: descr.delete(:account_uuid)}, authenticator)
+            descr[:account_id] = acc.id if acc
+          end
           resource =  @am_manager.find_all_resources(descr, resource_type, authenticator)
+          resource = resource.delete_if {|res| res.leases.first.status != "active" && res.leases.first.status != "accepted"} if resource_params[:account_urn] || resource_params[:account_uuid]
         else
           resource = @am_manager.find_resource(descr, resource_type, authenticator)
         end
@@ -181,7 +189,7 @@ module OMF::SFA::AM::Rest
     end
 
     def resource_to_json(resource, path, opts, already_described = {})
-      debug "resource_to_json: resource: #{resource.inspect}, path: #{path}"
+      # debug "resource_to_json: resource: #{resource.inspect}, path: #{path}"
       if resource.kind_of? Enumerable
         res = []
         resource.each do |r|
@@ -196,7 +204,7 @@ module OMF::SFA::AM::Rest
           debug "TO_SFA_HASH: #{resource}"
           res = {:resource => resource.to_sfa_hash(already_described, :href_prefix => prefix)}
         else
-          rh = resource.to_hash
+          rh = resource.kind_of?(Hash) ? resource : resource.to_hash
 
           # unless (account = resource.account) == @am_manager.get_default_account()
             # rh[:account] = {:uuid => account.uuid.to_s, :name => account.name}
@@ -258,9 +266,15 @@ module OMF::SFA::AM::Rest
         res_descr[:valid_until] = resource_descr[:valid_until]
         ac_desc = resource_descr[:account] || resource_descr[:account_attributes]
         ac = OMF::SFA::Model::Account.first(ac_desc)
+        # ac = @am_manager.find_or_create_account(ac_desc, authorizer)
         raise OMF::SFA::AM::Rest::UnknownResourceException.new "Account with description '#{ac_desc}' does not exist." if ac.nil? 
         raise OMF::SFA::AM::Rest::NotAuthorizedException.new "Account with description '#{ac_desc}' is closed." unless ac.active?
-        res_descr[:account_id] = ac.id
+        if ac.kind_of? OMF::SFA::Model::Account
+          res_descr[:account_id] = ac.id
+        else
+          res_descr[:account] = {}
+          res_descr[:account][:urn] = ac[:urn]
+        end
         lease = @am_manager.find_or_create_lease(res_descr, authorizer)
 
         comps = resource_descr[:components] || resource_descr[:components_attributes]
@@ -271,6 +285,7 @@ module OMF::SFA::AM::Rest
           desc[:account_id] = nil_account_id
           desc[:uuid] = c[:uuid] unless c[:uuid].nil?
           desc[:name] = c[:name] unless c[:name].nil?
+          desc[:urn]  = c[:urn]  unless c[:urn].nil?
           if k = OMF::SFA::Model::Resource.first(desc)
             components << k
           end
@@ -301,6 +316,7 @@ module OMF::SFA::AM::Rest
           descr = {}
           descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
           descr.merge!({name: resource_descr[:name]}) if resource_descr.has_key?(:name)
+          descr.merge!({urn:  resource_descr[:urn]})  if resource_descr.has_key?(:urn)
         
           if descr.empty?
             raise OMF::SFA::AM::Rest::BadRequestException.new "Resource description is '#{resource_descr}'."
@@ -342,7 +358,15 @@ module OMF::SFA::AM::Rest
       descr.merge!({uuid: resource_descr[:uuid]}) if resource_descr.has_key?(:uuid)
       descr.merge!({name: resource_descr[:name]}) if descr[:uuid].nil? && resource_descr.has_key?(:name)
       unless descr.empty?
-        if resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
+        if type_to_create == 'Lease' && (resource_descr[:valid_until] || resource_descr[:valid_from])
+          resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
+          raise OMF::SFA::AM::Rest::UnknownResourceException.new "Unknown resource with descr'#{resource_descr}'." unless resource
+          desc = {}
+          desc[:valid_from] = resource_descr[:valid_from] if resource_descr[:valid_from]
+          desc[:valid_until] = resource_descr[:valid_until] if resource_descr[:valid_until]
+
+          @am_manager.get_scheduler.update_lease(resource, desc)
+        elsif resource = eval("OMF::SFA::Model::#{type_to_create}").first(descr)
           authorizer.can_modify_resource?(resource, type_to_create)
           resource.update(resource_descr)
           @am_manager.get_scheduler.update_lease_events_on_event_scheduler(resource) if type_to_create == 'Lease'

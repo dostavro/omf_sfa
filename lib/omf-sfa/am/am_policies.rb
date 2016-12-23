@@ -34,7 +34,7 @@ module OMF::SFA::AM
     end
 
     def valid?(lease, component=nil)
-      puts "valid? #{lease.inspect} : #{component.inspect}"
+      debug "valid? #{lease.inspect} : #{component.inspect}"
       validate(lease, component)
     rescue OMF::SFA::AM::QuotaExceededException
       return false

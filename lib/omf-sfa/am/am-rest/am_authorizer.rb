@@ -44,7 +44,11 @@ module OMF::SFA::AM::Rest
         raise OMF::SFA::AM::InsufficientPrivilegesException.new "URN and UUID are missing." if user_descr.empty?
 
         begin
-          user = am_manager.find_user(user_descr)
+          if am_manager.kind_of? OMF::SFA::AM::CentralAMManager
+            user = am_manager.find_user(user_descr)
+          else
+            user = OMF::SFA::Model::User.first(user_descr)
+          end
         rescue OMF::SFA::AM::UnavailableResourceException
           raise OMF::SFA::AM::InsufficientPrivilegesException.new "User: '#{user_descr}' does not exist"
         end
@@ -147,16 +151,28 @@ module OMF::SFA::AM::Rest
       else
         super()
         # @account = am_manager.find_account({name: account}, self) if account
-        @account = OMF::SFA::Model::Account.first({name: account}) if account
-        @account = @user.accounts.first if @account.nil?
+        if am_manager.kind_of? OMF::SFA::AM::CentralAMManager
+          acc_desc = UUID.validate(account) ? {uuid: account} : account.starts_with?('urn:publicid:IDN') ? {urn: account} : {name: account}
+          @account = am_manager.find_account(acc_desc, self).first
+          if @account[:closed]
+            raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{@account.name}' is closed.")
+          end
 
-        if @account.closed?
-          raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{@account.name}' is closed.")
-        end
+          unless @user.has_nil_account?(am_manager)
+            raise OMF::SFA::AM::InsufficientPrivilegesException.new("User '#{@user.name}' does not have sufficient privileges to perform this request.")
+          end
+        else
+          @account = OMF::SFA::Model::Account.first({name: account}) if account
+          @account = @user.accounts.first if @account.nil?
 
-        # @project = @account.project
-        unless @user.has_nil_account?(am_manager) || @account.users.include?(@user)
-          raise OMF::SFA::AM::InsufficientPrivilegesException.new("The user '#{@user.name}' does not belong to the account '#{account}'")
+          if @account.closed?
+            raise OMF::SFA::AM::InsufficientPrivilegesException.new("The account '#{@account.name}' is closed.")
+          end
+
+          # @project = @account.project
+          unless @user.has_nil_account?(am_manager) || @account.users.include?(@user)
+            raise OMF::SFA::AM::InsufficientPrivilegesException.new("The user '#{@user.name}' does not belong to the account '#{account}'")
+          end
         end
 
         if @account == am_manager._get_nil_account

@@ -16,7 +16,7 @@ module OMF::SFA::AM
 
     @@mapping_hook = nil
 
-    attr_reader :event_scheduler
+    attr_reader :event_scheduler, :options
 
     # Create a resource of specific type given its description in a hash. We create a clone of itself 
     # and assign it to the user who asked for it (conceptually a physical resource even though it is exclusive,
@@ -95,8 +95,13 @@ module OMF::SFA::AM
       unless lease.is_a? OMF::SFA::Model::Lease
         raise "Expected Lease but got '#{lease.inspect}'"
       end
+
       lease.components.each do |c|
           c.destroy unless c.parent_id.nil? # Destroy all the children and leave the parent intact
+      end
+      
+      if lease.status == 'active'
+        @liaison.on_lease_end(lease)
       end
 
       lease.valid_until <= Time.now ? lease.status = "past" : lease.status = "cancelled"
@@ -123,6 +128,65 @@ module OMF::SFA::AM
 
       lease.destroy
       true
+    end
+
+    # update +lease+
+    #
+    # This will check if the lease can be updated and then update it accordingly
+    # this should be used to update valid_from and valid_until only, other properties can be updated
+    # like any other resource
+    #
+    # @param [Lease] lease to release
+    # @param [Hash]  properties to be modified
+    #
+    def update_lease(lease, description)
+      debug "modify_lease: lease:'#{lease.inspect}' - #{description.inspect}"
+      unless lease.is_a? OMF::SFA::Model::Lease
+        raise "Expected Lease but got '#{lease.inspect}'"
+      end
+      description[:valid_until] = Time.parse(description[:valid_until]) if description[:valid_until] && description[:valid_until].kind_of?(String)
+      description[:valid_from] = Time.parse(description[:valid_from]) if description[:valid_from] && description[:valid_from].kind_of?(String)
+
+      if (description[:valid_until] && description[:valid_until] < lease.valid_until) || (description[:valid_from] && description[:valid_from] > lease.valid_from)
+        lease.update(description)
+        return
+      elsif description[:valid_until] && description[:valid_from]
+        timeslot_from1 = description[:valid_from]
+        timeslot_until1 = lease.valid_from
+        timeslot_from2 = lease.valid_until
+        timeslot_until2 = description[:valid_until]
+
+        lease.components.each do |comp|
+          next unless comp.parent.nil? # only unmanaged components should be checked
+          unless component_available?(comp, timeslot_from1, timeslot_until1)
+            raise UnavailableResourceException.new "Resource '#{comp.name}' is not available for the requested timeslot."
+          end
+          unless component_available?(comp, timeslot_from2, timeslot_until2)
+            raise UnavailableResourceException.new "Resource '#{comp.name}' is not available for the requested timeslot."
+          end
+        end
+        lease.update(description)
+        return
+      elsif description[:valid_from]
+        timeslot_from = description[:valid_from]
+        timeslot_until = lease.valid_from
+      elsif description[:valid_until]
+        timeslot_from = lease.valid_until
+        timeslot_until = description[:valid_until]
+      else
+        raise "Cannot update lease without valid_from or valid_until in the description."
+      end 
+
+      lease.components.each do |comp|
+        next unless comp.parent.nil? # only unmanaged components should be checked
+        unless component_available?(comp, timeslot_from, timeslot_until)
+          raise UnavailableResourceException.new "Resource '#{comp.name}' is not available for the requested timeslot."
+        end
+      end
+
+      lease.update(description)
+
+      lease
     end
 
     # Accept or reject the reservation of the component
@@ -195,6 +259,7 @@ module OMF::SFA::AM
     attr_accessor :liaison, :event_scheduler
 
     def initialize(opts = {})
+      @options = opts
       @nil_account = OMF::SFA::Model::Account.find_or_create(:name => '__default__') do |a|
         a.valid_until = Time.now + 1E10
         user = OMF::SFA::Model::User.find_or_create({:name => 'root', :urn => "urn:publicid:IDN+#{OMF::SFA::Model::Constants.default_domain}+user+root"})

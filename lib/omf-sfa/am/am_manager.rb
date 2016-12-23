@@ -301,7 +301,8 @@ module OMF::SFA::AM
     #
     def modify_lease(lease_properties, lease, authorizer)
       raise InsufficientPrivilegesException unless authorizer.can_modify_lease?(lease)
-      lease.update(lease_properties)
+      # lease.update(lease_properties)
+      @scheduler.update_lease(lease, lease_properties)
       @scheduler.update_lease_events_on_event_scheduler(lease)
       lease
     end
@@ -716,7 +717,6 @@ module OMF::SFA::AM
           resources.delete_if {|item| failed_resources.include?(item)}
           urns = []
           failed_resources.each do |fres|
-            puts 
             release_resource(fres[:failed], authorizer)
             urns << fres[:failed].urn
           end
@@ -911,6 +911,25 @@ module OMF::SFA::AM
         return { (lease_el[:client_id] || lease_el[:id]) => lease }
       end
     end
-    
+
+    def sfa_response_xml(resources, opts)
+      OMF::SFA::Model::Component.sfa_response_xml(resources, opts).to_xml
+    end
+
+    def configure_user_keys(users, authorizer)
+      all_keys = []
+      users.each do |user|
+        gurn = OMF::SFA::Model::GURN.parse(user["urn"])
+        u = self.find_or_create_user({urn: gurn.urn}, user["keys"])
+        u.keys.each do |k|
+          all_keys << k unless all_keys.include? k
+        end
+        unless authorizer.account.users.include?(u) 
+          authorizer.account.add_user(u) 
+          authorizer.account.save
+        end
+      end
+      @liaison.configure_keys(all_keys, authorizer.account)
+    end
   end # class
 end # OMF::SFA::AM

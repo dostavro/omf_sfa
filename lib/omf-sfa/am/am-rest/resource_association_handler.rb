@@ -148,7 +148,7 @@ module OMF::SFA::AM::Rest
       end
 
        # in this casses we need to use the manager and not the relation between them
-      if source_type == 'Lease' && (target_type == 'nodes' || target_type == "channels" || target_type == "e_node_bs" || target_type == "wimax_base_stations") 
+      if source_type == 'Lease' && (target_type == 'components' || target_type == 'nodes' || target_type == "channels" || target_type == "e_node_bs" || target_type == "wimax_base_stations") 
         scheduler = @am_manager.get_scheduler
         lease = source_resource
         target_resources.each do |comp|
@@ -257,7 +257,6 @@ module OMF::SFA::AM::Rest
     def add_keys_to_users(key, user)
       debug "add_keys_to_users: #{key.inspect} - #{user.inspect}"
       user.accounts.each do |ac|
-        puts "-- #{ac.inspect}"
         keys = []
         ac.users.each do |u|
           u.keys.each do |k|
