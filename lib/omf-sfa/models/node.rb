@@ -28,6 +28,7 @@ module OMF::SFA::Model
     sfa :monitored, :attribute => true
     sfa :services
     sfa :monitoring
+    sfa :usb_devices, :inline => true, :has_many => true
 
     def services
       return nil if self.account.id == OMF::SFA::Model::Account.where(name: '__default__').first.id

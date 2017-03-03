@@ -4,7 +4,13 @@ require 'omf-sfa/models/usb_device'
 module OMF::SFA::Model
   class LteDongle < UsbDevice
 
-    # sfa_class 'lte_dongle', :can_be_referred => true, :expose_id => false
+    sfa_class 'lte_dongle', :can_be_referred => true, :expose_id => false, :namespace => :flex
+
+    sfa :category, :namespace => :flex
+    sfa :lte_type, :namespace => :flex
+    sfa :bands, :namespace => :flex
+    sfa :imsi, :namespace => :flex
+    sfa :plmnid, :namespace => :flex
 
     # def self.exclude_from_json
     #   sup = super

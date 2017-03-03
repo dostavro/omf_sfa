@@ -4,7 +4,9 @@ require 'omf-sfa/models/usb_device'
 module OMF::SFA::Model
   class WimaxDongle < UsbDevice
 
-    # sfa_class 'wimax_dongle', :can_be_referred => true, :expose_id => false
+    sfa_class 'wimax_dongle', :can_be_referred => true, :expose_id => false, :namespace => :flex
+
+    sfa :bands, :namespace => :flex
 
     # def self.exclude_from_json
     #   sup = super
