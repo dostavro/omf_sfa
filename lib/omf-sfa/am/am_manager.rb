@@ -20,6 +20,7 @@ module OMF::SFA::AM
 
   # Namespace used for reservation information
   OL_NAMESPACE = "http://nitlab.inf.uth.gr/schema/sfa/rspec/1"
+  FLEX_NAMESPACE = "http://nitlab.inf.uth.gr/schema/sfa/rspec/lte/1"
 
   # The manager is where all the AM related policies and
   # resource management is concentrated. Testbeds with their own
@@ -701,6 +702,13 @@ module OMF::SFA::AM
         end.compact
 
         resources = resources.concat(channels)
+
+        # e_node_b reservation
+        e_node_bs = descr_el.xpath('/xmlns:rspec/flex:e_node_b', 'flex' => FLEX_NAMESPACE, 'xmlns' => "http://www.geni.net/resources/rspec/3").collect do |el|
+          update_resource_from_rspec(el, leases, clean_state, authorizer)
+        end.compact
+
+        resources = resources.concat(e_node_bs)
 
         # if resources.include?(false) # a component failed to be leased because of scheduler lease_component returned false
         #   resources.delete(false)
