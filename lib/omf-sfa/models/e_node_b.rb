@@ -29,9 +29,16 @@ module OMF::SFA::Model
     sfa :control_ip, :namespace => :flex
     sfa :pgw_ip, :namespace => :flex
     sfa :mme_ip, :namespace => :flex
+    sfa :sliver_id, :attribute => true
 
     def availability
       self.available_now?
+    end
+
+    def sliver_id
+      return nil if self.parent.nil?
+      return nil if self.leases.nil? || self.leases.empty?
+      self.leases.first.urn
     end
 
     def self.exclude_from_json
